@@ -65,8 +65,9 @@ $$ \begin{align} \begin{split} & \bar{a}i = \frac{a_i}{\text{RMS}(\mathbf{a})} g
 
 - [Decoupled Weight Decay Regularization](https://arxiv.org/abs/1711.05101) 优化器 AdamW: Adam + Weight Decay（权重衰减）; 
   - learning rate和weight decay 参数调整，固定一个调整另一个
-  - 训练llama2模型中，$β_1 = 0.9, β_2 = 0.95, eps = 10^{-5}$
-  - 训练llama2模型中，使用权重衰减(weight_decay)：0.1；梯度裁剪(gradient_clipping)：1.0
+  - 在训练llama2模型中，
+    - $β_1 = 0.9, β_2 = 0.95, eps = 10^{-5}$
+    - 权重衰减(weight_decay)：0.1；梯度裁剪(gradient_clipping)：1.0
 
 - [PaLM: Scaling Language Modeling with Pathways](https://arxiv.org/pdf/2204.02311.pdf) 模型训练效率的评估工作 比如 MFU
 
