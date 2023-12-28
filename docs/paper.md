@@ -14,13 +14,15 @@
   - https://vickiboykis.com/what_are_embeddings/
 
 - 定义一个全连接神经网络线性权重层：torch.nn.Linear 特征维度转化，
+
 $$y = xA^T + b$$
 
   - 训练权重和偏置bias
   - 可将输出维度变大，参数变多了，模型的拟合能力也变强
   - 多层组合为多层感知机 (Multilayer Perceptron, MLP)，后面接一个激活函数,
 
-- [Root Mean Square Layer Normalization](https://openreview.net/pdf?id=SygkZ3MTJE) RMSNorm 归一化权重层
+- [Root Mean Square Layer Normalization](https://openreview.net/pdf?id=SygkZ3MTJE) RMSNorm 归一化权重层,
+
 $$ \begin{align} \begin{split} & \bar{a}i = \frac{a_i}{\text{RMS}(\mathbf{a})} g_i, \quad \text{where}~~ \text{RMS}(\mathbf{a}) = \sqrt{\frac{1}{n} \sum{i=1}^{n} a_i^2}. \end{split}\nonumber \end{align} $$
 
   - https://github.com/bzhangGo/rmsnorm
