@@ -3,6 +3,8 @@
   - https://github.com/google/sentencepiece
   - 训练的分词模型 用于 模型的训练和推断
   - 训练的词汇表 用于 词汇表的构建
+  - **BPE** [[Sennrich et al.](https://www.aclweb.org/anthology/P16-1162)] llama2 使用BPE算法
+  - **unigram language model** [[Kudo.](https://arxiv.org/abs/1804.10959)] 
 
 - 定义一个神经网络Embedding嵌入权重层：torch.nn.Embedding(params.vocab_size, params.dim)
   - embedding 把数据集合映射到向量空间，进而把数据进行向量化的过程
@@ -29,7 +31,9 @@ $$ \begin{align} \begin{split} & \bar{a}i = \frac{a_i}{\text{RMS}(\mathbf{a})} g
 
 
 - [attention is all u need](https://arxiv.org/pdf/1706.03762.pdf), transformer 注意力机制 
-  - MHA: multihead attention. iterate over all heads -> GQA: Grouped-Query Attention(llama2)
+  - MHA: multihead attention -> MQA: Multi-Query Attention -> GQA: Grouped-Query Attention(llama2-34B/70B)
+  - [Fast Transformer Decoding: One Write-Head is All You Need](https://arxiv.org/abs/1911.02150) MQA: Multi-Query Attention
+  - [GQA: Training Generalized Multi-Query Transformer Models from Multi-Head Checkpoints](https://arxiv.org/abs/2305.13245) 较大模型kv缓存成为瓶颈, 训练质量和MHA差不多, 但是速度快很多,与MQA相当.
   - MHA简单来说就是通过多次线性投影linear projection得到原始输入的多个子空间，然后再每个子空间分别进行SDPA(Scaled Dot-Product Attention), 再把SDPA的结果进行聚合Concatenation,最后再做一个linear projection。
   - SDPA的全称为Scaled Dot-Product Attention, 属于点积注意力机制， 简单一句话来说就是，根据Query (Q)与Key之间的匹配度来对Value进行加权，而事实上不管是Query, Key还是Value都来自于输入，因此所谓的SDPA本质上是对输入信息信息进行重组。
   - 通过计算Query和各个Key的相似性或者相关性，得到每个Key对应Value的权重系数，然后对Value进行加权求和，即得到了最终的Attention数值。所以本质上Attention机制是对Source中元素的Value值进行加权求和，而Query和Key用来计算对应Value的权重系数。
@@ -50,7 +54,8 @@ $$ \begin{align} \begin{split} & \bar{a}i = \frac{a_i}{\text{RMS}(\mathbf{a})} g
   
 - [Rethinking the Inception Architecture for Computer Vision](https://arxiv.org/abs/1512.00567) 交叉熵 cross_entropy 损失函数的计算公式：
     $$L = -\frac{1}{N}\sum_{i=1}^{N}y_i\log(p_i)$$
-    - $y_i$ 表示真实值，$p_i$ 表示预测值
+    - $y_i$ 表示真实值 
+    - $p_i$ 表示预测值
     - 目的是获取输出概率（P）并测量与真值的距离
     - 使用softmax函数或者sigmoid函数将网络的输出转换为概率
     - PyTorch中它自带的命令torch.nn.functional.cross_entropy已经将转换概率值的操作整合了进去，所以不需要额外进行转换概率值的操作
@@ -60,6 +65,8 @@ $$ \begin{align} \begin{split} & \bar{a}i = \frac{a_i}{\text{RMS}(\mathbf{a})} g
 
 - [Decoupled Weight Decay Regularization](https://arxiv.org/abs/1711.05101) 优化器 AdamW: Adam + Weight Decay（权重衰减）; 
   - learning rate和weight decay 参数调整，固定一个调整另一个
+  - 训练llama2模型中，$β_1 = 0.9, β_2 = 0.95, eps = 10^{-5}$
+  - 训练llama2模型中，使用权重衰减(weight_decay)：0.1；梯度裁剪(gradient_clipping)：1.0
 
 - [PaLM: Scaling Language Modeling with Pathways](https://arxiv.org/pdf/2204.02311.pdf) 模型训练效率的评估工作 比如 MFU
 
@@ -85,7 +92,7 @@ $$ \begin{align} \begin{split} & \bar{a}i = \frac{a_i}{\text{RMS}(\mathbf{a})} g
 - [GPT2: Language Models are Unsupervised Multitask Learners](https://openai.com/research/better-language-models)
 - [GPT-3: Language Models are Few-Shot Learners](https://arxiv.org/abs/2005.14165)
 - [InstructGPT: Aligning language models to follow instructions](https://openai.com/research/instruction-following)
-- [ChatGPT](https://openai.com/blog/chatgpt)
+- [ChatGPT](https://openai.com/blog/chatgpt) | [Proximal Policy Optimization Algorithms](https://openai.com/research/openai-baselines-ppo)
 - [GPT-4 Technical Report](https://openai.com/research/gpt-4)
 - [LLaMA: Open and Efficient Foundation Language Models](https://ai.meta.com/research/publications/llama-open-and-efficient-foundation-language-models/)
-- [LLaMA 2: Open Foundation and Fine-Tuned Chat Models](https://ai.meta.com/research/publications/llama-2-open-foundation-and-fine-tuned-chat-models/)
+- [**LLaMA 2: Open Foundation and Fine-Tuned Chat Models**](https://ai.meta.com/research/publications/llama-2-open-foundation-and-fine-tuned-chat-models/)
