@@ -14,28 +14,33 @@
   - https://vickiboykis.com/what_are_embeddings/
 
 - 定义一个全连接神经网络线性权重层：torch.nn.Linear 特征维度转化，
+    $$y = xA^T + b$$
+    - 训练权重和偏置bias
+    - 可将输出维度变大，参数变多了，模型的拟合能力也变强
+    - 多层组合为多层感知机 (Multilayer Perceptron, MLP)，后面接一个激活函数,
 
-$$y = xA^T + b$$
-
-  - 训练权重和偏置bias
-  - 可将输出维度变大，参数变多了，模型的拟合能力也变强
-  - 多层组合为多层感知机 (Multilayer Perceptron, MLP)，后面接一个激活函数,
-
-- [Root Mean Square Layer Normalization](https://openreview.net/pdf?id=SygkZ3MTJE) RMSNorm 归一化权重层,
-
-$$ \begin{align} \begin{split} & \bar{a}i = \frac{a_i}{\text{RMS}(\mathbf{a})} g_i, \quad \text{where}~~ \text{RMS}(\mathbf{a}) = \sqrt{\frac{1}{n} \sum{i=1}^{n} a_i^2}. \end{split}\nonumber \end{align} $$
-
+- [Root Mean Square Layer Normalization](https://openreview.net/pdf?id=SygkZ3MTJE) RMSNorm 归一化权重层.
   - https://github.com/bzhangGo/rmsnorm
   - RMSNorm 根据均方根 (RMS) 对一层神经元的输入求和进行正则化，从而赋予模型重新缩放不变性和隐式学习率自适应能力。
   - RMSNorm 计算更简单，因此比 [LayerNorm](https://arxiv.org/abs/1607.06450) 更高效。
-- [attention is all u need](https://arxiv.org/pdf/1706.03762.pdf), transformer 自注意力机制 
+  - 计算公式：
+    
+$$ \begin{align} \begin{split} & \bar{a}i = \frac{a_i}{\text{RMS}(\mathbf{a})} g_i, \quad \text{where}~~ \text{RMS}(\mathbf{a}) = \sqrt{\frac{1}{n} \sum{i=1}^{n} a_i^2}. \end{split}\nonumber \end{align} $$
+
+
+- [attention is all u need](https://arxiv.org/pdf/1706.03762.pdf), transformer 注意力机制 
   - MHA: multihead attention. iterate over all heads -> GQA: Grouped-Query Attention(llama2)
   - MHA简单来说就是通过多次线性投影linear projection得到原始输入的多个子空间，然后再每个子空间分别进行SDPA(Scaled Dot-Product Attention), 再把SDPA的结果进行聚合Concatenation,最后再做一个linear projection。
   - SDPA的全称为Scaled Dot-Product Attention, 属于点积注意力机制， 简单一句话来说就是，根据Query (Q)与Key之间的匹配度来对Value进行加权，而事实上不管是Query, Key还是Value都来自于输入，因此所谓的SDPA本质上是对输入信息信息进行重组。
   - 通过计算Query和各个Key的相似性或者相关性，得到每个Key对应Value的权重系数，然后对Value进行加权求和，即得到了最终的Attention数值。所以本质上Attention机制是对Source中元素的Value值进行加权求和，而Query和Key用来计算对应Value的权重系数。
-  - self-attention 机制用于计算序列中当前token关注与其他token的联系，就是一个序列内的token，互相看其他token对自己的影响力有多大
+  - self-attention 自注意力机制用于计算序列中当前token关注与其他token的联系，就是一个序列内的token，互相看其他token对自己的影响力有多大
   
 - [Enhanced Transformer with Rotary Position Embedding](https://arxiv.org/abs/2104.09864) RoPE relative positional embeddings
+
+- [residual connection](https://en.wikipedia.org/wiki/Residual_neural_network) 残差连接（residual connection）是深度神经网络中的一种常见技术，它的作用是解决梯度消失和梯度爆炸问题，同时也可以帮助模型更快地收敛。
+  - 在传统的神经网络中，每个层的输出都是通过对前一层输出的非线性变换得到的。但是，当网络的深度增加时，前一层的输出可能会被过度压缩或拉伸，导致信息丢失或重复。这种情况下，网络的性能可能会受到影响，同时也会出现梯度消失或梯度爆炸的问题。
+  - 残差连接通过在每个层的输出与输入之间添加一个跨层连接来解决这个问题。更具体地说，残差连接将前一层的输出直接添加到当前层的输出中，从而提供了一种绕过非线性变换的路径。这样，网络就可以学习到在信息压缩或拉伸后保留重要信息的方法，同时也减轻了梯度消失或梯度爆炸的问题。
+  - 残差网络（ResNet）https://zh-v2.d2l.ai/chapter_convolutional-modern/resnet.html
   
 - [Improving neural networks by preventing co-adaptation of feature detectors](https://arxiv.org/abs/1207.0580) dropout 解决过拟合
   - 训练神经网络的时候经常会遇到过拟合的问题，过拟合具体表现在：模型在训练数据上损失函数较小，预测准确率较高；但是在测试数据上损失函数比较大，预测准确率较低
@@ -43,9 +48,8 @@ $$ \begin{align} \begin{split} & \bar{a}i = \frac{a_i}{\text{RMS}(\mathbf{a})} g
   
 - [GLU Variants Improve Transformer](https://arxiv.org/pdf/2002.05202.pdf) FFN 中激活函数SwiGLU/SiLU
   
-- [Rethinking the Inception Architecture for Computer Vision](https://arxiv.org/abs/1512.00567) 交叉熵 cross_entropy 
-    - 交叉熵损失函数的计算公式：
-    - $L = -\frac{1}{N}\sum_{i=1}^{N}y_i\log(p_i)$
+- [Rethinking the Inception Architecture for Computer Vision](https://arxiv.org/abs/1512.00567) 交叉熵 cross_entropy 损失函数的计算公式：
+    $$L = -\frac{1}{N}\sum_{i=1}^{N}y_i\log(p_i)$$
     - $y_i$ 表示真实值，$p_i$ 表示预测值
     - 目的是获取输出概率（P）并测量与真值的距离
     - 使用softmax函数或者sigmoid函数将网络的输出转换为概率
@@ -59,6 +63,10 @@ $$ \begin{align} \begin{split} & \bar{a}i = \frac{a_i}{\text{RMS}(\mathbf{a})} g
 
 - [PaLM: Scaling Language Modeling with Pathways](https://arxiv.org/pdf/2204.02311.pdf) 模型训练效率的评估工作 比如 MFU
 
+- Inference Sampling params (top-k, top-p, temperature)
+  - https://huggingface.co/blog/how-to-generate
+  - https://docs.cohere.com/docs/controlling-generation-with-top-k-top-p
+  - https://peterchng.com/blog/2023/05/02/token-selection-strategies-top-k-top-p-and-temperature/
 
 简单概括:
 
