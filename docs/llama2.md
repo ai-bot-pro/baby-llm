@@ -95,3 +95,7 @@ LlamaConfig {
 }
 ```
 
+![](llama2.drawio.png)
+
+
+## Model-File-Structure

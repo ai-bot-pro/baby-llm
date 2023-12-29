@@ -40,6 +40,7 @@ $$ \begin{align} \begin{split} & \bar{a}i = \frac{a_i}{\text{RMS}(\mathbf{a})} g
   - self-attention 自注意力机制用于计算序列中当前token关注与其他token的联系，就是一个序列内的token，互相看其他token对自己的影响力有多大
   
 - [Enhanced Transformer with Rotary Position Embedding](https://arxiv.org/abs/2104.09864) RoPE relative positional embeddings
+  - https://github.com/ZhuiyiTechnology/roformer
 
 - [residual connection](https://en.wikipedia.org/wiki/Residual_neural_network) 残差连接（residual connection）是深度神经网络中的一种常见技术，它的作用是解决梯度消失和梯度爆炸问题，同时也可以帮助模型更快地收敛。
   - 在传统的神经网络中，每个层的输出都是通过对前一层输出的非线性变换得到的。但是，当网络的深度增加时，前一层的输出可能会被过度压缩或拉伸，导致信息丢失或重复。这种情况下，网络的性能可能会受到影响，同时也会出现梯度消失或梯度爆炸的问题。
@@ -95,4 +96,4 @@ $$ \begin{align} \begin{split} & \bar{a}i = \frac{a_i}{\text{RMS}(\mathbf{a})} g
 - [ChatGPT](https://openai.com/blog/chatgpt) | [Proximal Policy Optimization Algorithms](https://openai.com/research/openai-baselines-ppo)
 - [GPT-4 Technical Report](https://openai.com/research/gpt-4)
 - [LLaMA: Open and Efficient Foundation Language Models](https://ai.meta.com/research/publications/llama-open-and-efficient-foundation-language-models/)
-- [**LLaMA 2: Open Foundation and Fine-Tuned Chat Models**](https://ai.meta.com/research/publications/llama-2-open-foundation-and-fine-tuned-chat-models/)
+- [**LLaMA 2: Open Foundation and Fine-Tuned Chat Models**](https://ai.meta.com/research/publications/llama-2-open-foundation-and-fine-tuned-chat-models/) (GQA, GAtt for chat 长序列上下文tokens 有用，保多轮对话一致)
