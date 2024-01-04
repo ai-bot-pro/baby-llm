@@ -69,6 +69,7 @@ $$ \begin{align} \begin{split} & \bar{a}i = \frac{a_i}{\text{RMS}(\mathbf{a})} g
   - 在训练llama2模型中，
     - $β_1 = 0.9, β_2 = 0.95, eps = 10^{-5}$
     - 权重衰减(weight_decay)：0.1；梯度裁剪(gradient_clipping)：1.0
+    - learning rate: 3e-4(7B/13B), 1.5e-4(34B/70B)
 
 - [PaLM: Scaling Language Modeling with Pathways](https://arxiv.org/pdf/2204.02311.pdf) 模型训练效率的评估工作 比如 MFU
 
@@ -87,7 +88,7 @@ $$ \begin{align} \begin{split} & \bar{a}i = \frac{a_i}{\text{RMS}(\mathbf{a})} g
 2. https://www.3blue1brown.com/topics/neural-networks
 4. https://karpathy.ai/zero-to-hero.html
 5. https://courses.d2l.ai/zh-v2/ (看沐神视频学)
-
+6. https://github.com/mlabonne/llm-course
 
 # LLMs:
 - [GPT1: Improving Language Understanding by Generative Pre-Training](https://openai.com/research/language-unsupervised)
