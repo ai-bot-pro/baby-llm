@@ -1,6 +1,5 @@
 import torch
-from bigramLM import BigramLanguageModel
-import sys,time,os
+import sys,time,os,random
 
 # hyperparameters
 batch_size = 64 # how many independent sequences will we process in parallel?
@@ -17,11 +16,11 @@ n_layer = 6
 dropout = 0.2
 
 char_encoding_len = 12 # Number of inputs for each character. Must be even.
-use_batch_norm = False # use batch normalization?
+use_batch_norm = True # use batch normalization?
 max_hidden_nodes = 2048 # Wider (first) hidden layer size of the funnel
-active_fn = "relu" # sigmoid / relu / silu(swiglu)
+active_fn = "silu" # sigmoid / relu / silu(swiglu)
 # ------------
-model_name="bigramLM" # bigramLM / mlpLM / gptLM
+model_name="gptLM" # bigramLM / mlpLM / gptLM
 
 torch.manual_seed(1337)
 
@@ -47,6 +46,8 @@ val_data = data[n:]
 
 # data loading
 def get_batch(split):
+    if model_name == "mlpLM":
+        return get_batches(split)
     # generate a small batch of data of inputs x and targets y
     data = train_data if split == 'train' else val_data
     ix = torch.randint(len(data) - block_size, (batch_size,))
@@ -55,8 +56,32 @@ def get_batch(split):
     x, y = x.to(device), y.to(device)
     return x, y
 
+def get_batches(split):
+    # generate a small batch of data of inputs x and targets y
+    data = train_data if split == 'train' else val_data
+    ix = torch.randint(len(data) - block_size, (batch_size,))
+    x = []
+    for i in ix:
+        block = data[i:i+block_size]
+        char_tensors = [encoded_patterns[idx] for idx in block]
+        char_tensors = torch.stack(char_tensors).view(-1)
+        x.append(char_tensors)
+    x = torch.stack(x).to(device)
+    y = torch.stack([data[i+block_size:i+block_size+1] for i in ix])
+    x, y = x.to(device), y.to(device)
+    
+    # For 1/4 of our batches, set the first N random elements in 'x' to
+    # zero, so that the network learn how to start a sequence from
+    # an incomplete prompt.
+    num_batches_to_modify = batch_size // 4
+    for batch_index in range(num_batches_to_modify):
+        N = random.randint(1, block_size)
+        x[batch_index, :N] = 0
+
+    return x, y
+
 @torch.no_grad()
-def estimate_loss(model):
+def estimate_loss():
     out = {}
     model.eval()
     for split in ['train', 'val']:
@@ -75,15 +100,18 @@ match model_name:
         from bigramLM import BigramLanguageModel
         model = BigramLanguageModel(vocab_size)
     case "mlpLM":
-        from mlpLM import MLPLanguageModel
+        from mlpLM import MLPLanguageModel,gen_coding_patterns
+        # Generate the patters for the inputs encoding
+        encoded_patterns = gen_coding_patterns(char_encoding_len,vocab_size,device)
         model = MLPLanguageModel(vocab_size, max_hidden_nodes,
                                  char_encoding_len, block_size,
+                                 encoded_patterns,
                                  use_batch_norm=use_batch_norm,
                                  use_active_fn=active_fn,
                                  dropout_rate=dropout)
     case "gptLM":
         from gptLM import GPTLanguageModel
-        model = GPTLanguageModel(vocab_size, n_embd, block_size, n_layer, n_head)
+        model = GPTLanguageModel(vocab_size, n_embd, block_size, n_layer, n_head, dropout)
 if model is None:
     raise ValueError("Unknown model name")
 
@@ -102,7 +130,7 @@ if len(sys.argv) == 3:
         context = torch.zeros((1,(block_size*char_encoding_len)), dtype=torch.float, device=device)
     else:
         context = torch.zeros((1, 1), dtype=torch.long, device=device)
-    print(decode(m.generate(context, max_new_tokens=500)[0].tolist()))
+    print(decode(m.generate(context, max_new_tokens=1024)).strip())
     exit(0)
 
 # create a PyTorch optimizer
@@ -145,7 +173,7 @@ for iter in range(max_iters):
 
         if best_so_far:
             # generate from the model
-            print(decode(m.generate(context, max_new_tokens=500)[0].tolist()))
+            print(decode(m.generate(context, max_new_tokens=200)).strip())
             torch.save(m.state_dict(),model_filename)
             print("Saving model ",model_filename)
 

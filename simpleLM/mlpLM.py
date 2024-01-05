@@ -77,16 +77,16 @@ class MLPLanguageModel(nn.Module):
                  hidden_nodes,
                  char_encoding_len,
                  block_size,
+                 encoded_patterns,
                  use_batch_norm=True,
                  use_active_fn="relu",  # sigmoid/relu/silu(swiglu)
                  dropout_rate=0.0):
         super().__init__()
-        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        self.encoded_patterns = gen_coding_patterns(
-            char_encoding_len, vocab_size, self.device)
+        self.encoded_patterns = encoded_patterns
 
         self.use_batch_norm = use_batch_norm
         self.block_size = block_size
+        self.char_encoding_len = char_encoding_len
 
         input_size = char_encoding_len * block_size
         self.fc1 = nn.Linear(input_size, hidden_nodes)

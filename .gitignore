@@ -61,5 +61,24 @@ cdk.out
 *~
 
 # model data
-data/
+datas/
 models/
+*.txt
+*.pth
+*.pt
+
+# python
+__pycache__
+.pytest_cache
+.mypy_cache
+.eggs
+.cache
+.mypy_cache
+.pytest_cache
+.ipynb_checkpoints
+
+# jupyter
+.ipynb_checkpoints
+
+# jupyter lab
+.jupyter

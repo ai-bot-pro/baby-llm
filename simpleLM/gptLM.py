@@ -33,9 +33,9 @@ class Head(nn.Module):
 class MultiHeadAttention(nn.Module):
     """ multiple heads of self-attention in parallel """
 
-    def __init__(self, num_heads, head_size, n_embd, dropout):
+    def __init__(self, num_heads, head_size, n_embd, block_size, dropout):
         super().__init__()
-        self.heads = nn.ModuleList([Head(head_size) for _ in range(num_heads)])
+        self.heads = nn.ModuleList([Head(head_size,n_embd,block_size,dropout) for _ in range(num_heads)])
         self.proj = nn.Linear(head_size * num_heads, n_embd)
         self.dropout = nn.Dropout(dropout)
 
@@ -62,12 +62,12 @@ class FeedFoward(nn.Module):
 class Block(nn.Module):
     """ Transformer block: communication followed by computation """
 
-    def __init__(self, n_embd, n_head):
+    def __init__(self, n_embd, n_head, block_size, dropout):
         # n_embd: embedding dimension, n_head: the number of heads we'd like
         super().__init__()
         head_size = n_embd // n_head
-        self.sa = MultiHeadAttention(n_head, head_size)
-        self.ffwd = FeedFoward(n_embd)
+        self.sa = MultiHeadAttention(n_head, head_size, n_embd, block_size, dropout)
+        self.ffwd = FeedFoward(n_embd, dropout)
         self.ln1 = nn.LayerNorm(n_embd)
         self.ln2 = nn.LayerNorm(n_embd)
 
@@ -78,12 +78,12 @@ class Block(nn.Module):
 
 class GPTLanguageModel(nn.Module):
 
-    def __init__(self, vocab_size, n_embd, block_size, n_layer, n_head):
+    def __init__(self, vocab_size, n_embd, block_size, n_layer, n_head, dropout=0.2):
         super().__init__()
         # each token directly reads off the logits for the next token from a lookup table
         self.token_embedding_table = nn.Embedding(vocab_size, n_embd)
         self.position_embedding_table = nn.Embedding(block_size, n_embd)
-        self.blocks = nn.Sequential(*[Block(n_embd, n_head=n_head) for _ in range(n_layer)])
+        self.blocks = nn.Sequential(*[Block(n_embd, n_head, block_size, dropout) for _ in range(n_layer)])
         self.ln_f = nn.LayerNorm(n_embd) # final layer norm
         self.lm_head = nn.Linear(n_embd, vocab_size)
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
