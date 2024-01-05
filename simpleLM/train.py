@@ -98,18 +98,24 @@ print(model_million_params, 'M parameters')
 if len(sys.argv) == 3:
     torch.manual_seed(int(time.time()*1000))
     m.load_state_dict(torch.load(sys.argv[2]))
-    context = torch.zeros((1, 1), dtype=torch.long, device=device)
+    if model_name == "mlpLM":
+        context = torch.zeros((1,(block_size*char_encoding_len)), dtype=torch.float, device=device)
+    else:
+        context = torch.zeros((1, 1), dtype=torch.long, device=device)
     print(decode(m.generate(context, max_new_tokens=500)[0].tolist()))
-    #context = torch.zeros((1,(block_size*char_encoding_len)), dtype=torch.float, device=device)
-    #print(decode(m.generate(context, max_new_tokens=1024)).strip())
     exit(0)
 
 # create a PyTorch optimizer
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 
 # Log the loss in some target file
-model_id = f"loss_BA:{batch_size}_BL:{block_size}_PAR:{model_million_params:.2f}_E:{char_encoding_len}_V:{vocab_size}_BN:{use_batch_norm}_LR:{learning_rate}_DR:{dropout}_{os.path.basename(filename)}"
+if model_name == "mlpLM":
+    model_id = f"loss_{model_name}_BA:{batch_size}_BL:{block_size}_PAR:{model_million_params:.2f}_E:{char_encoding_len}_V:{vocab_size}_BN:{use_batch_norm}_LR:{learning_rate}_DR:{dropout}_{os.path.basename(filename)}"
+else:
+    model_id = f"loss_{model_name}_BA:{batch_size}_BL:{block_size}_PAR:{model_million_params:.2f}_V:{vocab_size}_BN:{use_batch_norm}_LR:{learning_rate}_DR:{dropout}_{os.path.basename(filename)}"
+
 model_filename = model_id+".pth"
+
 
 # If a model with this parameters was already trained, don't overwrite
 # the weights and loss log.
@@ -132,12 +138,14 @@ for iter in range(max_iters):
             loss_file.write(f"{iter} {losses['train']:.4f} {losses['val']:.4f}\n")
             loss_file.flush()
 
-        context = torch.zeros((1, 1), dtype=torch.long, device=device)
-        #context = torch.zeros((1,(block_size*char_encoding_len)), dtype=torch.float, device=device)
+        if model_name == "mlpLM":
+            context = torch.zeros((1,(block_size*char_encoding_len)), dtype=torch.float, device=device)
+        else:
+            context = torch.zeros((1, 1), dtype=torch.long, device=device)
+
         if best_so_far:
             # generate from the model
             print(decode(m.generate(context, max_new_tokens=500)[0].tolist()))
-            #print(decode(m.generate(context, max_new_tokens=200)).strip())
             torch.save(m.state_dict(),model_filename)
             print("Saving model ",model_filename)
 
