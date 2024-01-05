@@ -59,3 +59,7 @@ cdk.out
 *.swp
 *.swo
 *~
+
+# model data
+data/
+models/
