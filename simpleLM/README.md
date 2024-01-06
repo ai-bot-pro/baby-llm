@@ -35,10 +35,18 @@ tips: 这里用数据集里的字符集作为一个简单的tokenizer 词表用�
 git clone https://github.com/weedge/baby-llm.git
 cd baby-llm && make -p {datas,models}
 # datas/tinyshakespeare.txt
-wget wget https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt -O datas/tinyshakespeare.txt
+wget https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt -O datas/tinyshakespeare.txt
 
 # train
-python3 simpleLM/train.py datas/tinyshakespeare.txt
+python3 simpleLM/train.py \
+    --model_name=bigramLM \
+    --dataset=./datas/tinyshakespeare.txt
+python3 simpleLM/train.py \
+    --model_name=mlpLM \
+    --dataset=./datas/tinyshakespeare.txt
+python3 simpleLM/train.py \
+    --model_name=gptLM \
+    --dataset=./datas/tinyshakespeare.txt
 ```
 
 
