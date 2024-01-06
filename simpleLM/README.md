@@ -47,6 +47,9 @@ python3 simpleLM/train.py \
 python3 simpleLM/train.py \
     --model_name=gptLM \
     --dataset=./datas/tinyshakespeare.txt
+
+# train/validation loss
+ls loss_*.txt | python3 simpleLM/plot.py 
 ```
 
 
