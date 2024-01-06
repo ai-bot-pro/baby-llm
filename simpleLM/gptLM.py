@@ -80,6 +80,7 @@ class GPTLanguageModel(nn.Module):
 
     def __init__(self, vocab_size, n_embd, block_size, n_layer, n_head, dropout=0.2):
         super().__init__()
+        self.block_size = block_size
         # each token directly reads off the logits for the next token from a lookup table
         self.token_embedding_table = nn.Embedding(vocab_size, n_embd)
         self.position_embedding_table = nn.Embedding(block_size, n_embd)

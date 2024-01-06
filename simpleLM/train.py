@@ -9,24 +9,34 @@ eval_interval = 500
 learning_rate = 3e-4
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 eval_iters = 200
-
-n_embd = 384
-n_head = 6
-n_layer = 6
 dropout = 0.2
 
+# mlp
 char_encoding_len = 12 # Number of inputs for each character. Must be even.
 use_batch_norm = True # use batch normalization?
 max_hidden_nodes = 2048 # Wider (first) hidden layer size of the funnel
 active_fn = "silu" # sigmoid / relu / silu(swiglu)
+
+# attention
+n_embd = 384
+n_head = 6
+n_layer = 6
 # ------------
-model_name="gptLM" # bigramLM / mlpLM / gptLM
+model_name = "gptLM" # bigramLM / mlpLM / gptLM
+compile = False  # use PyTorch 2.0 to compile the model to be faster
+# wget https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt
+dataset = 'input.txt'
+resume = False # resume model checkpoint to train
+ckpt_file = "loss.pth" # resume model checkpoint file
+
+_cur_work_dir = os.path.dirname(os.path.realpath(__file__))
+exec(open(f"{_cur_work_dir}/args.py").read())
+# change global args by custom --key=value
+change_global_args()
 
 torch.manual_seed(1337)
-
-# wget https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt
-filename = 'input.txt' if len(sys.argv) < 2 else sys.argv[1]
-with open(filename, 'r', encoding='utf-8') as f:
+with open(dataset, 'r', encoding='utf-8') as f:
+    print(f"read dataset:{dataset}")
     text = f.read()
 
 # here are all the unique characters that occur in this text
@@ -81,7 +91,7 @@ def get_batches(split):
     return x, y
 
 @torch.no_grad()
-def estimate_loss():
+def estimate_loss(model):
     out = {}
     model.eval()
     for split in ['train', 'val']:
@@ -121,11 +131,11 @@ model_million_params = sum(p.numel() for p in m.parameters())/1e6
 print(m)
 print(model_million_params, 'M parameters')
 
-# If the second argument is a model name, we just load the model
+# If argument resume is set, load the model checkpoint
 # and generate some text with it.
-if len(sys.argv) == 3:
+if resume is True:
     torch.manual_seed(int(time.time()*1000))
-    m.load_state_dict(torch.load(sys.argv[2]))
+    m.load_state_dict(torch.load(ckpt_file))
     if model_name == "mlpLM":
         context = torch.zeros((1,(block_size*char_encoding_len)), dtype=torch.float, device=device)
     else:
@@ -136,11 +146,17 @@ if len(sys.argv) == 3:
 # create a PyTorch optimizer
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 
+# compile the model
+if compile:
+    print("compiling the model... (takes a ~minute)")
+    unoptimized_model = model
+    model = torch.compile(model)  # requires PyTorch 2.0
+
 # Log the loss in some target file
 if model_name == "mlpLM":
-    model_id = f"loss_{model_name}_BA:{batch_size}_BL:{block_size}_PAR:{model_million_params:.2f}_E:{char_encoding_len}_V:{vocab_size}_BN:{use_batch_norm}_LR:{learning_rate}_DR:{dropout}_{os.path.basename(filename)}"
+    model_id = f"loss_{model_name}_BA:{batch_size}_BL:{block_size}_PAR:{model_million_params:.2f}_E:{char_encoding_len}_V:{vocab_size}_BN:{use_batch_norm}_LR:{learning_rate}_DR:{dropout}_{os.path.basename(dataset)}"
 else:
-    model_id = f"loss_{model_name}_BA:{batch_size}_BL:{block_size}_PAR:{model_million_params:.2f}_V:{vocab_size}_BN:{use_batch_norm}_LR:{learning_rate}_DR:{dropout}_{os.path.basename(filename)}"
+    model_id = f"loss_{model_name}_BA:{batch_size}_BL:{block_size}_PAR:{model_million_params:.2f}_V:{vocab_size}_BN:{use_batch_norm}_LR:{learning_rate}_DR:{dropout}_{os.path.basename(dataset)}"
 
 model_filename = model_id+".pth"
 
@@ -158,7 +174,7 @@ iter_duration = 0 # iter time
 for iter in range(max_iters):
     # every once in a while evaluate the loss on train and val sets
     if iter % eval_interval == 0 or iter == max_iters - 1:
-        losses = estimate_loss()
+        losses = estimate_loss(model)
         best_so_far = losses['val'] < minloss
         minloss = min(minloss,losses['val'])
         print(f">>> step {iter}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}, min loss {minloss:.4f}, {iter_duration*1000:.2f} ms per step")
