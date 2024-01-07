@@ -147,10 +147,10 @@ if resume is True:
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 
 # compile the model
-if compile:
-    print("compiling the model... (takes a ~minute)")
-    unoptimized_model = model
-    model = torch.compile(model)  # requires PyTorch 2.0
+#if compile:
+#    print("compiling the model... (takes a ~minute)")
+#    unoptimized_model = model
+#    model = torch.compile(model)  # requires PyTorch 2.0
 
 # Log the loss in some target file
 if model_name == "mlpLM":
