@@ -15,7 +15,7 @@ dropout = 0.2
 char_encoding_len = 12 # Number of inputs for each character. Must be even.
 use_batch_norm = True # use batch normalization?
 max_hidden_nodes = 2048 # Wider (first) hidden layer size of the funnel
-active_fn = "silu" # sigmoid / relu / silu(swiglu)
+active_fn = "relu" # sigmoid / relu / silu(swiglu)
 
 # attention
 n_embd = 384
@@ -147,16 +147,16 @@ if resume is True:
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 
 # compile the model
-#if compile:
-#    print("compiling the model... (takes a ~minute)")
-#    unoptimized_model = model
-#    model = torch.compile(model)  # requires PyTorch 2.0
+if compile and model_name=="gptLM":
+    print("compiling the model... (takes a ~minute)")
+    unoptimized_model = model
+    model = torch.compile(model)  # requires PyTorch 2.0
 
 # Log the loss in some target file
 if model_name == "mlpLM":
-    model_id = f"loss_{model_name}_BA:{batch_size}_BL:{block_size}_PAR:{model_million_params:.2f}_E:{char_encoding_len}_V:{vocab_size}_BN:{use_batch_norm}_LR:{learning_rate}_DR:{dropout}_{os.path.basename(dataset)}"
+    model_id = f"loss_{model_name}_BA:{batch_size}_BL:{block_size}_PAR:{model_million_params:.2f}_E:{char_encoding_len}_V:{vocab_size}_AF:{active_fn}_BN:{use_batch_norm}_LR:{learning_rate}_DR:{dropout}_{os.path.basename(dataset)}"
 else:
-    model_id = f"loss_{model_name}_BA:{batch_size}_BL:{block_size}_PAR:{model_million_params:.2f}_V:{vocab_size}_BN:{use_batch_norm}_LR:{learning_rate}_DR:{dropout}_{os.path.basename(dataset)}"
+    model_id = f"loss_{model_name}_BA:{batch_size}_BL:{block_size}_PAR:{model_million_params:.2f}_V:{vocab_size}_LR:{learning_rate}_DR:{dropout}_{os.path.basename(dataset)}"
 
 model_filename = model_id+".pth"
 
