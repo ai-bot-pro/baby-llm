@@ -51,6 +51,7 @@ python3 simpleLM/train.py \
 # train/validation loss
 ls loss_*.txt | python3 simpleLM/plot.py 
 ```
+附：[simpleLM训练笔记](https://github.com/weedge/doraemon-nb/blob/main/simple_lm.ipynb)
 
 
 # 参考
