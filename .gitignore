@@ -82,3 +82,12 @@ __pycache__
 
 # jupyter lab
 .jupyter
+
+# datasets
+*.bin
+*.txt
+meta.pkl
+
+# ckpt
+*.log
+*.pth

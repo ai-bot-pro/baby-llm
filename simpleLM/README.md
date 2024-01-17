@@ -1,4 +1,5 @@
 # Simple Language Model
+简单的生成式语言模型(GLM), 用于了解GLM训练推理过程
 ## datasets
 - tinyshakespeare.txt
 ```shell
@@ -30,25 +31,30 @@ tips: 这里用数据集里的字符集作为一个简单的tokenizer 词表用�
 
 3. GPT(Generative Pre-trained Transformer) LM: 使用类似GPT2模型，加入位置embedding, block(attention机制, FFN(MLP)前馈层, 以及残差连接)， 以及对输入权重参数进行了初始化(如果初始化为0,反向传播时更新权重变的没有意义;为了防止"权重均一化"（严格地讲，是为了瓦解权重的对称结构），必须随机生成初始值;常采用定义标准差正太分布(高斯分布),这里标准差std=0.02)，
 
-## train
+
+## start
 ```shell
 git clone https://github.com/weedge/baby-llm.git
 cd baby-llm && make -p {datas,models}
 # datas/tinyshakespeare.txt
-wget https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt -O datas/tinyshakespeare.txt
+#wget https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt -O datas/tinyshakespeare.txt
+```
 
+### datasets prepare
+prepare: download datasets -> tokenizer --encode--> tokenids (train.bin, val.bin)
+```shell
+# shakespeare_char
+python3 simpleLM/datasets/shakespeare_char/prepare.py
+```
+
+### train & generate
+```shell
 # train
-python3 simpleLM/train.py \
-    --model_name=bigramLM \
-    --dataset=./datas/tinyshakespeare.txt
-python3 simpleLM/train.py \
-    --model_name=mlpLM \
-    --dataset=./datas/tinyshakespeare.txt
-python3 simpleLM/train.py \
-    --model_name=gptLM \
-    --dataset=./datas/tinyshakespeare.txt
+python3 simpleLM/train.py --model_name=bigramLM
+python3 simpleLM/train.py --model_name=mlpLM
+python3 simpleLM/train.py --model_name=gptLM
 
-# train/validation loss
+# plot train/validation loss
 ls loss_*.txt | python3 simpleLM/plot.py 
 ```
 附：[simpleLM训练笔记](https://github.com/weedge/doraemon-nb/blob/main/simple_lm.ipynb)
