@@ -5,6 +5,10 @@
 ```shell
 wget https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt -O datas/tinyshakespeare.txt
 ```
+- 红楼梦.txt
+```shell
+wget https://raw.githubusercontent.com/shjwudp/shu/master/books/%E7%BA%A2%E6%A5%BC%E6%A2%A6.txt -O datas/红楼梦.txt
+```
 ## tokenizer
 这里英文以一个单个字符来分词，字典是数据集中的字母集合，进行排序后，对应token为字母对应的索引。
 ```python
@@ -62,6 +66,7 @@ ls loss_*.txt | python3 simpleLM/plot.py
 
 # 参考
 - **https://lena-voita.github.io/nlp_course/language_modeling.html**
+- [ karpathy/min-char-rnn.py](https://gist.github.com/karpathy/d4dee566867f8291f086)
 - https://en.wikipedia.org/wiki/Activation_function
 - https://karpathy.ai/zero-to-hero.html
 - https://github.com/karpathy/ng-video-lecture

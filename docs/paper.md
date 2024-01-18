@@ -72,6 +72,8 @@ $$ \begin{align} \begin{split} & \bar{a}i = \frac{a_i}{\text{RMS}(\mathbf{a})} g
 
 - [PaLM: Scaling Language Modeling with Pathways](https://arxiv.org/pdf/2204.02311.pdf) 模型训练效率的评估工作 比如 MFU
 
+- [Scaling Laws for Neural Language Models](https://arxiv.org/pdf/2001.08361.pdf) | [Training Compute-Optimal Large Language Models](https://arxiv.org/pdf/2203.15556.pdf) 一些缩放定律结果指南，帮助确定计算最优模型。还包含用于计算浮点运算数（FLOPs）和参数数量的相关实用工具。
+
 - Inference Sampling params (top-k, top-p, temperature)
   - https://huggingface.co/blog/how-to-generate
   - https://docs.cohere.com/docs/controlling-generation-with-top-k-top-p
