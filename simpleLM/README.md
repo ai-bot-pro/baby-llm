@@ -61,6 +61,7 @@ ls loss_*.txt | python3 simpleLM/plot.py
 
 
 # 参考
+- **https://lena-voita.github.io/nlp_course/language_modeling.html**
 - https://en.wikipedia.org/wiki/Activation_function
 - https://karpathy.ai/zero-to-hero.html
 - https://github.com/karpathy/ng-video-lecture
@@ -71,3 +72,4 @@ ls loss_*.txt | python3 simpleLM/plot.py
 - [Dropout: A Simple Way to Prevent Neural Networks from Overfitting](https://jmlr.org/papers/volume15/srivastava14a/srivastava14a.pdf)
 - [Batch Normalization: Accelerating Deep Network Training by Reducing Internal Covariate Shift](https://arxiv.org/pdf/1502.03167.pdf)
 - [Understanding the backward pass through Batch Normalization Layer](https://kratzert.github.io/2016/02/12/understanding-the-gradient-flow-through-the-batch-normalization-layer.html)
+- [Character-Level Language Modeling with Deeper Self-Attention](https://arxiv.org/pdf/1808.04444.pdf)

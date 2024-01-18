@@ -36,8 +36,9 @@ def gen_coding_patterns(char_encoding_len, vocab_size, device):
         (math.factorial(char_encoding_len//2) *
          math.factorial(char_encoding_len//2))
     if permutations < vocab_size:
-        print("Insufficient 'char_encoding_len' value for vocabulary size.")
+        print(f"Insufficient 'char_encoding_len' permutations value {permutations} for vocabulary size {vocab_size}.")
         exit(1)
+    print(f"'char_encoding_len' permutations value {permutations} | vocabulary size {vocab_size}.")
 
     # We want the result of this function to be stable, so let's
     # create a PRNG with a seed which is always the same.
