@@ -1,4 +1,6 @@
 
+## 笔记：
+- [**nanoGPT**](https://colab.research.google.com/drive/1pY8-ql-koaE2fUTB3zRqQQ9pWkPT0bCs?usp=sharing)
 
 
 ## 参考：
