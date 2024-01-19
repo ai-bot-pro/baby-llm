@@ -1,8 +1,8 @@
 # Model
 0. [**GPT1: Improving Language Understanding by Generative Pre-Training**](https://s3-us-west-2.amazonaws.com/openai-assets/research-covers/language-unsupervised/language_understanding_paper.pdf) | https://openai.com/research/language-unsupervised 
 1. [**GPT2: Language Models are Unsupervised Multitask Learners**](https://openai.com/research/better-language-models) | https://openai.com/research/better-language-models 
-2. [openai-gpt2-model.py](https://github.com/openai/gpt-2/blob/master/src/model.py) 使用TensorFlow定义了模型，但没有训练代码
-3. [HF-transformer-gpt2](https://huggingface.co/docs/transformers/model_doc/gpt2)
+2. [openai-gpt-train.py](https://github.com/openai/finetune-transformer-lm/blob/master/train.py) | [openai-gpt2-model.py](https://github.com/openai/gpt-2/blob/master/src/model.py) (gpt2 使用TensorFlow定义了模型，但没有训练代码)
+3. [HF-transformer-openai-gpt](https://huggingface.co/docs/transformers/model_doc/openai-gpt) | [HF-transformer-gpt2](https://huggingface.co/docs/transformers/model_doc/gpt2)
 4. [openai/image-gpt](https://github.com/openai/image-gpt) 在其代码中有一些更现代化的类似gpt-3的修改，也是一个很好的参考
    
 ## Paper
