@@ -34,6 +34,7 @@ tips: 这里用数据集里的字符集作为一个简单的tokenizer 词表用�
   
 
 3. GPT(Generative Pre-trained Transformer) LM: 使用类似GPT2模型，加入位置embedding, block(attention机制, FFN(MLP)前馈层, 以及残差连接)， 以及对输入权重参数进行了初始化(如果初始化为0,反向传播时更新权重变的没有意义;为了防止"权重均一化"（严格地讲，是为了瓦解权重的对称结构），必须随机生成初始值;常采用定义标准差正太分布(高斯分布),这里标准差std=0.02)，
+![](https://raw.githubusercontent.com/weedge/baby-llm/main/docs/simple-gpt.drawio.png)
 
 
 ## start
