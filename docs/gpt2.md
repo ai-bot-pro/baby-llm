@@ -7,7 +7,7 @@
    
 ## Paper
 
-### Improving Language Understanding by Generative Pre-Training (GPT-1)
+### [Improving Language Understanding by Generative Pre-Training](https://openai.com/research/language-unsupervised) (GPT-1)
 
 - 我们的模型主要遵循了最初的Transformer工作
 - 我们训练了一个仅包含12层解码器的Transformer，具有掩码的自注意力头（768维状态和12个注意力头）。对于位置感知的前馈网络，我们使用了3072维的内部状态。
@@ -23,7 +23,7 @@
 - 对于微调：我们向分类器添加了0.1的丢弃率。学习率为6.25e-5，批量大小为32。3个时期。我们使用线性学习率衰减计划，并在训练的0.2%上进行预热。λ设置为0.5。
 - GPT-1模型有12层和d_model 768，约117M个参数。
 
-### Language Models are Unsupervised Multitask Learners (GPT-2)
+### [Language Models are Unsupervised Multitask Learners](https://openai.com/research/better-language-models) (GPT-2)
 
 - LayerNorm被移到了每个子块的输入处，类似于预激活残差网络
 - 在最终的自注意力块之后添加了额外的层归一化。
@@ -33,7 +33,7 @@
 - 使用更大的批量大小512
 - GPT-2使用48层和d_model 1600（与原始的12层和d_model 768相比）。约1.542B参数
 
-### Language Models are Few-Shot Learners (GPT-3)
+### [Language Models are Few-Shot Learners](https://arxiv.org/abs/2005.14165) (GPT-3) 
 
 - GPT-3：96层，96个头，d_model为12,288（175B参数）。
 - 类似GPT-1：12层，12个头，d_model 768（125M）
@@ -48,7 +48,7 @@
 - 从小值（32k标记）线性逐渐增加批量大小到完整值，在前4-12亿个标记的训练中取决于模型大小。
 - 始终使用完整的2048大小的时间上下文窗口，其中包含特殊的DOCUMENT结束标记。
 
-### Generative Pretraining from Pixels (Image GPT)
+### [Generative Pretraining from Pixels](https://cdn.openai.com/papers/Generative_Pretraining_from_Pixels_V2.pdf) (Image GPT)
 
 - 在处理图像时，我们选择标识排列πi = i，其中1 ≤ i ≤ n，也称为光栅顺序。
 - 我们通过使用k = 512的k均值聚类（R、G、B）像素值来创建自己的9位颜色调色板。
@@ -63,6 +63,12 @@
 - 我们没有使用权重衰减，因为应用小的权重衰减0.01并没有改变表示质量。
 - iGPT-S学习率为0.003
 - 不使用dropout。
+
+
+### other resources
+- [InstructGPT: Aligning language models to follow instructions](https://openai.com/research/instruction-following)
+- [ChatGPT](https://openai.com/blog/chatgpt) | [Proximal Policy Optimization Algorithms](https://openai.com/research/openai-baselines-ppo)
+- [GPT-4 Technical Report](https://openai.com/research/gpt-4)
 
 ## Model-Architecture
 ![](openai-gpt1-2.drawio.png)
