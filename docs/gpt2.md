@@ -71,6 +71,96 @@
 - [GPT-4 Technical Report](https://openai.com/research/gpt-4)
 
 ## Model-Architecture
+
+- gpt2: dict(n_layer=12, n_head=12, n_embd=768),  # 124M params
+```python
+from transformers import AutoModelForCausalLM
+from transformers import GPT2LMHeadModel
+from torch import nn
+
+def print_hf_gpt2_model(model_path):
+    hf_model = GPT2LMHeadModel.from_pretrained(model_path)
+    print(hf_model)
+    hf_dict = hf_model.state_dict()
+    print(hf_model.config)
+    #print(hf_dict.keys())
+
+model_path = "gpt2"
+print_hf_gpt2_model(model_path)
+```
+
+```
+GPT2LMHeadModel(
+  (transformer): GPT2Model(
+    (wte): Embedding(50257, 768)
+    (wpe): Embedding(1024, 768)
+    (drop): Dropout(p=0.1, inplace=False)
+    (h): ModuleList(
+      (0-11): 12 x GPT2Block(
+        (ln_1): LayerNorm((768,), eps=1e-05, elementwise_affine=True)
+        (attn): GPT2Attention(
+          (c_attn): Conv1D()
+          (c_proj): Conv1D()
+          (attn_dropout): Dropout(p=0.1, inplace=False)
+          (resid_dropout): Dropout(p=0.1, inplace=False)
+        )
+        (ln_2): LayerNorm((768,), eps=1e-05, elementwise_affine=True)
+        (mlp): GPT2MLP(
+          (c_fc): Conv1D()
+          (c_proj): Conv1D()
+          (act): NewGELUActivation()
+          (dropout): Dropout(p=0.1, inplace=False)
+        )
+      )
+    )
+    (ln_f): LayerNorm((768,), eps=1e-05, elementwise_affine=True)
+  )
+  (lm_head): Linear(in_features=768, out_features=50257, bias=False)
+)
+GPT2Config {
+  "_name_or_path": "gpt2",
+  "activation_function": "gelu_new",
+  "architectures": [
+    "GPT2LMHeadModel"
+  ],
+  "attn_pdrop": 0.1,
+  "bos_token_id": 50256,
+  "embd_pdrop": 0.1,
+  "eos_token_id": 50256,
+  "initializer_range": 0.02,
+  "layer_norm_epsilon": 1e-05,
+  "model_type": "gpt2",
+  "n_ctx": 1024,
+  "n_embd": 768,
+  "n_head": 12,
+  "n_inner": null,
+  "n_layer": 12,
+  "n_positions": 1024,
+  "reorder_and_upcast_attn": false,
+  "resid_pdrop": 0.1,
+  "scale_attn_by_inverse_layer_idx": false,
+  "scale_attn_weights": true,
+  "summary_activation": null,
+  "summary_first_dropout": 0.1,
+  "summary_proj_to_labels": true,
+  "summary_type": "cls_index",
+  "summary_use_proj": true,
+  "task_specific_params": {
+    "text-generation": {
+      "do_sample": true,
+      "max_length": 50
+    }
+  },
+  "transformers_version": "4.35.2",
+  "use_cache": true,
+  "vocab_size": 50257
+}
+
+```
+- gpt2-medium:  dict(n_layer=24, n_head=16, n_embd=1024), # 350M params
+- gpt2-large:   dict(n_layer=36, n_head=20, n_embd=1280), # 774M params
+- gpt2-xl:      dict(n_layer=48, n_head=25, n_embd=1600), # 1558M params
+
 ![](openai-gpt1-2.drawio.png)
 
 
