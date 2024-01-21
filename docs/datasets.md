@@ -23,3 +23,7 @@ Example story:
   "source": "GPT-4"
 }
 ```
+
+- OpenWebText (GPT2 webtext)
+
+- Common Crawl (GPT3 datasets)

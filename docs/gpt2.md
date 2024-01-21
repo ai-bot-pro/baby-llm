@@ -47,6 +47,7 @@
 - 线性学习率在前3.75亿个标记上进行预热。然后使用余弦衰减，使学习率下降到其值的10%，在2600亿个标记上进行。
 - 从小值（32k标记）线性逐渐增加批量大小到完整值，在前4-12亿个标记的训练中取决于模型大小。
 - 始终使用完整的2048大小的时间上下文窗口，其中包含特殊的DOCUMENT结束标记。
+- 数据集大部分来自Common Crawl，通过GPT2采集的正向数据webtext, 进行过滤；通过LSH(Spark’s MinHashLSH)过滤相似度高的数据
 
 ### [Generative Pretraining from Pixels](https://cdn.openai.com/papers/Generative_Pretraining_from_Pixels_V2.pdf) (Image GPT)
 
@@ -174,3 +175,4 @@ GPT2Config {
 3. https://jalammar.github.io/illustrated-transformer/
 4. https://colab.research.google.com/github/kmkarakaya/ML_tutorials/blob/master/Conv1d_Predict_house_prices.ipynb
 5. https://jalammar.github.io/illustrated-gpt2/
+7. [GPT，GPT-2，GPT-3 论文精读](https://www.youtube.com/watch?v=t70Bl3w7bxY)

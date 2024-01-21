@@ -90,6 +90,8 @@ $$ \begin{align} \begin{split} & \bar{a}i = \frac{a_i}{\text{RMS}(\mathbf{a})} g
 4. https://karpathy.ai/zero-to-hero.html
 5. https://courses.d2l.ai/zh-v2/ (看沐神视频学)
 6. https://github.com/mlabonne/llm-course
+7. [**Open Pretrained Transformers(OPT)** - Susan Zhang | Stanford MLSys #77](https://www.youtube.com/watch?v=p9IxoSkvZ-M) (训练一个LLM的工程实践)
+
 
 # LLMs:
 - [GPT1: Improving Language Understanding by Generative Pre-Training](https://openai.com/research/language-unsupervised)

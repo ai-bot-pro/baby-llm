@@ -24,7 +24,7 @@ decode = lambda l: ''.join([itos[i] for i in l]) # decoder: take a list of integ
 tips: 这里用数据集里的字符集作为一个简单的tokenizer 词表用来分词, 简单实现； 未使用像[sentencepiece](https://github.com/google/sentencepiece)、[tiktoken](https://github.com/openai/tiktoken) 这些分词器库，对分词器进行训练，获取词表。
 
 ## model
-1. Bigram LM: 一个包含vocab_size的vocab_size张量的嵌入权重层模块(nn.Embedding)，用来训练学习类似二元语言模型token的概率 $P(t_i\|t_{i-1})$权重参数
+1. Bigram LM: 一个包含vocab_size张量的嵌入权重层模块(nn.Embedding)，用来训练学习类似二元语言模型token的概率 $P(t_i\|t_{i-1})$权重参数$W_e$
 
 2. MLP(Multilayer Perceptron) LM: 每层为全连接线性权重层;  
    - 该模型定义了一个输入层，三个隐藏层(每层维度逐层指数减少)，一个输出层，除了输入层节点，每个节点都是一个带有非线性激活函数(sigmoid/relu(线性整流)/silu); 
@@ -60,7 +60,7 @@ python3 simpleLM/train.py --model_name=mlpLM
 python3 simpleLM/train.py --model_name=gptLM
 
 # plot train/validation loss
-ls loss_*.txt | python3 simpleLM/plot.py 
+ls loss_*.log | python3 simpleLM/plot.py 
 ```
 附：[simpleLM训练笔记](https://github.com/weedge/doraemon-nb/blob/main/simple_lm.ipynb)
 
