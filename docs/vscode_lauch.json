@@ -1,0 +1,20 @@
+{
+    "version": "0.0.1",
+    "configurations": [
+        {
+            "name": "simpleLM-train",
+            "type": "python",
+            "request": "launch",
+            "program": "${cwd}/simpleLM/train.py",
+            "args": [
+                "--model_name=bigramLM",
+                "--dataset=shakespeare_char",
+                "--compile=False"
+            ],
+            "cwd": "${workspaceFolder}",
+            "envFile": "${workspaceFolder}/.env",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        }
+    ]
+}

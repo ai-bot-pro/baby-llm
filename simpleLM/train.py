@@ -66,6 +66,7 @@ meta_path = os.path.join(data_dir, 'meta.pkl')
 vocab_size = None
 encode = None
 decode = None
+meta = {}
 if os.path.exists(meta_path):
     with open(meta_path, 'rb') as f:
         meta = pickle.load(f)
@@ -74,14 +75,16 @@ if os.path.exists(meta_path):
     stoi, itos = meta['stoi'], meta['itos']
     encode = lambda s: [stoi[c] for c in s]
     decode = lambda l: ''.join([itos[i] for i in l])
+    if "block_size" in meta:
+        block_size = meta[block_size]
 else:
     print(f"need tokenizer meta data from {meta_path},please check{meta_path} is exists?")
     exit()
 
 # data loading
 def get_batch(split):
-    if model_name == "mlpLM":
-        return get_batches(split)
+    if model_name == "mlpLM:
+        return get_mlp_batch(split)
     # generate a small batch of data of inputs x and targets y
     data = train_data if split == 'train' else val_data
     ix = torch.randint(len(data) - block_size, (batch_size,))
@@ -96,7 +99,7 @@ def get_batch(split):
         x, y = x.to(device), y.to(device)
     return x, y
 
-def get_batches(split):
+def get_mlp_batch(split):
     # generate a small batch of data of inputs x and targets y
     data = train_data if split == 'train' else val_data
     ix = torch.randint(len(data) - block_size, (batch_size,))

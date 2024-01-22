@@ -175,4 +175,5 @@ GPT2Config {
 3. https://jalammar.github.io/illustrated-transformer/
 4. https://colab.research.google.com/github/kmkarakaya/ML_tutorials/blob/master/Conv1d_Predict_house_prices.ipynb
 5. https://jalammar.github.io/illustrated-gpt2/
-7. [GPT，GPT-2，GPT-3 论文精读](https://www.youtube.com/watch?v=t70Bl3w7bxY)
+6. [GPT，GPT-2，GPT-3 论文精读](https://www.youtube.com/watch?v=t70Bl3w7bxY)
+7. **State of GPT** [vedio](https://www.youtube.com/watch?v=bZQun8Y4L2A) | [slides](https://karpathy.ai/stateofgpt.pdf)

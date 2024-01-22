@@ -52,7 +52,7 @@ prepare: download datasets -> tokenizer --encode--> tokenids (train.bin, val.bin
 python3 simpleLM/datasets/shakespeare_char/prepare.py
 ```
 
-### train & generate
+### train & generate(sampling; no temperature,top-k)
 ```shell
 # train
 python3 simpleLM/train.py --model_name=bigramLM
