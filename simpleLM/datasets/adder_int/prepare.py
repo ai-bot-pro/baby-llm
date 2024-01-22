@@ -88,6 +88,7 @@ block_size = 3*ndigit + 1 - 1
 meta = {
     'ndigit': ndigit,
     'vocab_size': vocab_size,
+    'block_size': block_size,
     'itos': itos,
     'stoi': stoi,
 }
