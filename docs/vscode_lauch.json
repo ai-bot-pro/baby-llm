@@ -15,6 +15,57 @@
             "envFile": "${workspaceFolder}/.env",
             "console": "integratedTerminal",
             "justMyCode": true
+        },
+        {
+            "name": "llama2-train",
+            "type": "python",
+            "request": "launch",
+            "module": "llama2/train.py",
+            "args": [
+                "--device=cpu",
+                "--compile=False",
+                "--eval_iters=1",
+                "--batch_size=8"
+            ],
+            "cwd": "${workspaceFolder}",
+            "envFile": "${workspaceFolder}/.env",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "inference-stories15M",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${cwd}/run",
+            "args": [
+                "${cwd}/stories15M.bin"
+            ],
+            "cwd": "${cwd}"
+        },
+        {
+            "name": "inference-stories260k",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${cwd}/run",
+            "args": [
+                "${cwd}/models/tinyllamas/stories260K/stories260K.bin",
+                "-z", "${cwd}/models/tinyllamas/stories260K/tok512.bin",
+                "-t", "0.0"
+            ],
+            "cwd": "${cwd}"
+        },
+        {
+            "name": "inference-stories260k-prompt",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${cwd}/run",
+            "args": [
+                "${cwd}/models/tinyllamas/stories260K/stories260K.bin",
+                "-z", "${cwd}/models/tinyllamas/stories260K/tok512.bin",
+                "-t", "0.0",
+                "-i", "hello"
+            ],
+            "cwd": "${cwd}"
         }
     ]
 }

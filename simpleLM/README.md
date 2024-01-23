@@ -61,6 +61,7 @@ python3 simpleLM/train.py --model_name=gptLM
 
 # plot train/validation loss
 ls loss_*.log | python3 simpleLM/plot.py 
+# tips: 这里没有使用wandb来记录loss, 简单直接通过plot来绘制曲线图
 ```
 附：[simpleLM训练笔记](https://github.com/weedge/doraemon-nb/blob/main/simple_lm.ipynb)
 

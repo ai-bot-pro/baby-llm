@@ -215,3 +215,10 @@ optimizer = model.configure_optimizers(weight_decay, learning_rate, (beta1, beta
 if init_from == "resume" and "optimizer" in checkpoint:
     optimizer.load_state_dict(checkpoint["optimizer"])
 ```
+
+## 笔记
+1. [train-llama2.c](https://colab.research.google.com/drive/1H28QtuztG375gyFinR7yrMIRAO6xA6i3?usp=sharing)
+2. [inference-llama2.c](https://colab.research.google.com/drive/1zBPySCFaTHliDNjfVart13e8_NOKmcZt?usp=sharing)
+3. [inference-llama2.cpp](https://colab.research.google.com/drive/18Z9LswuBAfKDlKCoOohBZMSubqiryHaJ?usp=sharing)
+4. [LLM-GGUF](https://colab.research.google.com/drive/1ReWUOQL1guB-QhEgkQiPFlXcC7qEDgWZ?usp=sharing)
+5. [Fine-tune Llama 2 in Google Colab](https://colab.research.google.com/drive/1zl7_R50tfcyEjjHNzeD-HUeYnfq5eg-G?usp=sharing)
