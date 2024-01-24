@@ -5,9 +5,6 @@
 ```shell
 # u can use huggingface proxy to download
 huggingface-cli download --repo-type dataset roneneldan/TinyStories TinyStories_all_data.tar.gz  --local-dir ./data/ --local-dir-use-symlinks False
-
-# then unpacking datasets
-python3 tinystories.py download
 ```
 
 Example story:
