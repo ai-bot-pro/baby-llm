@@ -1,10 +1,20 @@
 ## Datasets-TinyStories
 
 - download from hg roneneldan/TinyStories TinyStories datasets 
-
+  paper: [TinyStories: How Small Can Language Models Be and Still Speak Coherent English?](https://arxiv.org/pdf/2305.07759.pdf)
 ```shell
 # u can use huggingface proxy to download
-huggingface-cli download --repo-type dataset roneneldan/TinyStories TinyStories_all_data.tar.gz  --local-dir ./data/ --local-dir-use-symlinks False
+# roneneldan/TinyStories
+huggingface-cli download \
+    --repo-type dataset roneneldan/TinyStories TinyStories_all_data.tar.gz \
+    --local-dir ${data_dir}/roneneldan/TinyStories \
+    --local-dir-use-symlinks False
+
+# 52AI/TinyStoriesZh (use https://github.com/nidhaloff/deep-translator translate TinyStories datasets)
+!huggingface-cli download \
+  --repo-type dataset 52AI/TinyStoriesZh \
+  --local-dir ${data_dir}/52AI/TinyStoriesZh \
+  --local-dir-use-symlinks False
 ```
 
 Example story:
