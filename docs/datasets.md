@@ -1,3 +1,15 @@
+# Datasets-Tiny-Series
+ https://huggingface.co/collections/nampdn-ai/tiny-series-6503910fd491144159519c70
+
+探索使用这些微小的数据宝藏构建小型语言模型的可能性和局限性！
+
+- [TinyStories](https://arxiv.org/abs/2305.07759): 引发我对微型系列探索之旅兴趣的论文。
+- [tiny-textbooks](https://huggingface.co/datasets/nampdn-ai/tiny-textbooks): 42万个合成的“互联网事物”教科书。
+- [tiny-orca-textbooks](https://huggingface.co/datasets/nampdn-ai/tiny-orca-textbooks): 合成的教科书，帮助模型在上下文中学习如何正确执行任务的正确方式。
+- [tiny-webtext](https://huggingface.co/datasets/nampdn-ai/tiny-webtext): 6GB（450万条记录）的多样化网络文本，注入了批判性思维方法，制作了一个无偏见的英语数据集。
+- [tiny-lessons](https://huggingface.co/datasets/nampdn-ai/tiny-lessons): [tiny-textbooks](https://huggingface.co/datasets/nampdn-ai/tiny-textbooks) 数据集的子集，以适合教科书的Markdown格式提供了关于“互联网事物”的各种课程。
+- [tiny-bridgedict](https://huggingface.co/datasets/nampdn-ai/tiny-bridgedict): 一个在英语、越南语和中文之间建立知识链接和传递的微型多语言模型数据集。
+
 ## Datasets-TinyStories
 
 - download from hg roneneldan/TinyStories TinyStories datasets 
@@ -31,6 +43,13 @@ Example story:
 }
 ```
 
-- OpenWebText (GPT2 webtext)
+# 其他具有教科书般质量的小型高质量数据集
 
+- [devdocs.io](https://huggingface.co/datasets/nampdn-ai/devdocs.io): FreeCodeCamp提供了189,000份涵盖广泛技术栈和编程语言的全面API文档。
+- [sciphi-python-textbook](https://huggingface.co/datasets/emrgnt-cmplxty/sciphi-python-textbook)
+- [textbook_quality_programming](https://huggingface.co/datasets/vikp/textbook_quality_programming)
+- [sciphi-textbooks-are-all-you-need](https://huggingface.co/datasets/emrgnt-cmplxty/sciphi-textbooks-are-all-you-need)
+
+## 其他数据集
+- OpenWebText (GPT2 webtext)
 - Common Crawl (GPT3 datasets)
