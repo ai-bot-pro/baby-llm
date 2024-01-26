@@ -7,8 +7,7 @@ paper: [TinyStories: How Small Can Language Models Be and Still Speak Coherent E
 > We hope that TinyStories can facilitate the development, analysis and research of LMs, especially for low-resource
 or specialized domains, and shed light on the emergence of language capabilities in LMs. A general question that
 arises from this work is whether synthesizing a refined dataset can be beneficial in training networks for practical
-uses. For example, **perhaps it is possible to train a customer service chatbot by synthesizing a large dataset of
-hypothetical calls**.
+uses. For example, **perhaps it is possible to train a customer service chatbot by synthesizing a large dataset of hypothetical calls**.
 
 - 使用[deep-translator](https://github.com/nidhaloff/deep-translator)翻译的[51AI/TinyStoriesZh](https://huggingface.co/datasets/52AI/TinyStoriesZh), 翻译GPT生成的story部分，探索在中文数据集上小模型Speak Coherent Chinese的能力。 
 
