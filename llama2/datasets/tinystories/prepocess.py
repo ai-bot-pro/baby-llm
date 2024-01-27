@@ -68,9 +68,9 @@ def train_vocab(data_dir, vocab_size):
     print("Done.")
 
 
-def process_shard(args, data_dir, vocab_size):
+def process_shard(args, data_dir, vocab_size, tokenizer_model=None):
     shard_id, shard = args
-    tokenizer_model = os.path.join(data_dir, f"tok{vocab_size}.model")
+    tokenizer_model = os.path.join(data_dir, f"tok{vocab_size}.model") if tokenizer_model is None else tokenizer_model
     enc = Tokenizer(tokenizer_model)
     with open(shard, "r") as f:
         data = json.load(f)
@@ -100,7 +100,7 @@ def process_shard(args, data_dir, vocab_size):
     print(f"Saved {tokenized_filename}, average seqlen: {avg_seq_len:.2f}")
 
 
-def pretokenize(data_dir, vocab_size):
+def pretokenize(data_dir, vocab_size, tokenizer_model=None):
     # iterate the shards and tokenize all of them one by one
     shard_filenames = sorted(glob.glob(os.path.join(data_dir, "*.json")))
     if vocab_size > 0:
@@ -109,7 +109,7 @@ def pretokenize(data_dir, vocab_size):
         os.makedirs(bin_dir, exist_ok=True)
 
     # process all the shards in a process pool
-    fun = partial(process_shard, data_dir=data_dir, vocab_size=vocab_size)
+    fun = partial(process_shard, data_dir=data_dir, vocab_size=vocab_size, tokenizer_model=tokenizer_model)
     with ProcessPoolExecutor() as executor:
         executor.map(fun, enumerate(shard_filenames))
     print("Done.")
@@ -165,6 +165,7 @@ if __name__ == "__main__":
     parser.add_argument("--data_dir", type=str, default="./datas", help="process data dir")
     parser.add_argument("--src_tokenizer_model", type=str, default="", help="src tokenizer model file")
     parser.add_argument("--merge_tokenizer_model", type=str, default="", help="merge tokenizer model file")
+    parser.add_argument("--tokenizer_model", type=str, default="", help=" tokenizer model file")
     args = parser.parse_args()
 
     # depending on the stage call the appropriate function
@@ -175,7 +176,7 @@ if __name__ == "__main__":
                         merge_tokenizer_model=args.merge_tokenizer_model,
                         src_tokenizer_model=args.src_tokenizer_model)
     elif args.stage == "pretokenize":
-        pretokenize(data_dir=args.data_dir, vocab_size=args.vocab_size)
+        pretokenize(data_dir=args.data_dir, vocab_size=args.vocab_size, tokenizer_model=args.tokenizer_model)
     else:
         raise ValueError(f"Unknown stage {args.stage}")
 

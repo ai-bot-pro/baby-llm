@@ -23,7 +23,7 @@ python3 ./llama2/datasets/tinystories/prepocess.py train_vocab --vocab_size=8192
 python3 ./llama2/datasets/tinystories/prepocess.py merge_tokenizer --data_dir=./datas --src_tokenizer_model=${src} --merge_tokenizer_model=${merge}
 
 # 4. use trained tokenizer vocab model pretokenize tinystories datasets to tokenizer id for model trainning and inference
-python3 ./llama2/datasets/tinystories/prepocess.py pretokenize --vocab_size=8192 --data_dir=./datas
+python3 ./llama2/datasets/tinystories/prepocess.py pretokenize --vocab_size=8192 --data_dir=./datas --tokenizer_model=${model}
 
 # 5. export pb tokenizer model to binary file for LM training and inference if use sentencepiece
 python3 ./llama2/datasets/tinystories/tokenizer.py --tokenizer-model=${model}
