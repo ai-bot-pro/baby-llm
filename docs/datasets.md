@@ -23,7 +23,7 @@ huggingface-cli download \
     --local-dir-use-symlinks False
 
 # 52AI/TinyStoriesZh (use https://github.com/nidhaloff/deep-translator translate TinyStories datasets)
-!huggingface-cli download \
+huggingface-cli download \
   --repo-type dataset 52AI/TinyStoriesZh \
   --local-dir ${data_dir}/52AI/TinyStoriesZh \
   --local-dir-use-symlinks False
