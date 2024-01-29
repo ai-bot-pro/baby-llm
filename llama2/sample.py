@@ -12,18 +12,23 @@ from datasets.tinystories.tokenizer import Tokenizer
 # -----------------------------------------------------------------------------
 data_dir = "./datas"
 checkpoint = 'out/ckpt.pt'
+tokenizer = "" # override the tokenizer model path
 start = "" # or "<|endoftext|>" or etc. Can also specify a file, use as: "FILE:prompt.txt"
 num_samples = 1 # number of samples to draw
 max_new_tokens = 100 # number of tokens generated in each sample
 temperature = 1.0 # 1.0 = no change, < 1.0 = less random, > 1.0 = more random, in predictions
 top_k = 300 # retain only the top_k most likely tokens, clamp others to have 0 probability
-tokenizer = "" # override the tokenizer model path
+
 seed = 1337
 device = 'cuda' if torch.cuda.is_available() else 'cpu' # examples: 'cpu', 'cuda', 'cuda:0', 'cuda:1', etc.
 #dtype = 'bfloat16' if torch.cuda.is_available() and torch.cuda.is_bf16_supported() else 'float16' # 'float32' or 'bfloat16' or 'float16'
 dtype = "float32"
 compile = False # use PyTorch 2.0 to compile the model to be faster
-exec(open('configurator.py').read()) # overrides from command line or config file
+
+_cur_work_dir = os.path.dirname(os.path.realpath(__file__))
+exec(open(f"{_cur_work_dir}/args.py").read())
+# change global args by custom --key=value
+change_global_args() # overrides from command line
 # -----------------------------------------------------------------------------
 
 torch.manual_seed(seed)
@@ -36,8 +41,8 @@ ctx = nullcontext() if device_type == 'cpu' else torch.amp.autocast(device_type=
 
 # init from a model saved in a specific directory
 checkpoint_dict = torch.load(checkpoint, map_location=device)
-gptconf = ModelArgs(**checkpoint_dict['model_args'])
-model = Transformer(gptconf)
+model_conf = ModelArgs(**checkpoint_dict['model_args'])
+model = Transformer(model_conf)
 state_dict = checkpoint_dict['model']
 unwanted_prefix = '_orig_mod.'
 for k,v in list(state_dict.items()):
@@ -53,7 +58,7 @@ if compile:
 
 # load the tokenizer
 vocab_source = checkpoint_dict["config"].get("vocab_source", "llama2")
-vocab_size = gptconf.vocab_size
+vocab_size = model_conf.vocab_size
 if tokenizer:
     # a specific tokenizer is provided, use it
     tokenizer_model = tokenizer

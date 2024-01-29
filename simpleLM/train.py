@@ -83,7 +83,7 @@ else:
 
 # data loading
 def get_batch(split):
-    if model_name == "mlpLM:
+    if model_name == "mlpLM":
         return get_mlp_batch(split)
     # generate a small batch of data of inputs x and targets y
     data = train_data if split == 'train' else val_data

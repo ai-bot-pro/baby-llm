@@ -18,9 +18,10 @@ from datasets.tinystories.dataloader import Task
 from export import model_export
 
 # -----------------------------------------------------------------------------
+data_dir="./datas"# tokenizer datasets dir
 # I/O
 out_dir = "out"
-eval_interval = 2000
+eval_interval = 5000
 log_interval = 1
 eval_iters = 100
 eval_only = False  # if True, script exits right after the first eval
@@ -122,6 +123,7 @@ ctx = (
 # task-specific setup
 iter_batches = partial(
     Task.iter_batches,
+    data_dir=data_dir,
     batch_size=batch_size,
     max_seq_len=max_seq_len,
     vocab_size=vocab_size,

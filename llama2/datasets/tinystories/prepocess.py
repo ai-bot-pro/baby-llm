@@ -6,7 +6,7 @@ from concurrent.futures import ProcessPoolExecutor
 from functools import partial
 
 import numpy as np
-from llama2.datasets.tinystories.tokenizer import Tokenizer
+from tokenizer import Tokenizer
 
 os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"]="python"
 from transformers import LlamaTokenizer
@@ -57,12 +57,6 @@ def train_vocab(data_dir, vocab_size):
                                    byte_fallback=True,
                                    unk_surface=r" \342\201\207 ",
                                    normalization_rule_name="identity")
-
-    # 3) optional cleanup, ask the user if they'd like to delete tiny.txt
-    dec = input(f"Delete the temporary file {tiny_file}? [y/N] ")
-    if dec.lower() == "y":
-        os.remove(tiny_file)
-        print(f"Deleted {tiny_file}")
 
     print(f"Trained tokenizer is in {prefix}.model")
     print("Done.")

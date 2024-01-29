@@ -91,3 +91,5 @@ meta.pkl
 # ckpt
 *.log
 *.pth
+*.pt
+
