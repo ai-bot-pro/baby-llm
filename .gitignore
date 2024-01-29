@@ -93,3 +93,5 @@ meta.pkl
 *.pth
 *.pt
 
+out/
+outmini/
