@@ -12,13 +12,12 @@ from datasets.tinystories.tokenizer import Tokenizer
 # -----------------------------------------------------------------------------
 data_dir = "./datas"
 checkpoint = 'out/ckpt.pt'
-tokenizer = "" # override the tokenizer model path
 start = "" # or "<|endoftext|>" or etc. Can also specify a file, use as: "FILE:prompt.txt"
 num_samples = 1 # number of samples to draw
 max_new_tokens = 100 # number of tokens generated in each sample
 temperature = 1.0 # 1.0 = no change, < 1.0 = less random, > 1.0 = more random, in predictions
 top_k = 300 # retain only the top_k most likely tokens, clamp others to have 0 probability
-
+tokenizer = "" # override the tokenizer model path
 seed = 1337
 device = 'cuda' if torch.cuda.is_available() else 'cpu' # examples: 'cpu', 'cuda', 'cuda:0', 'cuda:1', etc.
 #dtype = 'bfloat16' if torch.cuda.is_available() and torch.cuda.is_bf16_supported() else 'float16' # 'float32' or 'bfloat16' or 'float16'
@@ -66,7 +65,7 @@ else:
     # let's try to find the tokenizer model automatically. bit gross here...
     query_vocab_size = 0 if vocab_source == "llama2" else vocab_size
     tokenizer_model = os.path.join(data_dir, f"tok{vocab_size}.model")
-enc = Tokenizer(tokenizer_model=tokenizer_model)
+enc = Tokenizer(tokenizer_model)
 
 # encode the beginning of the prompt
 if start.startswith('FILE:'):

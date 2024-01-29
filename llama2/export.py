@@ -468,7 +468,7 @@ def load_hf_model(model_path):
 
 # --------------------------API---------------------------------------------
 
-def model_export(model, filepath, version, dtype=torch.float32):
+def model_export(model, filepath, version=1, dtype=torch.float32):
     """
     Versions docs:
     v-1:huggingface export, i.e. intended for use outside of this repo, in HF

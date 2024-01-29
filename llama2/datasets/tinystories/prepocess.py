@@ -143,6 +143,12 @@ def merge_tokenizer(data_dir, merge_tokenizer_model, src_tokenizer_model="meta-l
     tokenizer.save_pretrained(output_hf_dir)
     print(f"{merge_sp_model} tokenizer has been saved to hf tokenizer {output_hf_dir}")
 
+def print_tokenizer(tokenizer_model):
+    import sentencepiece.sentencepiece_model_pb2
+    mp = sentencepiece.sentencepiece_model_pb2.ModelProto()
+    mp.ParseFromString(open(tokenizer_model, "rb").read())
+    print(mp.trainer_spec)
+    print(mp.normalizer_spec)
 
 if __name__ == "__main__":
     """
@@ -154,7 +160,7 @@ if __name__ == "__main__":
     python tinystories.py pretokenize --vocab_size=2048 --data_dir=./datas
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("stage", type=str, choices=["train_vocab", "merge_tokenizer", "pretokenize"])
+    parser.add_argument("stage", type=str, choices=["train_vocab", "merge_tokenizer", "pretokenize", "print_tokenizer"])
     parser.add_argument("--vocab_size", type=int, default=0, help="pretokenization vocab size")
     parser.add_argument("--data_dir", type=str, default="./datas", help="process data dir")
     parser.add_argument("--src_tokenizer_model", type=str, default="", help="src tokenizer model file")
@@ -170,7 +176,10 @@ if __name__ == "__main__":
                         merge_tokenizer_model=args.merge_tokenizer_model,
                         src_tokenizer_model=args.src_tokenizer_model)
     elif args.stage == "pretokenize":
-        pretokenize(data_dir=args.data_dir, vocab_size=args.vocab_size, tokenizer_model=args.tokenizer_model)
+        pretokenize(data_dir=args.data_dir, vocab_size=args.vocab_size,
+                    tokenizer_model=args.tokenizer_model)
+    elif args.stage == "print_tokenizer":
+        print_tokenizer(tokenizer_model=args.tokenizer_model)
     else:
         raise ValueError(f"Unknown stage {args.stage}")
 
