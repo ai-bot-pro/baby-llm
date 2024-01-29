@@ -7,13 +7,20 @@ set -e
 
 data_dir=./datas
 
+while getopts d: flag
+do
+  case "${flag}" in
+    d) data_dir=${OPTARG};;
+  esac
+done
+
 huggingface-cli login
 
 # roneneldan/TinyStories
 huggingface-cli download \
-    --repo-type dataset roneneldan/TinyStories TinyStories_all_data.tar.gz \
-    --local-dir ${data_dir}/roneneldan/TinyStories \
-    --local-dir-use-symlinks False
+  --repo-type dataset roneneldan/TinyStories TinyStories_all_data.tar.gz \
+  --local-dir ${data_dir}/roneneldan/TinyStories \
+  --local-dir-use-symlinks False
 cd ${data_dir}/roneneldan/TinyStories
 tar -zxvf TinyStories_all_data.tar.gz
 cd -

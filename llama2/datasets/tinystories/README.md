@@ -14,7 +14,7 @@ uses. For example, **perhaps it is possible to train a customer service chatbot 
 
 ```shell
 # 1. download tinystories
-bash ./llama2/datasets/tinystories/download.sh
+bash ./llama2/datasets/tinystories/download.sh -d ${data_dir}
 
 # 2. if need train tokenizer, train tokenizer vocab size=8196
 python3 ./llama2/datasets/tinystories/prepocess.py train_vocab --vocab_size=8192 --data_dir=${data_dir}
