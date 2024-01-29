@@ -2,12 +2,14 @@
 set -e
 data_dir=./datas
 vocab_size=512
+hg_repo_id=weege007/babyllm
 
 while getopts d:v: flag
 do
   case "${flag}" in
     d) data_dir=${OPTARG};;
     v) vocab_size=${OPTARG};;
+    h) hg_repo_id=${OPTARG};;
   esac
 done
 
@@ -17,7 +19,7 @@ done
 
 # upload tok${vocab_size}.model
 huggingface-cli upload \
-    --repo-type model weege007/babyllm \
+    --repo-type model ${hg_repo_id} \
     ${data_dir}/tok${vocab_size}.model \
     /tokenizers/${data_dir}/tok${vocab_size}.model
 

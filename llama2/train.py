@@ -61,6 +61,10 @@ wandb_project = "baby_llm_llama2"
 wandb_run_name_suffix = ""
 wandb_run_name = "run" + datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + wandb_run_name_suffix
 
+# huggingface upload training results
+hf_upload = False  # disabled by default
+repo_id = "weege007/babyllm"
+hf_models_dir = "/models"
 # -----------------------------------------------------------------------------
 config_keys = [
     k
@@ -177,7 +181,11 @@ elif init_from == "resume":
     model.load_state_dict(state_dict)
     iter_num = checkpoint["iter_num"]
     best_val_loss = checkpoint["best_val_loss"]
-model.to(device)
+m = model.to(device)
+# print the number of parameters in the model
+model_million_params = sum(p.numel() for p in m.parameters())/1e6
+print(m)
+print(f"{model_million_params}M parameters")
 
 # initialize a GradScaler. If enabled=False scaler is a no-op
 # torch.cuda.amp.GradScaler 是一个用于自动混合精度训练的 PyTorch 工具，它可以帮助加速模型训练并减少显存使用量。具体来说，GradScaler 可以将梯度缩放到较小的范围，以避免数值下溢或溢出的问题，同时保持足够的精度以避免模型的性能下降。
@@ -295,6 +303,20 @@ while True:
                 print(f"saving checkpoint to {out_dir}")
                 torch.save(checkpoint, os.path.join(out_dir, "ckpt.pt"))
                 model_export(raw_model, os.path.join(out_dir, "model.bin"))
+                if hf_upload:
+                    #@TODO: async upload
+                    print(f"upload checkpoint to {repo_id}")
+                    from huggingface_hub import upload_file
+                    upload_file(
+                        path_or_fileobj=os.path.join(out_dir, "ckpt.pt"),
+                        path_in_repo=os.path.join(hf_models_dir, f"{model_million_params}M.pt"),
+                        repo_id=repo_id,
+                    )
+                    upload_file(
+                        path_or_fileobj=os.path.join(out_dir, "model.bin"),
+                        path_in_repo=os.path.join(hf_models_dir, f"{model_million_params}M.bin"),
+                        repo_id=repo_id,
+                    )
     if iter_num == 0 and eval_only:
         break
 
