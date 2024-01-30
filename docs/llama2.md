@@ -99,7 +99,7 @@ LlamaConfig {
 
 
 ## Model-File-Structure
-用于训练验证和测试的数据集(这些数据集有人工标注和自动采集处理，通过hive(离线批处理),spark/flower算子进行数据过滤处理)，训练时的模型数据(tokenizer,模型参数)，以及最终训练好的模型数据，保存在数据湖(分布式文件系统,比如s3,hdfs等)中，使用时拉取至本地进行加载计算推理(加载加速，引入文件对象缓存)。
+用于训练验证和测试的数据集(这些数据集有人工标注和自动采集处理，通过hive(离线批处理),spark/flink算子进行数据过滤处理)，训练时的模型数据(tokenizer,模型参数)，以及最终训练好的模型数据，保存在数据湖(分布式文件系统,比如s3,hdfs等)中，使用时拉取至本地进行加载计算推理(加载加速，引入文件对象缓存)。
 
 Tips: 数据集的加载DataLoader 以[**Apache Arrow columnar memory format**](https://arrow.apache.org/docs/format/Columnar.html)处理，加快数据加载速度，减少内存占用,适合瓶颈是cpu的场景；或者以[Apache Parquet](https://parquet.apache.org/docs/file-format/)文件格式处理(可变字节编码，块压缩)，适合瓶颈是IO的场景；
 

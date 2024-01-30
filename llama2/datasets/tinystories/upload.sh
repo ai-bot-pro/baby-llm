@@ -4,7 +4,7 @@ data_dir=./datas
 vocab_size=512
 hg_repo_id=weege007/babyllm
 
-while getopts d:v: flag
+while getopts d:v:h: flag
 do
   case "${flag}" in
     d) data_dir=${OPTARG};;
