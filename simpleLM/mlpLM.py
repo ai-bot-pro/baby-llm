@@ -4,9 +4,6 @@ import torch.nn as nn
 from torch.nn import functional as F
 import random
 import math
-import sys
-import os
-import time
 
 # We don't want to use one-hot encoding since it's too sparse, nor binary
 # coding that may introduce biases. So we encode each input character

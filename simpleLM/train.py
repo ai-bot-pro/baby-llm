@@ -1,4 +1,5 @@
 import torch
+from torch.nn import init
 import sys,time,os,random
 import numpy as np
 import pickle
@@ -23,8 +24,14 @@ active_fn = "relu" # sigmoid / relu / silu(swiglu)
 n_embd = 384
 n_head = 6
 n_layer = 6
+
+# moe
+num_experts = 4 # experts num
+top_k = 2 # top-k experts
+nn_init = "kaiming_normal" # kaiming_normal / xavier_normal
+
 # ------------
-model_name = "gptLM" # bigramLM / mlpLM / gptLM
+model_name = "gptLM" # bigramLM / mlpLM / gptLM / moeLM
 compile = False  # use PyTorch 2.0 to compile the model to be faster
 # wget https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt
 dataset = 'shakespeare_char'
@@ -157,6 +164,10 @@ match model_name:
     case "gptLM":
         from gptLM import GPTLanguageModel
         model = GPTLanguageModel(vocab_size, n_embd, block_size, n_layer, n_head, dropout)
+    case "moeLM":
+        from moeLM import SparseMoELanguageModel
+        model = SparseMoELanguageModel(vocab_size, n_head, num_experts, top_k, n_layer, n_embd, block_size, dropout,nn_init=nn_init)
+
 if model is None:
     raise ValueError("Unknown model name")
 

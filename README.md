@@ -1,5 +1,5 @@
 ## baby-llm
- 👶🏻 [baby shark](https://en.wikipedia.org/wiki/Baby_Shark)
+ KISS : 👶🏻-🦈 [baby shark](https://en.wikipedia.org/wiki/Baby_Shark)
 
 ## License
 - The code is released under the MIT license.

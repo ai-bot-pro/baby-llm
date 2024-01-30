@@ -23,7 +23,7 @@ class BigramLanguageModel(nn.Module):
         if nn_type=="embedding":
             self.logits = nn.Embedding(vocab_size, vocab_size)
         else:
-            self.logits = nn.Parameter(torch.zeros((vocab_size, vocab_size)))"
+            self.logits = nn.Parameter(torch.zeros((vocab_size, vocab_size)))
 
     def forward(self, idx, targets=None):
         # idx and targets are both (B,T) tensor of integers
