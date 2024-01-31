@@ -195,3 +195,6 @@ class MoeLayer(nn.Module):
 ```
 
 ![](MoE-mixtral.drawio.png)
+
+# 笔记
+- [mixtral-llama.cpp-inference](https://colab.research.google.com/drive/1LJtHLepg6v_BhTPZtxcyuko3DC-vUVd2?usp=sharing)

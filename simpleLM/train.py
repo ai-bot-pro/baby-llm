@@ -193,7 +193,7 @@ if resume is True:
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 
 # compile the model
-if compile and model_name=="gptLM":
+if compile and model_name in ["gptLM","moeLM"]:
     print("compiling the model... (takes a ~minute)")
     unoptimized_model = model
     model = torch.compile(model)  # requires PyTorch 2.0
