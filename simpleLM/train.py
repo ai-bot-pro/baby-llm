@@ -187,7 +187,7 @@ if resume is True:
     else:
         context = torch.zeros((1, 1), dtype=torch.long, device=device)
     print(decode(m.generate(context, max_new_tokens=1024)).strip())
-    exit(0)
+    #exit(0)
 
 # create a PyTorch optimizer
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
@@ -205,15 +205,19 @@ else:
     model_id = f"loss_{model_name}_BA:{batch_size}_BL:{block_size}_PAR:{model_million_params:.2f}_V:{vocab_size}_LR:{learning_rate}_DR:{dropout}_{os.path.basename(dataset)}"
 
 model_filename = model_id+".pth"
-
+log_name = model_id+".log"
 
 # If a model with this parameters was already trained, don't overwrite
 # the weights and loss log.
 if os.path.exists(model_filename):
-    sys.exit(f"Pretrained weights found for this model: {model_filename}. If you want to proceed remove the file.")
+    #sys.exit(f"Pretrained weights found for this model: {model_filename}. If you want to proceed remove the file.")
+    model_filename = "resume_" + model_filename
+    log_name = "resume_" + log_name
+    print(f"Pretrained weights,log resume write to {model_filename} .")
 
-loss_file = open(model_id+".log",'w')
-print("Logging to", model_id+".log")
+loss_file = open(log_name,'w')
+print("Logging to", log_name)
+
 
 minloss = 10 # Track minimum validation loss found so far.
 iter_duration = 0 # iter time

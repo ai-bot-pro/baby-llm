@@ -5,7 +5,7 @@
 - [**A review of sparse expert models in deep learning**](https://arxiv.org/pdf/2209.01667.pdf)
 - [**Mixtral of Experts**](https://arxiv.org/pdf/2401.04088.pdf) | https://mistral.ai/news/mixtral-of-experts/  the feed forward blocks are replaced by Mixture-of-Expert layers; others are the same as Mistral 7B Architecture
 - [**GShard: Scaling Giant Models with Conditional Computation and Automatic Sharding**](https://arxiv.org/pdf/2006.16668.pdf) MoE(Transformer Encoder)
-- [**Switch Transformers: Scaling to Trillion Parameter Models with Simple and Efficient Sparsity**](https://arxiv.org/pdf/2101.03961.pdf) (Computes auxiliary load balancing loss with gate_logits,num_experts,top_k)
+- [**Switch Transformers: Scaling to Trillion Parameter Models with Simple and Efficient Sparsity**](https://arxiv.org/pdf/2101.03961.pdf) (Computes auxiliary load balancing loss with gate_logits, num_experts, top_k)
 - **https://github.com/mistralai/mistral-src** (just model architecture,no train)
 - [HF-transformers-modeling-mistral](https://github.com/huggingface/transformers/blob/v4.37.2/src/transformers/models/mistral/modeling_mistral.py)
 - [HF-transformers-modeling-mixtral](https://github.com/huggingface/transformers/blob/v4.37.2/src/transformers/models/mixtral/modeling_mixtral.py)
@@ -160,7 +160,7 @@ class MixtralSparseMoeBlock(nn.Module):
 ```
 
 ```python
-# 
+# mistralai MoE layer
 MoeLayer(
     experts=[FeedForward(args=args) for _ in range(args.moe.num_experts)],
     gate=nn.Linear(args.dim, args.moe.num_experts, bias=False),
@@ -197,4 +197,5 @@ class MoeLayer(nn.Module):
 ![](MoE-mixtral.drawio.png)
 
 # 笔记
+- [makeMoE_from_Scratch](https://colab.research.google.com/drive/1o-wzk9-tTdKyG7LLEkj1y3j4g3xY6Mx0?usp=sharing)
 - [mixtral-llama.cpp-inference](https://colab.research.google.com/drive/1LJtHLepg6v_BhTPZtxcyuko3DC-vUVd2?usp=sharing)
