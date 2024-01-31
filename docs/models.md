@@ -8,7 +8,7 @@ huggingface-cli download karpathy/tinyllamas --local-dir ./models/tinyllamas --l
 
 ```
 
-- upload pre trained models to hf weege007/babyllm  
+- upload pre-trained models with TinyStoriesZh dataset to hf weege007/babyllm  
 ```shell
 # Usage:  huggingface-cli upload --repo-type {model,dataset,space} [repo_id] [local_path] [path_in_repo]
 # u can cron to upload pre trained models
