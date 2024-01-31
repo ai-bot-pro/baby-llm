@@ -61,10 +61,11 @@ python3 simpleLM/datasets/shakespeare_char/prepare.py
 
 ### train & generate(sampling; no temperature,top-k)
 ```shell
-# train
+# train 超参数可调整
 python3 simpleLM/train.py --model_name=bigramLM
 python3 simpleLM/train.py --model_name=mlpLM
 python3 simpleLM/train.py --model_name=gptLM
+python3 simpleLM/train.py --model_name=moeLM
 
 # plot train/validation loss
 ls loss_*.log | python3 simpleLM/plot.py 
