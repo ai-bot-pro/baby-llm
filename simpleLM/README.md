@@ -42,7 +42,7 @@ tips: 这里用数据集里的字符集作为一个简单的tokenizer 词表用�
    - 模型训练初始化 - 这里使用了Kaiming He初始化，
       - [Delving Deep into Rectifiers: Surpassing Human-Level Performance on ImageNet Classification](https://arxiv.org/pdf/1502.01852.pdf) Kaiming He 
       - [Understanding the difficulty of training deep feedforward neural networks](https://proceedings.mlr.press/v9/glorot10a/glorot10a.pdf) Xavier Glorot
-
+  ![](https://raw.githubusercontent.com/weedge/baby-llm/main/docs/MoE-mixtral.drawio.png)
 
 ## start
 ```shell
