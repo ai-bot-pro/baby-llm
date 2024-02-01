@@ -271,7 +271,7 @@ while True:
     # evaluate the loss on train/val sets and write checkpoints
     if iter_num % eval_interval == 0 and master_process:
         # train训练数据用于参数（权重和偏置）的学习，
-        # val验证数据用于超参数的性能评估
+        # val验证数据用于参数的性能评估
         losses = estimate_loss()
         print(f"step {iter_num}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
         if wandb_log:

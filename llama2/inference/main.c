@@ -1,5 +1,5 @@
 /* Inference for Llama-2 Transformer model in pure C */
-// from: https://github.com/karpathy/llama2.c/blob/master/run.c
+// changed from: https://github.com/karpathy/llama2.c/blob/master/run.c
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,7 +13,11 @@
 // ----------------------------------------------------------------------------
 // Transformer model
 
+// https://docs.python.org/3/library/struct.html#format-characters
+// trained model.bin use struct.pack save, u need c-type to aligment read
 typedef struct {
+    unsigned int magic_number; // magic number
+    int version; // version
     int dim; // transformer dimension
     int hidden_dim; // for ffn layers
     int n_layers; // number of layers
