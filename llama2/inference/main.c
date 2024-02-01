@@ -15,6 +15,8 @@
 
 // https://docs.python.org/3/library/struct.html#format-characters
 // trained model.bin use struct.pack save, u need c-type to aligment read
+// if config is change, u need increase version to upgrade, 
+// maybe define new config struct
 typedef struct {
     unsigned int magic_number; // magic number
     int version; // version
@@ -25,6 +27,7 @@ typedef struct {
     int n_kv_heads; // number of key/value heads (can be < query heads because of multiquery)
     int vocab_size; // vocabulary size, usually 256 (byte-level)
     int seq_len; // max sequence length
+    unsigned char shared_classifier; // shared classifier 
 } Config;
 
 typedef struct {
@@ -109,45 +112,65 @@ void free_run_state(RunState* s) {
     free(s->value_cache);
 }
 
-void memory_map_weights(TransformerWeights *w, Config* p, float* ptr, int shared_weights) {
+void memory_map_weights(TransformerWeights *w, Config* p, void* ptr, unsigned char shared_classifier) {
+    float* fptr = (float*) ptr; // cast our pointer to float*
     int head_size = p->dim / p->n_heads;
     // make sure the multiplications below are done in 64bit to fit the parameter counts of 13B+ models
     unsigned long long n_layers = p->n_layers;
-    w->token_embedding_table = ptr;
-    ptr += p->vocab_size * p->dim;
-    w->rms_att_weight = ptr;
-    ptr += n_layers * p->dim;
-    w->wq = ptr;
-    ptr += n_layers * p->dim * (p->n_heads * head_size);
-    w->wk = ptr;
-    ptr += n_layers * p->dim * (p->n_kv_heads * head_size);
-    w->wv = ptr;
-    ptr += n_layers * p->dim * (p->n_kv_heads * head_size);
-    w->wo = ptr;
-    ptr += n_layers * (p->n_heads * head_size) * p->dim;
-    w->rms_ffn_weight = ptr;
-    ptr += n_layers * p->dim;
-    w->w1 = ptr;
-    ptr += n_layers * p->dim * p->hidden_dim;
-    w->w2 = ptr;
-    ptr += n_layers * p->hidden_dim * p->dim;
-    w->w3 = ptr;
-    ptr += n_layers * p->dim * p->hidden_dim;
-    w->rms_final_weight = ptr;
-    ptr += p->dim;
-    ptr += p->seq_len * head_size / 2; // skip what used to be freq_cis_real (for RoPE)
-    ptr += p->seq_len * head_size / 2; // skip what used to be freq_cis_imag (for RoPE)
-    w->wcls = shared_weights ? w->token_embedding_table : ptr;
+    // tok_embeddings
+    w->token_embedding_table = fptr;
+    // attention_norm
+    fptr += p->vocab_size * p->dim;
+    w->rms_att_weight = fptr;
+    // attention.wq
+    fptr += n_layers * p->dim;
+    w->wq = fptr;
+    // attention.wk
+    fptr += n_layers * p->dim * (p->n_heads * head_size);
+    w->wk = fptr;
+    // attention.wv
+    fptr += n_layers * p->dim * (p->n_kv_heads * head_size);
+    w->wv = fptr;
+    // attention.wo
+    fptr += n_layers * p->dim * (p->n_kv_heads * head_size);
+    w->wo = fptr;
+    // ffn_norm
+    fptr += n_layers * (p->n_heads * head_size) * p->dim;
+    w->rms_ffn_weight = fptr;
+    // feed_forward.w1
+    fptr += n_layers * p->dim;
+    w->w1 = fptr;
+    // feed_forward.w2
+    fptr += n_layers * p->dim * p->hidden_dim;
+    w->w2 = fptr;
+    // feed_forward.w3
+    fptr += n_layers * p->hidden_dim * p->dim;
+    w->w3 = fptr;
+    // final rmsnorm
+    fptr += n_layers * p->dim * p->hidden_dim;
+    w->rms_final_weight = fptr;
+
+    // freqs_cos (skip)
+    fptr += p->dim;
+    fptr += p->seq_len * head_size / 2; // skip what used to be freq_cis_real (for RoPE)
+    fptr += p->seq_len * head_size / 2; // skip what used to be freq_cis_imag (for RoPE)
+
+    // final classifier weights if shared classifier
+    w->wcls = shared_classifier ? w->token_embedding_table : fptr;
 }
 
-void read_checkpoint(char* checkpoint, Config* config, TransformerWeights* weights,
+void read_checkpoint_v1(char* checkpoint, Config* config, TransformerWeights* weights,
                      int* fd, float** data, ssize_t* file_size) {
     FILE *file = fopen(checkpoint, "rb");
     if (!file) { fprintf(stderr, "Couldn't open file %s\n", checkpoint); exit(EXIT_FAILURE); }
     // read in the config header
     if (fread(config, sizeof(Config), 1, file) != 1) { exit(EXIT_FAILURE); }
-    // negative vocab size is hacky way of signaling unshared weights. bit yikes.
-    int shared_weights = config->vocab_size > 0 ? 1 : 0;
+    // read in magic number (uint32), has to be 0x62616279, i.e. "baby" in ASCII
+    // https://en.wikipedia.org/wiki/Magic_number_(programming)#In_files
+    if (config->magic_number != 0x62616279) { fprintf(stderr, "Bad magic number\n"); exit(EXIT_FAILURE); }
+    // read in the version number (uint32), has to be 1
+    if (config->version != 1) { fprintf(stderr, "Bad version %d, need version 2\n", config->version); exit(EXIT_FAILURE); }
+
     config->vocab_size = abs(config->vocab_size);
     // figure out the file size
     fseek(file, 0, SEEK_END); // move file pointer to end of file
@@ -158,13 +181,14 @@ void read_checkpoint(char* checkpoint, Config* config, TransformerWeights* weigh
     if (*fd == -1) { fprintf(stderr, "open failed!\n"); exit(EXIT_FAILURE); }
     *data = mmap(NULL, *file_size, PROT_READ, MAP_PRIVATE, *fd, 0);
     if (*data == MAP_FAILED) { fprintf(stderr, "mmap failed!\n"); exit(EXIT_FAILURE); }
-    float* weights_ptr = *data + sizeof(Config)/sizeof(float);
-    memory_map_weights(weights, config, weights_ptr, shared_weights);
+    int header_size = 256; // the header size 256, left pad is \0
+    void* weights_ptr = ((char*)*data) + header_size; // skip header bytes. char is 1 byte
+    memory_map_weights(weights, config, weights_ptr, config->shared_classifier);
 }
 
 void build_transformer(Transformer *t, char* checkpoint_path) {
     // read in the Config and the Weights from the checkpoint
-    read_checkpoint(checkpoint_path, &t->config, &t->weights, &t->fd, &t->data, &t->file_size);
+    read_checkpoint_v1(checkpoint_path, &t->config, &t->weights, &t->fd, &t->data, &t->file_size);
     // allocate the RunState buffers
     malloc_run_state(&t->state, &t->config);
 }

@@ -30,6 +30,15 @@ exec(open(f"{_cur_work_dir}/args.py").read())
 change_global_args() # overrides from command line
 # -----------------------------------------------------------------------------
 
+def print_head(model):
+    p = model.params
+    hidden_dim = model.layers[0].feed_forward.w1.weight.shape[0]
+    n_kv_heads = p.n_heads if p.n_kv_heads is None else p.n_kv_heads
+    print(f"dim: {p.dim}\t n_layers: {p.n_layers} \t n_heads: {p.n_heads} \t vocab_size: {p.vocab_size} \t hidden_dim: {hidden_dim} \t n_kv_heads: {n_kv_heads}  \t max_seq_len: {p.max_seq_len}")
+    print(f"shared_classifier",torch.equal(model.tok_embeddings.weight,model.output.weight))
+    print(f"embedding weight",model.tok_embeddings.weight)
+
+
 torch.manual_seed(seed)
 torch.cuda.manual_seed(seed)
 torch.backends.cuda.matmul.allow_tf32 = True # allow tf32 on matmul
@@ -48,6 +57,8 @@ for k,v in list(state_dict.items()):
     if k.startswith(unwanted_prefix):
         state_dict[k[len(unwanted_prefix):]] = state_dict.pop(k)
 model.load_state_dict(state_dict, strict=False)
+print_head(model)
+exit()
 
 model.eval()
 model.to(device)

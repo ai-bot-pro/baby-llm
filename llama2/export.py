@@ -82,6 +82,7 @@ def version1_export(model, filepath):
     # first write out the header. the header will be 256 bytes
     # https://docs.python.org/3/library/struct.html#format-characters
     # 1) write magic
+    # https://en.wikipedia.org/wiki/Magic_number_(programming)#In_files
     out_file.write(struct.pack('I', MAGIC_ASCII_VAL))
     # 2) write version, which will be int
     out_file.write(struct.pack('i', version))
