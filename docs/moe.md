@@ -194,7 +194,7 @@ class MoeLayer(nn.Module):
         return results
 ```
 
-![](MoE-mixtral.drawio.png)
+![](./MoE-mixtral.drawio.png)
 
 # 笔记
 - [makeMoE_from_Scratch](https://colab.research.google.com/drive/1o-wzk9-tTdKyG7LLEkj1y3j4g3xY6Mx0?usp=sharing)
