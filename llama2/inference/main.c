@@ -779,7 +779,8 @@ float random_f32(unsigned long long *state) { // random float32 in [0,1)
     return (random_u32(state) >> 8) / 16777216.0f;
 }
 
-//  https://peterchng.com/blog/2023/05/02/token-selection-strategies-top-k-top-p-and-temperature/
+// https://peterchng.com/blog/2023/05/02/token-selection-strategies-top-k-top-p-and-temperature/
+// https://colab.research.google.com/drive/14kMyF1nDvjP1mA86Yd1xkGCaqA-c4xVy?usp=sharing
 int sample(Sampler* sampler, float* logits) {
     // sample the token given the logits and some hyperparameters
     int next;
@@ -818,6 +819,7 @@ long time_in_ms() {
 // ----------------------------------------------------------------------------
 // generation loop
 // https://huggingface.co/blog/how-to-generate
+// https://colab.research.google.com/drive/14kMyF1nDvjP1mA86Yd1xkGCaqA-c4xVy?usp=sharing
 void generate(Transformer *transformer, Tokenizer *tokenizer, Sampler *sampler, char *prompt, int steps) {
     char *empty_prompt = "";
     if (prompt == NULL) { prompt = empty_prompt; }

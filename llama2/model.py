@@ -361,6 +361,7 @@ class Transformer(nn.Module):
         the sequence max_new_tokens times, feeding the predictions back into the model each time.
         Most likely you'll want to make sure to be in model.eval() mode of operation for this.
         Also note this is a super inefficient version of sampling with no key/value cache.
+        https://colab.research.google.com/drive/14kMyF1nDvjP1mA86Yd1xkGCaqA-c4xVy?usp=sharing
         """
         for _ in range(max_new_tokens):
             # if the sequence context is growing too long we must crop it at block_size
