@@ -60,10 +60,13 @@ model.load_state_dict(state_dict, strict=False)
 print_head(model)
 
 model.eval()
-model.to(device)
+m = model.to(device)
 if compile:
     print("Compiling the model...")
     model = torch.compile(model) # requires PyTorch 2.0 (optional)
+model_million_params = sum(p.numel() for p in m.parameters())/1e6
+print(m)
+print(f"{model_million_params}M parameters")
 
 # load the tokenizer
 vocab_source = checkpoint_dict["config"].get("vocab_source", "llama2")
