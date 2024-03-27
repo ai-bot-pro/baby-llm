@@ -29,11 +29,25 @@ def batch_check_data(batch):
     return [len(item) != 0 for item in batch["text_zh"]]
 
 
+def batch_filter_larg_text(batch):
+    return [len(item) < 5000 for item in batch["text"]]
+
+
+def batch_filter_larg_prompt(batch):
+    return [len(item) < 5000 for item in batch["prompt"]]
+
+
 def translate2save(src_dataset_dir: str, target_dataset_dir: str):
     data = load_dataset(src_dataset_dir, split="train")
-    data = data.map(translate_en2cn, batched=False)
-    data.save_to_disk(target_dataset_dir)
     print(data)
+    data = data.filter(batch_filter_larg_text, batched=True)
+    print(data)
+    data = data.filter(batch_filter_larg_prompt, batched=True)
+    print(data)
+    data = data.map(translate_en2cn, batched=False)
+    print(data)
+    data.save_to_disk(target_dataset_dir)
+    print("translate ok, save to", target_dataset_dir)
 
 
 def load2check(dataset_dir):
