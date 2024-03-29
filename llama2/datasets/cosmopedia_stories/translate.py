@@ -1,5 +1,6 @@
 # https://huggingface.co/learn/nlp-course/chapter5/
 # https://zhuanlan.zhihu.com/p/564816807
+# u can change this for M/R op
 
 from deep_translator import GoogleTranslator
 from datasets import load_dataset, load_from_disk
@@ -69,9 +70,9 @@ def batch_filter_middle_prompt(batch):
 def translate2save(src_dataset_dir: str, target_dataset_dir: str):
     data = load_dataset(src_dataset_dir, split="train")
     print(data)
-    data = data.filter(batch_filter_middle_text, batched=True)
+    data = data.filter(batch_filter_larg_text, batched=True)
     print(data)
-    data = data.filter(batch_filter_middle_prompt, batched=True)
+    data = data.filter(batch_filter_larg_prompt, batched=True)
     print(data)
     data = data.map(remote_mt, batched=False)
     print(data)
@@ -90,9 +91,9 @@ def local_translate2save(src_dataset_dir: str, target_dataset_dir: str):
     init_local_mt_model()
     data = load_dataset(src_dataset_dir, split="train")
     print(data)
-    data = data.filter(batch_filter_larg_text, batched=True)
+    data = data.filter(batch_filter_middle_text, batched=True)
     print(data)
-    data = data.filter(batch_filter_larg_prompt, batched=True)
+    data = data.filter(batch_filter_middle_prompt, batched=True)
     print(data)
     data = data.map(local_mt, batched=False)
     print(data)
