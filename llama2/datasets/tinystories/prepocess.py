@@ -155,9 +155,9 @@ if __name__ == "__main__":
     These stages are designed to be run in order.
 
     To tokenize data with a custom tokenizer we train ourselves with sentencepiece, e.g.:
-    python tinystories.py train_vocab --vocab_size=2048 --data_dir=./datas
-    python tinystories.py merge_tokenizer --data_dir=./datas --src_tokenizer_model=${src} --merge_tokenizer_model=${merge}
-    python tinystories.py pretokenize --vocab_size=2048 --data_dir=./datas
+    python preprocess.py train_vocab --vocab_size=2048 --data_dir=./datas
+    python preprocess.py merge_tokenizer --data_dir=./datas --src_tokenizer_model=${src} --merge_tokenizer_model=${merge}
+    python preprocess.py pretokenize --vocab_size=2048 --data_dir=./datas
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("stage", type=str, choices=["train_vocab", "merge_tokenizer", "pretokenize", "print_tokenizer"])
