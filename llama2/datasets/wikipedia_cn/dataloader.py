@@ -29,9 +29,9 @@ class PretokDataset(IterableDataset):
         rng = random.Random(seed)
         print(
             f"Created a PretokDataset with rng seed {seed} | worker_id {worker_id}")
-        if self.vocab_source == "llama2":
-            # the .bin files are right along the .json files
-            bin_dir = os.path.join(self.data_dir, "wikipedia_all_data")
+        if self.vocab_source == "chatglm":
+            # the .bin files are in data directory
+            bin_dir = os.path.join(self.data_dir, f"")
         elif self.vocab_source == "custom":
             # the .bin files are in tok{N} directory
             bin_dir = os.path.join(self.data_dir, f"tok{self.vocab_size}")
