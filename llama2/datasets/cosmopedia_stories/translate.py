@@ -8,16 +8,6 @@ import argparse
 import time
 
 
-global tokenizer, model
-
-
-def init_local_mt_model():
-    from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
-    model_checkpoint = "Helsinki-NLP/opus-mt-en-zh"
-    tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
-    model = AutoModelForSeq2SeqLM.from_pretrained(model_checkpoint)
-
-
 def local_mt(item):
     inputs = tokenizer([item["text"], item["prompt"]], return_tensors="pt",
                        padding=True, truncation=True).input_ids
@@ -116,4 +106,9 @@ if __name__ == "__main__":
     elif args.stage == "check":
         load2check(args.target_dir)
     elif args.stage == "local_mt":
+        from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+        # model_checkpoint = "Helsinki-NLP/opus-mt-en-zh"
+        model_checkpoint = "weege007/opus-mt-en-zh-finetuned-en-to-zh"
+        tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
+        model = AutoModelForSeq2SeqLM.from_pretrained(model_checkpoint)
         local_translate2save(args.target_dir)
