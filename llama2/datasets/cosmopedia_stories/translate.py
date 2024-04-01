@@ -78,7 +78,6 @@ def load2check(dataset_dir):
 
 
 def local_translate2save(src_dataset_dir: str, target_dataset_dir: str):
-    init_local_mt_model()
     data = load_dataset(src_dataset_dir, split="train")
     print(data)
     data = data.filter(batch_filter_middle_text, batched=True)
