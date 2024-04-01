@@ -78,27 +78,37 @@ def tokenizer_process(item, tokenizer):
     return {"input_ids": input_ids}
 
 
-def pretokenize_with_chatGLM(data_dir, tokenizer, tokenized_filename, batch_size=30):
+def pretokenize_with_chatGLM(data_dir, tokenizer, batch_size=30, test_size=0.1, train_size=0.9):
     """
     pretokenize the dataset with chatGLM tokenizer , save tokenids bytes to file 
     """
+    tokenized_filename = {}
+    tokenized_filename["test"] = os.path.join(
+        data_dir, f"chatGLM_{tokenizer.vocab_size}_{test_size}.test.bin")
+    tokenized_filename["train"] = os.path.join(
+        data_dir, f"chatGLM_{tokenizer.vocab_size}_{train_size}.train.bin")
+
     # ds = load_dataset(data_dir, split="train[:3]")
     ds = load_dataset(data_dir, split="train")
     print(f'dataset: {ds}')
-    ds = ds.map(tokenizer_process, batched=True,
-                batch_size=batch_size, remove_columns=["source", "completion"], fn_kwargs={"tokenizer": tokenizer})
-    print(f'after tokenizer process dataset: {ds}')
-    # convert to uint16 nparray, note: tokenizer vocab_size must <= 2^16
-    all_tokens = np.array(ds["input_ids"], dtype=np.uint16)
-    # write the bytes
-    with open(tokenized_filename, "wb") as f:
-        f.write(all_tokens.tobytes())
-    # calculate the average sequence length (they are separated by BOS=1)
-    avg_seq_len = all_tokens.size / \
-        ((all_tokens == tokenizer.special_tokens['<bos>']).sum())
+    ds = ds.train_test_split(test_size=test_size, train_size=train_size)
+    print(f'split train dataset [{test_size}:{train_size}]: {ds}')
+    for split in ["train", "test"]:
+        ds[split] = ds[split].map(tokenizer_process, batched=True,
+                                  batch_size=batch_size, remove_columns=["source", "completion"], fn_kwargs={"tokenizer": tokenizer})
+        print(f'after tokenizer process {split} dataset: {ds[split]}')
+        # convert to uint16 nparray, note: tokenizer vocab_size must <= 2^16
+        all_tokens = np.array(ds[split]["input_ids"], dtype=np.uint16)
+        # write the bytes
+        with open(tokenized_filename[split], "wb") as f:
+            f.write(all_tokens.tobytes())
+        # calculate the average sequence length (they are separated by BOS=1)
+        avg_seq_len = all_tokens.size / \
+            ((all_tokens == tokenizer.special_tokens['<bos>']).sum())
 
-    # Saved ./datas/datasets/pleisto/wikipedia-cn-20230720-filtered.bin, average seqlen: 2839.82
-    print(f"Saved {tokenized_filename}, average seqlen: {avg_seq_len:.2f}")
+        # eg: Saved ./datas/datasets/pleisto/wikipedia-cn-20230720-filtered/chatGLM_64793_0.9.bin, average seqlen: 2839.82
+        print(
+            f"Saved {tokenized_filename[split]}, average seqlen: {avg_seq_len:.2f}")
     return
 
 
@@ -117,8 +127,10 @@ if __name__ == "__main__":
                         default="", help="dataset dir")
     parser.add_argument("-tm", "--tokenizer_model", type=str,
                         default="", help="tokenizer_model file(*.bin/*.model)")
-    parser.add_argument("-tf", "--tokenized_filename", type=str,
-                        default="./datas/datasets/pleisto/wikipedia-cn-20230720-filtered.bin", help="dataset dir")
+    parser.add_argument("-tts", "--test_size", type=float,
+                        default=0.1, help="dataset test size")
+    parser.add_argument("-tns", "--train_size", type=float,
+                        default=0.9, help="dataset train size")
     parser.add_argument("-bs", "--batch_size", type=int,
                         default=2, help="pretokenize batch size")
     args = parser.parse_args()
@@ -131,7 +143,7 @@ if __name__ == "__main__":
         tokenizer = AutoTokenizer.from_pretrained(
             "THUDM/chatglm3-6b", trust_remote_code=True)
         pretokenize_with_chatGLM(
-            args.data_dir, tokenizer, args.tokenized_filename, batch_size=args.batch_size)
+            args.data_dir, tokenizer, batch_size=args.batch_size, test_size=args.test_size, train_size=args.train_size)
     elif args.stage == "print_tokenizer":
         print_tokenizer(tokenizer_model=args.tokenizer_model)
     else:

@@ -31,15 +31,19 @@ class PretokDataset(IterableDataset):
             f"Created a PretokDataset with rng seed {seed} | worker_id {worker_id}")
         if self.vocab_source == "llama2":
             # the .bin files are right along the .json files
-            bin_dir = os.path.join(self.data_dir, "TinyStories_all_data")
-            shard_filenames = sorted(glob.glob(os.path.join(bin_dir, "*.bin")))
+            bin_dir = os.path.join(self.data_dir, "wikipedia_all_data")
         elif self.vocab_source == "custom":
             # the .bin files are in tok{N} directory
             bin_dir = os.path.join(self.data_dir, f"tok{self.vocab_size}")
-            shard_filenames = sorted(glob.glob(os.path.join(bin_dir, "*.bin")))
-        # train/test split. let's use only shard 0 for test split, rest train
-        shard_filenames = shard_filenames[1:
-                                          ] if self.split == "train" else shard_filenames[:1]
+        # see preprocess.py check train/test split percentage
+        test_shard_filenames = sorted(
+            glob.glob(os.path.join(bin_dir, "*.test.bin")))
+        train_shard_filenames = sorted(
+            glob.glob(os.path.join(bin_dir, "*.train.bin")))
+        if self.split == "train":
+            shard_filenames = train_shard_filenames[:]
+        else:
+            shard_filenames = test_shard_filenames[:]
         assert len(shard_filenames) > 0, f"No bin files found in {bin_dir}"
         while True:
             rng.shuffle(shard_filenames)

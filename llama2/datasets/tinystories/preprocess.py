@@ -8,8 +8,8 @@ import sentencepiece as spm
 from concurrent.futures import ProcessPoolExecutor
 from functools import partial
 import numpy as np
-from tokenizer import Tokenizer
 
+from datasets.tokenizer import Tokenizer
 from datasets.preprocess import merge_tokenizer, print_tokenizer
 
 os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"

@@ -14,11 +14,11 @@ from model import Transformer, ModelArgs
 from torch.distributed import destroy_process_group, init_process_group
 from torch.nn.parallel import DistributedDataParallel as DDP
 
-from datasets.tinystories.dataloader import Task
+from datasets.task import Task
 from export import model_export
 
 # -----------------------------------------------------------------------------
-data_dir="./datas"# tokenizer datasets dir
+data_dir = "./datas"  # tokenizer datasets dir
 # I/O
 out_dir = "out"
 eval_interval = 5000
@@ -30,8 +30,8 @@ init_from = "scratch"  # 'scratch' or 'resume'
 # data
 batch_size = 128  # if gradient_accumulation_steps > 1, this is the micro-batch size
 max_seq_len = 256
-vocab_source = "llama2" # llama2|custom; use Lllama 2 vocab from Meta, or custom trained
-vocab_size = 32000 # the Llama 2 tokenizer has 32K tokens
+vocab_source = "llama2"  # llama2|custom; use Lllama 2 vocab from Meta, or custom trained
+vocab_size = 32000  # the Llama 2 tokenizer has 32K tokens
 # model
 dim = 288
 n_layers = 6
@@ -59,7 +59,8 @@ compile = True  # use PyTorch 2.0 to compile the model to be faster
 wandb_log = False  # disabled by default
 wandb_project = "baby_llm_llama2"
 wandb_run_name_suffix = ""
-wandb_run_name = "run" + datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + wandb_run_name_suffix
+wandb_run_name = "run" + datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + \
+    wandb_run_name_suffix
 
 # huggingface upload training results
 hf_upload = False  # disabled by default
@@ -75,7 +76,7 @@ config_keys = [
 _cur_work_dir = os.path.dirname(os.path.realpath(__file__))
 exec(open(f"{_cur_work_dir}/args.py").read())
 # change global args by custom --key=value
-change_global_args() # overrides from command line
+change_global_args()  # overrides from command line
 config = {k: globals()[k] for k in config_keys}  # will be useful for logging
 # -----------------------------------------------------------------------------
 
@@ -96,7 +97,8 @@ if ddp:
     ddp_world_size = int(os.environ["WORLD_SIZE"])
     device = f"cuda:{ddp_local_rank}"
     torch.cuda.set_device(device)
-    master_process = ddp_rank == 0  # this process will do logging, checkpointing etc.
+    # this process will do logging, checkpointing etc.
+    master_process = ddp_rank == 0
     seed_offset = ddp_rank  # each process gets a different seed
     # world_size number of processes will be training simultaneously, so we can scale
     # down the desired gradient accumulation iterations per process proportionally
@@ -107,7 +109,8 @@ else:
     master_process = True
     seed_offset = 0
     ddp_world_size = 1
-tokens_per_iter = gradient_accumulation_steps * ddp_world_size * batch_size * max_seq_len
+tokens_per_iter = gradient_accumulation_steps * \
+    ddp_world_size * batch_size * max_seq_len
 if master_process:
     print(f"tokens per iteration will be: {tokens_per_iter:,}")
     print(f"breaks down as: {gradient_accumulation_steps} grad accum steps * {ddp_world_size} processes * {batch_size} batch size * {max_seq_len} max seq len")
@@ -117,9 +120,11 @@ if master_process:
 torch.manual_seed(1337 + seed_offset)
 torch.backends.cuda.matmul.allow_tf32 = True  # allow tf32 on matmul
 torch.backends.cudnn.allow_tf32 = True  # allow tf32 on cudnn
-device_type = "cuda" if "cuda" in device else "cpu"  # for later use in torch.autocast
+# for later use in torch.autocast
+device_type = "cuda" if "cuda" in device else "cpu"
 # note: float16 data type will automatically use a GradScaler
-ptdtype = {"float32": torch.float32, "bfloat16": torch.bfloat16, "float16": torch.float16}[dtype]
+ptdtype = {"float32": torch.float32,
+           "bfloat16": torch.bfloat16, "float16": torch.float16}[dtype]
 ctx = (
     nullcontext()
     if device_type == "cpu"
@@ -128,7 +133,7 @@ ctx = (
 
 # task-specific setup
 iter_batches = partial(
-    Task.iter_batches,
+    Task().iter_batches,
     data_dir=data_dir,
     batch_size=batch_size,
     max_seq_len=max_seq_len,
@@ -177,7 +182,7 @@ elif init_from == "resume":
     unwanted_prefix = "_orig_mod."
     for k, v in list(state_dict.items()):
         if k.startswith(unwanted_prefix):
-            state_dict[k[len(unwanted_prefix) :]] = state_dict.pop(k)
+            state_dict[k[len(unwanted_prefix):]] = state_dict.pop(k)
     model.load_state_dict(state_dict)
     iter_num = checkpoint["iter_num"]
     best_val_loss = checkpoint["best_val_loss"]
@@ -191,10 +196,11 @@ print(f"{model_million_params}M parameters")
 # torch.cuda.amp.GradScaler 是一个用于自动混合精度训练的 PyTorch 工具，它可以帮助加速模型训练并减少显存使用量。具体来说，GradScaler 可以将梯度缩放到较小的范围，以避免数值下溢或溢出的问题，同时保持足够的精度以避免模型的性能下降。
 scaler = torch.cuda.amp.GradScaler(enabled=(dtype == "float16"))
 
-# optimizer AdamW 
+# optimizer AdamW
 # 见论文：Decoupled Weight Decay Regularization
 # https://arxiv.org/abs/1711.05101
-optimizer = model.configure_optimizers(weight_decay, learning_rate, (beta1, beta2), device_type)
+optimizer = model.configure_optimizers(
+    weight_decay, learning_rate, (beta1, beta2), device_type)
 if init_from == "resume" and "optimizer" in checkpoint:
     optimizer.load_state_dict(checkpoint["optimizer"])
 checkpoint = None  # free up memory
@@ -215,6 +221,8 @@ if ddp:
     model = DDP(model, device_ids=[ddp_local_rank])
 
 # helps estimate an arbitrarily accurate loss over either split using many batches
+
+
 @torch.no_grad()
 def estimate_loss():
     out = {}
@@ -236,6 +244,8 @@ def estimate_loss():
 
 # learning rate decay scheduler (cosine with warmup)
 # https://zh.d2l.ai/chapter_optimization/lr-scheduler.html#id8
+
+
 def get_lr(it):
     # 1) linear warmup for warmup_iters steps
     if it < warmup_iters:
@@ -248,6 +258,7 @@ def get_lr(it):
     assert 0 <= decay_ratio <= 1
     coeff = 0.5 * (1.0 + math.cos(math.pi * decay_ratio))  # coeff ranges 0..1
     return min_lr + coeff * (learning_rate - min_lr)
+
 
 # logging
 # https://docs.wandb.ai/quickstart
@@ -273,7 +284,8 @@ while True:
         # train训练数据用于参数（权重和偏置）的学习，
         # val验证数据用于参数的性能评估
         losses = estimate_loss()
-        print(f"step {iter_num}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
+        print(
+            f"step {iter_num}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
         if wandb_log:
             try:
                 wandb.log(
@@ -284,7 +296,7 @@ while True:
                         "loss/val": losses["val"],
                         "lr": lr,
                         "mfu": running_mfu * 100,  # convert to percentage
-                    }, step = iter_num
+                    }, step=iter_num
                 )
             except Exception as e:
                 print(f"logging to wandb failed: {e}")
@@ -304,17 +316,19 @@ while True:
                 torch.save(checkpoint, os.path.join(out_dir, "ckpt.pt"))
                 model_export(raw_model, os.path.join(out_dir, "model.bin"))
                 if hf_upload:
-                    #@TODO: async upload
+                    # @TODO: async upload
                     print(f"upload checkpoint to {repo_id}")
                     from huggingface_hub import upload_file
                     upload_file(
                         path_or_fileobj=os.path.join(out_dir, "ckpt.pt"),
-                        path_in_repo=os.path.join(hf_models_dir, f"{model_million_params}M.pt"),
+                        path_in_repo=os.path.join(
+                            hf_models_dir, f"{model_million_params}M.pt"),
                         repo_id=repo_id,
                     )
                     upload_file(
                         path_or_fileobj=os.path.join(out_dir, "model.bin"),
-                        path_in_repo=os.path.join(hf_models_dir, f"{model_million_params}M.bin"),
+                        path_in_repo=os.path.join(
+                            hf_models_dir, f"{model_million_params}M.bin"),
                         repo_id=repo_id,
                     )
     if iter_num == 0 and eval_only:
@@ -361,7 +375,8 @@ while True:
         # get loss as float, scale up due to the divide above. note: this is a CPU-GPU sync point
         lossf = loss.item() * gradient_accumulation_steps
         if local_iter_num >= 5:  # let the training loop settle a bit
-            mfu = raw_model.estimate_mfu(batch_size * gradient_accumulation_steps, dt)
+            mfu = raw_model.estimate_mfu(
+                batch_size * gradient_accumulation_steps, dt)
             running_mfu = mfu if running_mfu == -1.0 else 0.9 * running_mfu + 0.1 * mfu
         print(
             f"{iter_num} | loss {lossf:.4f} | lr {lr:e} | {dt*1000:.2f}ms | mfu {running_mfu*100:.2f}%"
