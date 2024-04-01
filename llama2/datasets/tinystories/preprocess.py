@@ -1,16 +1,19 @@
-import glob,json,os,argparse
+import glob
+import json
+import os
+import argparse
+
 from tqdm import tqdm
 import sentencepiece as spm
-
 from concurrent.futures import ProcessPoolExecutor
 from functools import partial
-
 import numpy as np
 from tokenizer import Tokenizer
 
-os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"]="python"
-from transformers import LlamaTokenizer
-from sentencepiece import sentencepiece_model_pb2 as sp_pb2_model
+from datasets.preprocess import merge_tokenizer, print_tokenizer
+
+os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
+
 
 def train_vocab(data_dir, vocab_size):
     """
@@ -19,6 +22,7 @@ def train_vocab(data_dir, vocab_size):
     where N is the vocab size. This is also where the pretok .bin files will go.
     """
     assert vocab_size > 0, "Vocab size must be positive"
+    assert vocab_size <= (1 < 16), "Vocab size must less than 2^16"
 
     # output file prefix path for sentencepiece
     prefix = os.path.join(data_dir, f"tok{vocab_size}")
@@ -64,7 +68,8 @@ def train_vocab(data_dir, vocab_size):
 
 def process_shard(args, data_dir, vocab_size, tokenizer_model=None):
     shard_id, shard = args
-    tokenizer_model = os.path.join(data_dir, f"tok{vocab_size}.model") if tokenizer_model is None else tokenizer_model
+    tokenizer_model = os.path.join(
+        data_dir, f"tok{vocab_size}.model") if tokenizer_model is None else tokenizer_model
     enc = Tokenizer(tokenizer_model)
     with open(shard, "r") as f:
         data = json.load(f)
@@ -72,7 +77,8 @@ def process_shard(args, data_dir, vocab_size, tokenizer_model=None):
     for example in tqdm(data, position=shard_id):
         text = example["story"]
         text = text.strip()  # get rid of leading/trailing whitespace
-        tokens = enc.encode(text, bos=True, eos=False)  # encode the text, use BOS
+        # encode the text, use BOS
+        tokens = enc.encode(text, bos=True, eos=False)
         all_tokens.extend(tokens)
     # convert to uint16 nparray
     all_tokens = np.array(all_tokens, dtype=np.uint16)
@@ -103,52 +109,12 @@ def pretokenize(data_dir, vocab_size, tokenizer_model=None):
         os.makedirs(bin_dir, exist_ok=True)
 
     # process all the shards in a process pool
-    fun = partial(process_shard, data_dir=data_dir, vocab_size=vocab_size, tokenizer_model=tokenizer_model)
+    fun = partial(process_shard, data_dir=data_dir,
+                  vocab_size=vocab_size, tokenizer_model=tokenizer_model)
     with ProcessPoolExecutor() as executor:
         executor.map(fun, enumerate(shard_filenames))
     print("Done.")
 
-
-def merge_tokenizer(data_dir, merge_tokenizer_model, src_tokenizer_model="meta-llama/Llama-2-7b-hf"):
-    llama_tokenizer = LlamaTokenizer.from_pretrained(src_tokenizer_model)
-    llama_spm = sp_pb2_model.ModelProto()
-    llama_spm.ParseFromString(llama_tokenizer.sp_model.serialized_model_proto())
-
-    merge_sp_model = spm.SentencePieceProcessor()
-    merge_sp_model.Load(merge_tokenizer_model)
-    merge_spm = sp_pb2_model.ModelProto()
-    merge_spm.ParseFromString(merge_sp_model.serialized_model_proto())
-
-    llama_spm_tokens_set=set(p.piece for p in llama_spm.pieces)
-    print(f"before src_tokens:{len(llama_spm_tokens_set)}")
-    for p in merge_spm.pieces:
-        piece = p.piece
-        if piece not in llama_spm_tokens_set:
-            new_p = sp_pb2_model.ModelProto().SentencePiece()
-            new_p.piece = piece
-            new_p.score = 0
-            llama_spm.pieces.append(new_p)
-    print(f"New model pieces: {len(llama_spm.pieces)}")
-
-    # 保存合并后的模型(pb序列化)
-    output_sp_dir = os.path.join(data_dir,'merged_tokenizer_sp')
-    output_hf_dir = os.path.join(data_dir,'merged_tokenizer_hf')
-    os.makedirs(output_sp_dir,exist_ok=True)
-    tokenizer_vocab_model_file = output_sp_dir+'/new_llama_tokenizer.model'
-    with open(tokenizer_vocab_model_file, 'wb') as f:
-        f.write(llama_spm.SerializeToString())
-        print(f"{merge_sp_model} tokenizer has been saved to {tokenizer_vocab_model_file}")
-    tokenizer = LlamaTokenizer(vocab_file=tokenizer_vocab_model_file)
-
-    tokenizer.save_pretrained(output_hf_dir)
-    print(f"{merge_sp_model} tokenizer has been saved to hf tokenizer {output_hf_dir}")
-
-def print_tokenizer(tokenizer_model):
-    import sentencepiece.sentencepiece_model_pb2
-    mp = sentencepiece.sentencepiece_model_pb2.ModelProto()
-    mp.ParseFromString(open(tokenizer_model, "rb").read())
-    print(mp.trainer_spec)
-    print(mp.normalizer_spec)
 
 if __name__ == "__main__":
     """
@@ -160,19 +126,25 @@ if __name__ == "__main__":
     python preprocess.py pretokenize --vocab_size=2048 --data_dir=./datas
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("stage", type=str, choices=["train_vocab", "merge_tokenizer", "pretokenize", "print_tokenizer"])
-    parser.add_argument("--vocab_size", type=int, default=0, help="pretokenization vocab size")
-    parser.add_argument("--data_dir", type=str, default="./datas", help="process data dir")
-    parser.add_argument("--src_tokenizer_model", type=str, default="", help="src tokenizer model file")
-    parser.add_argument("--merge_tokenizer_model", type=str, default="", help="merge tokenizer model file")
-    parser.add_argument("--tokenizer_model", type=str, default="", help=" tokenizer model file")
+    parser.add_argument("stage", type=str, choices=[
+                        "train_vocab", "merge_tokenizer", "pretokenize", "print_tokenizer"])
+    parser.add_argument("--vocab_size", type=int, default=0,
+                        help="pretokenization vocab size")
+    parser.add_argument("--data_dir", type=str,
+                        default="./datas", help="process data dir")
+    parser.add_argument("--src_tokenizer_model", type=str,
+                        default="", help="src tokenizer model file")
+    parser.add_argument("--merge_tokenizer_model", type=str,
+                        default="", help="merge tokenizer model file")
+    parser.add_argument("--tokenizer_model", type=str,
+                        default="", help=" tokenizer model file")
     args = parser.parse_args()
 
     # depending on the stage call the appropriate function
     if args.stage == "train_vocab":
         train_vocab(data_dir=args.data_dir, vocab_size=args.vocab_size)
     elif args.stage == "merge_tokenizer":
-        merge_tokenizer(data_dir=args.data_dir, 
+        merge_tokenizer(data_dir=args.data_dir,
                         merge_tokenizer_model=args.merge_tokenizer_model,
                         src_tokenizer_model=args.src_tokenizer_model)
     elif args.stage == "pretokenize":
@@ -182,4 +154,3 @@ if __name__ == "__main__":
         print_tokenizer(tokenizer_model=args.tokenizer_model)
     else:
         raise ValueError(f"Unknown stage {args.stage}")
-
