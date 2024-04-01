@@ -39,6 +39,8 @@ def pretokenize_with_chatGLM(data_dir, tokenizer, tokenized_filename, batch_size
     # calculate the average sequence length (they are separated by BOS=1)
     avg_seq_len = all_tokens.size / \
         ((all_tokens == tokenizer.special_tokens['<bos>']).sum())
+
+    # Saved ./datas/datasets/pleisto/wikipedia-cn-20230720-filtered.bin, average seqlen: 2839.82
     print(f"Saved {tokenized_filename}, average seqlen: {avg_seq_len:.2f}")
     return
 
