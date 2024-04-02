@@ -1,5 +1,12 @@
-"""
-from: https://github.com/karpathy/llama2.c/blob/master/train.py
+r"""
+- Full Fine-tuning: Adjusts all parameters of the LLM using task-specific data.
+    like pre-training, but use resume ckpt.pt 
+    and use prompt-text datasets with tokenizer(sp bpe)
+
+- @TODO: Parameter-efficient Fine-tuning (PEFT): Modifies select parameters for more efficient adaptation.
+    need pre-training more parameters model
+    eg: LoRA、Adapter、Prefix-tuning、P-tuning or P-tuning v2
+    see: https://huggingface.co/docs/peft/conceptual_guides/adapter (Adapter,Soft prompts,IA3)
 """
 
 import math
@@ -19,7 +26,7 @@ from llama2.datasets.loader import Task
 from export import model_export
 
 # -----------------------------------------------------------------------------
-dataset_name = "tinystories"  # tokenized dataset name
+dataset_name = "cosmopedia_stories"  # tokenized dataset name
 data_dir = "./datas"  # tokenizer datasets dir
 # I/O
 out_dir = "out"
@@ -92,7 +99,8 @@ change_global_args()  # overrides from command line
 config = {k: globals()[k] for k in config_keys}  # will be useful for logging
 # -----------------------------------------------------------------------------
 
-estimate_loss_datasets = estimate_loss_split_datasets.split(",")
+estimate_loss_datasets = [] if len(
+    estimate_loss_split_datasets) > 0 else estimate_loss_split_datasets.split(",")
 
 # fixing some hyperparams to sensible defaults
 lr_decay_iters = max_iters  # should be ~= max_iters per Chinchilla
