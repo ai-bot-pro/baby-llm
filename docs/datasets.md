@@ -55,3 +55,13 @@ Example story:
 - Common Crawl (GPT3 datasets)
 - 维基百科: [英文](https://dumps.wikimedia.org/enwiki/) | [中文](https://dumps.wikimedia.org/zhwiki/)
 - [Cosmopedia](https://huggingface.co/datasets/HuggingFaceTB/cosmopedia): 该数据集由 Mixtral-8x7B-Instruct-v0.1 生成的综合教科书、博客文章、故事、帖子和 WikiHow 文章组成。该数据集包含超过 3000 万个文件和 250 亿个token，这使其成为迄今为止最大的开放综合数据集。英文数据集，主要关注教科书和故事。
+- [shibing624/medical](https://huggingface.co/datasets/shibing624/medical) 用于不同阶段训练的医疗数据集，continue PT(pre-training model), SFT(supervised fine-tuning model), RL(reward model)
+
+
+## datasetloader lib
+- pytorch dataset loader: https://pytorch.org/tutorials/beginner/basics/data_tutorial.html
+- torchvision dataset loader: https://pytorch.org/vision/stable/datasets.html
+- torchaudio dataset loader: https://pytorch.org/audio/stable/datasets.html
+- pytorchvideo dataset loader: https://pytorchvideo.readthedocs.io/en/latest/data.html
+- hugginface datasets: https://huggingface.co/docs/datasets/index
+- cuDF dataframe(the same as pandas api with GPU cuda): https://docs.rapids.ai/api/cudf/stable/

@@ -6,6 +6,7 @@ from deep_translator import GoogleTranslator
 from datasets import load_dataset, load_from_disk
 import argparse
 import time
+import random
 
 
 def local_mt(item):
@@ -18,15 +19,15 @@ def local_mt(item):
     return {"text_zh": result[0], "prompt_zh": result[1]}
 
 
-def remote_mt(item):
+def remote_mt_batch(item):
     translated_prompt = ""
     translated_text = ""
     try_cn = 100
     while try_cn > 0:
         try:
-            translated_prompt = GoogleTranslator(source='en', target='zh-CN').translate(
+            translated_prompt = GoogleTranslator(source='en', target='zh-CN').translate_batch(
                 item["prompt"])
-            translated_text = GoogleTranslator(source='en', target='zh-CN').translate(
+            translated_text = GoogleTranslator(source='en', target='zh-CN').translate_batch(
                 item["text"])
             break
         except Exception as e:
@@ -57,16 +58,28 @@ def batch_filter_middle_prompt(batch):
     return [len(item) < 1024 for item in batch["prompt"]]
 
 
-def translate2save(src_dataset_dir: str, target_dataset_dir: str):
+def batch_filter_young_children(batch):
+    return [item == "young_children" for item in batch["audience"]]
+
+
+def translate2save(src_dataset_dir: str, target_dataset_dir: str, hf_repo_id="", sample_size=0):
     data = load_dataset(src_dataset_dir, split="train")
     print(data)
     data = data.filter(batch_filter_larg_text, batched=True)
     print(data)
     data = data.filter(batch_filter_larg_prompt, batched=True)
     print(data)
-    data = data.map(remote_mt, batched=False)
+    data = data.filter(batch_filter_young_children, batched=True)
+    print(data)
+    if sample_size > 0:
+        data = data.select(range(sample_size))
+        print(data)
+    data = data.map(remote_mt_batch, batched=True,
+                    batch_size=3, remove_columns=[])
     print(data)
     data.save_to_disk(target_dataset_dir)
+    if len(hf_repo_id) > 0:
+        data.push_to_hub(hf_repo_id)
     print("translate ok, save to", target_dataset_dir)
 
 
@@ -75,6 +88,11 @@ def load2check(dataset_dir):
     print("filter before", data)
     data = data.filter(batch_check_data, batched=True)
     print("filter after", data)
+    index = random.randint(0, data.num_rows)
+    print("\n----sample prompt_zh-----\n", data["prompt_zh"]
+          [index])
+    print("\n----sample text_zh-----\n", data["text_zh"]
+          [index])
 
 
 def local_translate2save(src_dataset_dir: str, target_dataset_dir: str):
@@ -98,10 +116,15 @@ if __name__ == "__main__":
                         help="path to src dataset dir ")
     parser.add_argument("-t", "--target_dir", type=str,
                         help="path to target dataset dir ", required=lambda x: x is not None)
+    parser.add_argument("-r", "--hf_repo_id", type=str, default="",
+                        help="target dataset huggingface repo id")
+    parser.add_argument("-ss", "--sample_size", type=int, default=1000,
+                        help="dataset sample size")
     args = parser.parse_args()
 
     if args.stage == "translate":
-        translate2save(args.src_dir, args.target_dir)
+        translate2save(args.src_dir, args.target_dir,
+                       hf_repo_id=args.hf_repo_id, sample_size=args.sample_size)
     elif args.stage == "check":
         load2check(args.target_dir)
     elif args.stage == "local_mt":

@@ -13,11 +13,13 @@ import torch
 from model import Transformer, ModelArgs
 from torch.distributed import destroy_process_group, init_process_group
 from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.amp import autocast
 
-from datasets.task import Task
+from llama2.datasets.loader import Task
 from export import model_export
 
 # -----------------------------------------------------------------------------
+dataset_name = "tinystories"  # tokenized dataset name
 data_dir = "./datas"  # tokenizer datasets dir
 # I/O
 out_dir = "out"
@@ -128,12 +130,13 @@ ptdtype = {"float32": torch.float32,
 ctx = (
     nullcontext()
     if device_type == "cpu"
-    else torch.amp.autocast(device_type=device_type, dtype=ptdtype)
+    else autocast(device_type=device_type, dtype=ptdtype)
 )
 
 # task-specific setup
 iter_batches = partial(
     Task().iter_batches,
+    dataset_name=dataset_name,
     data_dir=data_dir,
     batch_size=batch_size,
     max_seq_len=max_seq_len,

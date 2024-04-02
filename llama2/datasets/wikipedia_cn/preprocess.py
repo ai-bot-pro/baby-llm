@@ -11,6 +11,7 @@ from tqdm import tqdm
 from datasets import load_dataset
 import sentencepiece as spm
 
+from datasets.tokenizer import Tokenizer
 from datasets.preprocess import print_tokenizer
 
 os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
@@ -65,6 +66,50 @@ def train_vocab(data_dir, vocab_size):
     print("Done.")
 
 
+def custom_tokenizer_process(item, tokenizer):
+    token_ids = tokenizer.batch_encode(item["completion"], bos=True, eos=False)
+
+    return {"input_ids": token_ids}
+
+
+def pretokenize(data_dir, vocab_size, tokenizer_model=None, batch_size=30, test_size=0.1, train_size=0.9):
+    """
+    pretokenize the dataset with custom tokenizer , save tokenids bytes to file 
+    """
+    tokenizer_model = os.path.join(
+        data_dir, f"tok{vocab_size}.model") if tokenizer_model is None else tokenizer_model
+    tokenizer = Tokenizer(tokenizer_model)
+
+    tokenized_filename = {}
+    tokenized_filename["test"] = os.path.join(
+        data_dir, f"tok{vocab_size}", f"{test_size}.test.bin")
+    tokenized_filename["train"] = os.path.join(
+        data_dir, f"tok{vocab_size}", f"{train_size}.train.bin")
+
+    # ds = load_dataset(data_dir, split="train[:3]")
+    ds = load_dataset(data_dir, split="train")
+    print(f'dataset: {ds}')
+    ds = ds.train_test_split(test_size=test_size, train_size=train_size)
+    print(f'split train dataset [{test_size}:{train_size}]: {ds}')
+    for split in ["train", "test"]:
+        ds[split] = ds[split].map(custom_tokenizer_process, batched=True,
+                                  batch_size=batch_size, remove_columns=["source", "completion"], fn_kwargs={"tokenizer": tokenizer})
+        print(f'after tokenizer process {split} dataset: {ds[split]}')
+        # convert to uint16 nparray, note: tokenizer vocab_size must <= 2^16
+        all_tokens = np.array(ds[split]["input_ids"], dtype=np.uint16)
+        # write the bytes
+        with open(tokenized_filename[split], "wb") as f:
+            f.write(all_tokens.tobytes())
+        # calculate the average sequence length (they are separated by BOS=1)
+        avg_seq_len = all_tokens.size / \
+            ((all_tokens == tokenizer.special_tokens['<bos>']).sum())
+
+        # eg: Saved ./datas/datasets/pleisto/wikipedia-cn-20230720-filtered/chatGLM_64793_0.9.train.bin, average seqlen: 2839.82
+        print(
+            f"Saved {tokenized_filename[split]}, average seqlen: {avg_seq_len:.2f}")
+    return
+
+
 def tokenizer_process(item, tokenizer):
     inputs = tokenizer(item["completion"],
                        padding=True, truncation=True, add_special_tokens=False).input_ids
@@ -106,7 +151,7 @@ def pretokenize_with_chatGLM(data_dir, tokenizer, batch_size=30, test_size=0.1, 
         avg_seq_len = all_tokens.size / \
             ((all_tokens == tokenizer.special_tokens['<bos>']).sum())
 
-        # eg: Saved ./datas/datasets/pleisto/wikipedia-cn-20230720-filtered/chatGLM_64793_0.9.bin, average seqlen: 2839.82
+        # eg: Saved ./datas/datasets/pleisto/wikipedia-cn-20230720-filtered/chatGLM_64793_0.9.train.bin, average seqlen: 2839.82
         print(
             f"Saved {tokenized_filename[split]}, average seqlen: {avg_seq_len:.2f}")
     return
@@ -120,7 +165,7 @@ if __name__ == "__main__":
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("stage", type=str, choices=[
-                        "train_vocab", "pretokenize_with_chatGLM3", "print_tokenizer"])
+                        "train_vocab", "pretokenize", "pretokenize_with_chatGLM3", "print_tokenizer"])
     parser.add_argument("-vs", "--vocab_size", type=int, default=4096,
                         help="pretokenization vocab size")
     parser.add_argument("-dd", "--data_dir", type=str,
@@ -139,6 +184,9 @@ if __name__ == "__main__":
     # depending on the stage call the appropriate function
     if args.stage == "train_vocab":
         train_vocab(data_dir=args.data_dir, vocab_size=args.vocab_size)
+    if args.stage == "pretokenize":
+        pretokenize(
+            args.data_dir, args.vocab_size, batch_size=args.batch_size, test_size=args.test_size, train_size=args.train_size)
     elif args.stage == "pretokenize_with_chatGLM3":
         tokenizer = AutoTokenizer.from_pretrained(
             "THUDM/chatglm3-6b", trust_remote_code=True)

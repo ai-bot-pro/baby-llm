@@ -42,6 +42,7 @@ class PretokDataset(IterableDataset):
                                           ] if self.split == "train" else shard_filenames[:1]
         assert len(shard_filenames) > 0, f"No bin files found in {bin_dir}"
         while True:
+            # 随机打乱样本顺序以缓解过拟合。
             rng.shuffle(shard_filenames)
             for shard in shard_filenames:
                 # open the dataset for reading but keep it on disk with memmap
