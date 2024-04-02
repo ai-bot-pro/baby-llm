@@ -2,6 +2,7 @@ import os
 
 from torch import from_numpy
 from torch.utils.data import Dataset
+from transformers import AutoTokenizer
 import numpy as np
 import pandas as pd
 
@@ -14,16 +15,17 @@ class ChatGLMPretokSftDataset(Dataset):
     - u can choose sp bpe tokenizer to encode sft dataset, eg: chatglm(zh), llama2(en)
     """
 
-    def __init__(self, data_dir, tokenizer, max_seq_len, prompt_max_len, text_max_len):
+    def __init__(self, data_dir, max_seq_len=512, prompt_max_len=512, text_max_len=512):
         super().__init__()
         self.data_dir = data_dir
         self.df = pd.read_csv(os.path.join(data_dir, 'sft_data.csv'))
         # like shuffle
         self.df = self.df.sample(frac=1.0)
-        self.tokenizer = tokenizer
         self.max_seq_len = max_seq_len
         self.prompt_max_len = prompt_max_len
         self.text_max_len = text_max_len
+        tokenizer = AutoTokenizer.from_pretrained(
+            "THUDM/chatglm3-6b", trust_remote_code=True)
         self.tokenizer = tokenizer
         self.bos = tokenizer.special_tokens['<bos>']
         self.eos = tokenizer.special_tokens['<eos>']

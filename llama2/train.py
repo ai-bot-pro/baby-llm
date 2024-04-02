@@ -32,8 +32,13 @@ init_from = "scratch"  # 'scratch' or 'resume'
 # data
 batch_size = 128  # if gradient_accumulation_steps > 1, this is the micro-batch size
 max_seq_len = 256
-vocab_source = "llama2"  # llama2|custom; use Lllama 2 vocab from Meta, or custom trained
-vocab_size = 32000  # the Llama 2 tokenizer has 32K tokens
+
+# chatglm|llama2|custom; use chatglm vocab or Lllama 2 vocab from Meta or custom trained
+vocab_source = "chatglm"
+vocab_size = 64793  # the chatglm tokenizer has 64793 tokens
+# vocab_source = "llama2"  # llama2
+# vocab_size = 32000  # the Llama 2 tokenizer has 32K tokens or chatgml
+
 # model
 dim = 288
 n_layers = 6
@@ -68,6 +73,11 @@ wandb_run_name = "run" + datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + \
 hf_upload = False  # disabled by default
 repo_id = "weege007/babyllm"
 hf_models_dir = "/models"
+
+# estimate loss datasets
+# defualt "", use: "train,val" | "train" | "val"
+estimate_loss_split_datasets = ""
+
 # -----------------------------------------------------------------------------
 config_keys = [
     k
@@ -82,13 +92,17 @@ change_global_args()  # overrides from command line
 config = {k: globals()[k] for k in config_keys}  # will be useful for logging
 # -----------------------------------------------------------------------------
 
+estimate_loss_datasets = estimate_loss_split_datasets.split(",")
+
 # fixing some hyperparams to sensible defaults
 lr_decay_iters = max_iters  # should be ~= max_iters per Chinchilla
 min_lr = 0.0  # minimum learning rate, should be ~= learning_rate/10 per Chinchilla
 
 # validating checks
-assert vocab_source in ["llama2", "custom"]
-assert vocab_source == "custom" or vocab_size == 32000, "The vocab from Meta has 32K tokens"
+assert vocab_source in ["llama2", "custom", "chatglm"]
+assert vocab_source == "custom" and vocab_size > 0, "The custom vocab size must > 0"
+assert vocab_source == "llama2" and vocab_size == 32000, "The vocab from Meta has 32K tokens"
+assert vocab_source == "chatglm" and vocab_size == 64793, "The vocab from chatglm has 64793 tokens"
 
 # various inits, derived attributes, I/O setup
 ddp = int(os.environ.get("RANK", -1)) != -1  # is this a ddp run?
@@ -227,11 +241,11 @@ if ddp:
 
 
 @torch.no_grad()
-def estimate_loss():
+def estimate_loss(estimate_loss_datasets):
     out = {}
     model.eval()
     # 分别对训练集和验证集进行估计
-    for split in ["train", "val"]:
+    for split in estimate_loss_datasets:
         batch_iter = iter_batches(split=split)
         losses = torch.zeros(eval_iters)  # keep on CPU
         # 遍历每批次模型的losses, 对每批次losses算均值loss
@@ -245,11 +259,12 @@ def estimate_loss():
     model.train()
     return out
 
-# learning rate decay scheduler (cosine with warmup)
-# https://zh.d2l.ai/chapter_optimization/lr-scheduler.html#id8
-
 
 def get_lr(it):
+    r"""
+    learning rate decay scheduler (cosine with warmup)
+    https://zh.d2l.ai/chapter_optimization/lr-scheduler.html#id8
+    """
     # 1) linear warmup for warmup_iters steps
     if it < warmup_iters:
         return learning_rate * it / warmup_iters
@@ -286,7 +301,7 @@ while True:
     if iter_num % eval_interval == 0 and master_process:
         # train训练数据用于参数（权重和偏置）的学习，
         # val验证数据用于参数的性能评估
-        losses = estimate_loss()
+        losses = estimate_loss(estimate_loss_datasets)
         print(
             f"step {iter_num}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
         if wandb_log:
@@ -303,7 +318,7 @@ while True:
                 )
             except Exception as e:
                 print(f"logging to wandb failed: {e}")
-        # 验证集 loss值变小则保存模型
+        # 验证集 loss值变小则保存模型 or always_save_checkpoint
         if losses["val"] < best_val_loss or always_save_checkpoint:
             best_val_loss = losses["val"]
             if iter_num > 0:
