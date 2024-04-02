@@ -62,7 +62,7 @@ def batch_filter_young_children(batch):
     return [item == "young_children" for item in batch["audience"]]
 
 
-def translate2save(src_dataset_dir: str, target_dataset_dir: str, hf_repo_id="", sample_size=0):
+def translate2save(src_dataset_dir: str, target_dataset_dir: str, hf_repo_id="", sample_size=0, format=""):
     data = load_dataset(src_dataset_dir, split="train")
     print(data)
     data = data.filter(batch_filter_larg_text, batched=True)
@@ -77,7 +77,19 @@ def translate2save(src_dataset_dir: str, target_dataset_dir: str, hf_repo_id="",
     data = data.map(remote_mt_batch, batched=True,
                     batch_size=3, remove_columns=[])
     print(data)
-    data.save_to_disk(target_dataset_dir)
+    if format == "csv":
+        # use pandas DF
+        data = data.to_pandas()
+        data.to_csv(target_dataset_dir)
+    elif format == "json":
+        data = data.to_pandas()
+        data.to_json(target_dataset_dir)
+    elif format == "parquet":
+        data = data.to_pandas()
+        data.to_parquet(target_dataset_dir)
+    else:
+        # defualt arrow format
+        data.save_to_disk(target_dataset_dir)
     if len(hf_repo_id) > 0:
         data.push_to_hub(hf_repo_id)
     print("translate ok, save to", target_dataset_dir)
@@ -120,11 +132,13 @@ if __name__ == "__main__":
                         help="target dataset huggingface repo id")
     parser.add_argument("-ss", "--sample_size", type=int, default=1000,
                         help="dataset sample size")
+    parser.add_argument("-ff", "--file_format", type=str, default="",
+                        help="target dataset file format:[csv,json,parquet]")
     args = parser.parse_args()
 
     if args.stage == "translate":
         translate2save(args.src_dir, args.target_dir,
-                       hf_repo_id=args.hf_repo_id, sample_size=args.sample_size)
+                       hf_repo_id=args.hf_repo_id, sample_size=args.sample_size, format=args.file_format)
     elif args.stage == "check":
         load2check(args.target_dir)
     elif args.stage == "local_mt":

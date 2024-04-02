@@ -36,9 +36,9 @@ class ChatGLMPretokSftDataset(Dataset):
     def __getitem__(self, index):
         sample = self.df.iloc[index]
         prompt = self.tokenizer.encode(
-            sample['prompt'], add_special_tokens=False)
+            sample['prompt_zh'], add_special_tokens=False)
         text = self.tokenizer.encode(
-            sample['text'], add_special_tokens=False)
+            sample['text_zh'], add_special_tokens=False)
         if len(prompt) > self.prompt_max_len:
             prompt = prompt[:self.prompt_max_len-2]
         if len(text) > self.text_max_len:
