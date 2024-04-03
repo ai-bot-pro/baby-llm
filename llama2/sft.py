@@ -1,7 +1,3 @@
-"""
-from: https://github.com/karpathy/llama2.c/blob/master/train.py
-"""
-
 import math
 import os
 import time

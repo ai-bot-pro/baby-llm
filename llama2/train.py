@@ -1,12 +1,5 @@
-r"""
-- Full Fine-tuning: Adjusts all parameters of the LLM using task-specific data.
-    like pre-training, but use resume ckpt.pt 
-    and use prompt-text datasets with tokenizer(sp bpe)
-
-- @TODO: Parameter-efficient Fine-tuning (PEFT): Modifies select parameters for more efficient adaptation.
-    need pre-training more parameters model
-    eg: LoRA、Adapter、Prefix-tuning、P-tuning or P-tuning v2
-    see: https://huggingface.co/docs/peft/conceptual_guides/adapter (Adapter,Soft prompts,IA3)
+"""
+from: https://github.com/karpathy/llama2.c/blob/master/train.py
 """
 
 import math
