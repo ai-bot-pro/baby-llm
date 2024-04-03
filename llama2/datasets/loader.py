@@ -32,7 +32,6 @@ class Task:
             # just merge all datasets into one to train
         }
 
-    @classmethod
     def iter_batches(self, batch_size, device, num_workers=0, dataset_name="tinystories", **dataset_kwargs):
         assert dataset_name in self.datasetClass, f"{dataset_name} pre-training dataset don't support"
         ds = self.datasetClass[dataset_name](**dataset_kwargs)
@@ -45,7 +44,6 @@ class Task:
             y = y.to(device, non_blocking=True)
             yield x, y
 
-    @classmethod
     def sft_getitem_batches(self, batch_size, device, num_workers=0, dataset_name="", **dataset_kwargs):
         assert dataset_name in self.sftDatasetClass, f"{dataset_name} sft dataset don't support"
         ds = self.sftDatasetClass[dataset_name](**dataset_kwargs)

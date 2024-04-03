@@ -81,6 +81,95 @@ MistralConfig {
 }
 
 ```
+
+```python
+config = LoraConfig(
+    r=64, lora_alpha=128, lora_dropout=0.0, target_modules=["embed_tokens", "lm_head", "q_proj", "v_proj"]
+)
+peft_model = get_peft_model(hf_model, config)
+```
+```
+PeftModel(
+  (base_model): LoraModel(
+    (model): MistralForCausalLM(
+      (model): MistralModel(
+        (embed_tokens): lora.Embedding(
+          (base_layer): Embedding(32000, 4096)
+          (lora_dropout): ModuleDict(
+            (default): Identity()
+          )
+          (lora_A): ModuleDict()
+          (lora_B): ModuleDict()
+          (lora_embedding_A): ParameterDict(  (default): Parameter containing: [torch.FloatTensor of size 64x32000])
+          (lora_embedding_B): ParameterDict(  (default): Parameter containing: [torch.FloatTensor of size 4096x64])
+        )
+        (layers): ModuleList(
+          (0-31): 32 x MistralDecoderLayer(
+            (self_attn): MistralSdpaAttention(
+              (q_proj): lora.Linear(
+                (base_layer): Linear(in_features=4096, out_features=4096, bias=False)
+                (lora_dropout): ModuleDict(
+                  (default): Identity()
+                )
+                (lora_A): ModuleDict(
+                  (default): Linear(in_features=4096, out_features=64, bias=False)
+                )
+                (lora_B): ModuleDict(
+                  (default): Linear(in_features=64, out_features=4096, bias=False)
+                )
+                (lora_embedding_A): ParameterDict()
+                (lora_embedding_B): ParameterDict()
+              )
+              (k_proj): Linear(in_features=4096, out_features=1024, bias=False)
+              (v_proj): lora.Linear(
+                (base_layer): Linear(in_features=4096, out_features=1024, bias=False)
+                (lora_dropout): ModuleDict(
+                  (default): Identity()
+                )
+                (lora_A): ModuleDict(
+                  (default): Linear(in_features=4096, out_features=64, bias=False)
+                )
+                (lora_B): ModuleDict(
+                  (default): Linear(in_features=64, out_features=1024, bias=False)
+                )
+                (lora_embedding_A): ParameterDict()
+                (lora_embedding_B): ParameterDict()
+              )
+              (o_proj): Linear(in_features=4096, out_features=4096, bias=False)
+              (rotary_emb): MistralRotaryEmbedding()
+            )
+            (mlp): MistralMLP(
+              (gate_proj): Linear(in_features=4096, out_features=14336, bias=False)
+              (up_proj): Linear(in_features=4096, out_features=14336, bias=False)
+              (down_proj): Linear(in_features=14336, out_features=4096, bias=False)
+              (act_fn): SiLU()
+            )
+            (input_layernorm): MistralRMSNorm()
+            (post_attention_layernorm): MistralRMSNorm()
+          )
+        )
+        (norm): MistralRMSNorm()
+      )
+      (lm_head): lora.Linear(
+        (base_layer): Linear(in_features=4096, out_features=32000, bias=False)
+        (lora_dropout): ModuleDict(
+          (default): Identity()
+        )
+        (lora_A): ModuleDict(
+          (default): Linear(in_features=4096, out_features=64, bias=False)
+        )
+        (lora_B): ModuleDict(
+          (default): Linear(in_features=64, out_features=32000, bias=False)
+        )
+        (lora_embedding_A): ParameterDict()
+        (lora_embedding_B): ParameterDict()
+      )
+    )
+  )
+)
+
+```
+
 ```python
 print_hf_model_for_causalLM("mistralai/Mixtral-8x7B-v0.1")
 ```
