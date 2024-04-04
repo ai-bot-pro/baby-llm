@@ -8,7 +8,6 @@
 - [**Switch Transformers: Scaling to Trillion Parameter Models with Simple and Efficient Sparsity**](https://arxiv.org/pdf/2101.03961.pdf) (Computes auxiliary load balancing loss with gate_logits, num_experts, top_k)
 - **https://github.com/mistralai/mistral-src** (just model architecture,no train)
 - [HF-transformers-modeling-mistral](https://github.com/huggingface/transformers/blob/v4.37.2/src/transformers/models/mistral/modeling_mistral.py)
-- [HF-transformers-modeling-mixtral](https://github.com/huggingface/transformers/blob/v4.37.2/src/transformers/models/mixtral/modeling_mixtral.py)
 
 
 ## Model-Architecture
