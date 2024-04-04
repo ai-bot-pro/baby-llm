@@ -84,13 +84,15 @@ $$ \begin{align} \begin{split} & \bar{a}i = \frac{a_i}{\text{RMS}(\mathbf{a})} g
 - 训练一个神经网络(transformer结构)，数据通过tokenizer分词，输入token数据embedding, 首先要跑一遍前向Forward的过程，算算wx+b，算算激活函数，之后计算Loss function,利用损失函数进行Backward对参数求导得到梯度Grad，拿到Grad后扔给优化器Optimizer更新模型权重，反复迭代，直到损失函数收敛。
 
 # 参考学习：
-1. https://vickiboykis.com/what_are_embeddings/
-3. http://neuralnetworksanddeeplearning.com/
-2. https://www.3blue1brown.com/topics/neural-networks
-4. https://karpathy.ai/zero-to-hero.html
-5. https://courses.d2l.ai/zh-v2/ (看沐神视频学)
-6. https://github.com/mlabonne/llm-course
-7. [**Open Pretrained Transformers(OPT)** - Susan Zhang | Stanford MLSys #77](https://www.youtube.com/watch?v=p9IxoSkvZ-M) (训练一个LLM的工程实践)
+0. [《深度学习入门基于Python的理论与实现》](https://github.com/weedge/learn/blob/main/llm/%E3%80%8A%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E5%85%A5%E9%97%A8%EF%BC%9A%E5%9F%BA%E4%BA%8EPython%E7%9A%84%E7%90%86%E8%AE%BA%E4%B8%8E%E5%AE%9E%E7%8E%B0%E3%80%8B%E9%AB%98%E6%B8%85%E4%B8%AD%E6%96%87%E7%89%88.pdf)(前2-6章相关基础知识解释,通俗易懂)
+1. https://vickiboykis.com/what_are_embeddings/ | [中文翻译](https://github.com/weedge/what_are_embeddings/blob/main/embeddings-cn.pdf)
+2. http://neuralnetworksanddeeplearning.com/
+3. https://www.3blue1brown.com/topics/neural-networks
+4. http://cs231n.github.io/neural-networks-case-study/ (cs231n simple NN case)
+5. https://karpathy.ai/zero-to-hero.html
+6. https://courses.d2l.ai/zh-v2/ (看沐神视频学)
+7. https://github.com/mlabonne/llm-course
+8. [**Open Pretrained Transformers(OPT)** - Susan Zhang | Stanford MLSys #77](https://www.youtube.com/watch?v=p9IxoSkvZ-M) (训练一个LLM的工程实践)
 
 
 # LLMs:
