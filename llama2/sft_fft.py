@@ -1,3 +1,8 @@
+"""
+### Full Fine-Tuning (FFT)
+Adjusts all parameters of the LLM using task-specific data.
+like pre-training, but resume ckpt.pt and use like prompt-generate_text supervised datasets with tokenizer(sp bpe)
+"""
 import math
 import os
 import time
@@ -70,6 +75,11 @@ wandb_run_name = "run" + datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + \
 hf_upload = False  # disabled by default
 repo_id = "weege007/babyllm"
 hf_models_dir = "/models"
+
+# estimate loss datasets
+# defualt "", use: "train,val" | "train" | "val"
+estimate_loss_split_datasets = ""
+
 # -----------------------------------------------------------------------------
 config_keys = [
     k
@@ -83,6 +93,9 @@ exec(open(f"{_cur_work_dir}/args.py").read())
 change_global_args()  # overrides from command line
 config = {k: globals()[k] for k in config_keys}  # will be useful for logging
 # -----------------------------------------------------------------------------
+
+estimate_loss_datasets = [] if len(
+    estimate_loss_split_datasets) > 0 else estimate_loss_split_datasets.split(",")
 
 # fixing some hyperparams to sensible defaults
 lr_decay_iters = max_iters  # should be ~= max_iters per Chinchilla
@@ -230,11 +243,11 @@ if ddp:
 
 
 @torch.no_grad()
-def estimate_loss():
+def estimate_loss(estimate_loss_datasets):
     out = {}
     model.eval()
     # 分别对训练集和验证集进行估计
-    for split in ["train", "val"]:
+    for split in estimate_loss_datasets:
         batch_iter = iter_batches(split=split)
         losses = torch.zeros(eval_iters)  # keep on CPU
         # 遍历每批次模型的losses, 对每批次losses算均值loss
@@ -290,7 +303,7 @@ while True:
     if iter_num % eval_interval == 0 and master_process:
         # train训练数据用于参数（权重和偏置）的学习，
         # val验证数据用于参数的性能评估
-        losses = estimate_loss()
+        losses = estimate_loss(estimate_loss_datasets)
         print(
             f"step {iter_num}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
         if wandb_log:

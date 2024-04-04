@@ -132,9 +132,10 @@ if __name__ == "__main__":
                         help="target dataset huggingface repo id")
     parser.add_argument("-ss", "--sample_size", type=int, default=1000,
                         help="dataset sample size")
-    parser.add_argument("-ff", "--file_format", type=str, default="",
+    parser.add_argument("-ff", "--file_format", type=str, default="csv",
                         help="target dataset file format:[csv,json,parquet]")
     args = parser.parse_args()
+    print(args)
 
     if args.stage == "translate":
         translate2save(args.src_dir, args.target_dir,

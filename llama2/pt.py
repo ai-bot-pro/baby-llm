@@ -75,8 +75,8 @@ repo_id = "weege007/babyllm"
 hf_models_dir = "/models"
 
 # estimate loss datasets
-# defualt "", use: "train,val" | "train" | "val"
-estimate_loss_split_datasets = ""
+# defualt "train,val", use: "" | "train,val" | "train" | "val"
+estimate_loss_split_datasets = "train,val"
 
 # -----------------------------------------------------------------------------
 config_keys = [
