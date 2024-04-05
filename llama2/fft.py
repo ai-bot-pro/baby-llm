@@ -1,7 +1,9 @@
 """
 ### Full Fine-Tuning (FFT)
 Adjusts all parameters of the LLM using task-specific data.
-like pre-training, but resume ckpt.pt and use like prompt-generate_text supervised datasets with tokenizer(sp bpe)
+like pre-training, but resume ckpt.pt;
+- use raw text unsupervised datasets with tokenizer(sp bpe)
+- use like prompt-generate_text supervised datasets with tokenizer(sp bpe)
 """
 import math
 import os

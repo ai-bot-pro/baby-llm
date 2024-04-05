@@ -13,6 +13,6 @@
 - [**Proximal Policy Optimization**](https://arxiv.org/abs/1707.06347)
 
 Tips:
-- 相关微调操作可以通过 PERF: https://huggingface.co/docs/peft/index + TRL：https://huggingface.co/docs/trl/index 进行学习
+- 相关微调操作可以通过 PEFT: https://huggingface.co/docs/peft/index + TRL：https://huggingface.co/docs/trl/index 进行学习
 - gradient_accumulation: https://huggingface.co/docs/accelerate/usage_guides/gradient_accumulation
 

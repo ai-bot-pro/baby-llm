@@ -15,8 +15,7 @@ juse like pre-training base model to inference
 
 ### Parameter-efficient Fine-Tuning (PEFT)
 ![PEFT](https://raw.githubusercontent.com/weedge/mypic/master/llm/llm-sft/PEFT.png)
-Modifies select parameters for more efficient adaptation.
-need pre-training more parameters model
+Modifies select parameters for more efficient adaptation. for base pre-training parameters model (large params)
 eg: LoRA; Prefix-tuning P-tuning v2, P-tuning; IA3
 see hf peft: https://huggingface.co/docs/peft/conceptual_guides/adapter 
 - LoRA (generate task，finetune embedding/attention,ffn layer/lm_head)
