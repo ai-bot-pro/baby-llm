@@ -8,6 +8,7 @@ import time
 from contextlib import nullcontext
 from datetime import datetime
 from functools import partial
+from multiprocessing import Pool
 
 import torch
 from model import Transformer, ModelArgs
@@ -279,6 +280,16 @@ def get_lr(it):
     return min_lr + coeff * (learning_rate - min_lr)
 
 
+def push_to_hf_hub(repo_id, model_path_or_fileobj, hf_models_dir, model_million_params):
+    print(f"upload checkpoint to {repo_id}")
+    upload_file(
+        path_or_fileobj=model_path_or_fileobj,
+        path_in_repo=os.path.join(
+            hf_models_dir, f"{model_million_params}M.pt"),
+        repo_id=repo_id,
+    )
+
+
 # logging
 # https://docs.wandb.ai/quickstart
 if wandb_log and master_process:
@@ -335,21 +346,20 @@ while True:
                 torch.save(checkpoint, os.path.join(out_dir, "ckpt.pt"))
                 model_export(raw_model, os.path.join(out_dir, "model.bin"))
                 if hf_upload:
-                    # @TODO: async upload
-                    print(f"upload checkpoint to {repo_id}")
                     from huggingface_hub import upload_file
-                    upload_file(
-                        path_or_fileobj=os.path.join(out_dir, "ckpt.pt"),
-                        path_in_repo=os.path.join(
-                            hf_models_dir, f"{model_million_params}M.pt"),
-                        repo_id=repo_id,
-                    )
-                    upload_file(
-                        path_or_fileobj=os.path.join(out_dir, "model.bin"),
-                        path_in_repo=os.path.join(
-                            hf_models_dir, f"{model_million_params}M.bin"),
-                        repo_id=repo_id,
-                    )
+                    # popen
+                    with Pool() as p:
+                        p.apply_async(
+                            push_to_hf_hub, (repo_id, os.path.join(out_dir, "ckpt.pt"),
+                                             hf_models_dir, model_million_params)
+                        )
+                        p.apply_async(
+                            push_to_hf_hub, (repo_id, os.path.join(out_dir, "model.bin"),
+                                             hf_models_dir, model_million_params)
+                        )
+                        p.close()
+                        p.join()
+
     if iter_num == 0 and eval_only:
         break
 

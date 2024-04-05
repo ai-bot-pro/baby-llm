@@ -29,14 +29,14 @@ tips: 这里用数据集里的字符集作为一个简单的tokenizer 词表用�
 2. MLP(Multilayer Perceptron) LM: 每层为全连接线性权重层;  
    - 该模型定义了一个输入层，三个隐藏层(每层维度逐层指数减少)，一个输出层，除了输入层节点，每个节点都是一个带有非线性激活函数(sigmoid/relu(线性整流)/silu); 
    - 定义了一个特殊的编码permutation coding(排列编码);
-   - 使用Batch Normalization算法,以进行学习时的mini-batch为单位，按mini-batch进行正规化; 可以使学习快速进行（可以增大学习率）;不那么依赖初始值（对于初始值不用那么神经质）;抑制过拟合（降低Dropout等的必要性）
+   - 使用Batch Normalization算法,以进行学习时的mini-batch为单位，按mini-batch进归一化; 可以使学习快速进行（可以增大学习率）;不那么依赖初始值;抑制过拟合（降低Dropout等的必要性）
   ![](https://raw.githubusercontent.com/weedge/mypic/master/llm/llm-knowledge-point-all-u-need/3.jpg)
   
 
-3. GPT(Generative Pre-trained Transformer) LM: 使用类似GPT2模型，加入位置embedding, block(attention机制, FFN(MLP)前馈层, 以及残差连接)， 以及对输入权重参数进行了初始化(如果初始化为0,反向传播时更新权重变的没有意义;为了防止"权重均一化"（严格地讲，是为了瓦解权重的对称结构），必须随机生成初始值;常采用定义标准差正太分布(高斯分布),这里标准差std=0.02)，
+1. GPT(Generative Pre-trained Transformer) LM: 使用类似GPT2模型，加入位置embedding, block(attention机制, FFN(MLP)前馈层, 以及残差连接)， 以及对输入权重参数进行了初始化(如果初始化为0,反向传播时更新权重变的没有意义;为了防止"权重均一化"（严格地讲，是为了瓦解权重的对称结构），必须随机生成初始值;常采用定义标准差正太分布(高斯分布),这里标准差std=0.02)，
 ![](https://raw.githubusercontent.com/weedge/baby-llm/main/docs/simple-gpt.drawio.png)
 
-4. MoE(mixture of experts) LM: 稀疏专家混合语言模型(SMoE) 
+1. MoE(mixture of experts) LM: 稀疏专家混合语言模型(SMoE) 
    - 稀疏专家混合而不是孤立的前馈神经网络。
    - 使用了top-k门控和noisy top-k门控实现。
    - 模型训练初始化 - 这里使用了Kaiming He初始化，
