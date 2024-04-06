@@ -2,7 +2,6 @@
 ### Full Fine-Tuning (FFT)
 Adjusts all parameters of the LLM using task-specific data.
 like pre-training, but resume ckpt.pt;
-- use raw text unsupervised datasets with tokenizer(sp bpe)
 - use like prompt-generate_text supervised datasets with tokenizer(sp bpe)
 """
 import math
@@ -19,11 +18,12 @@ from torch.distributed import destroy_process_group, init_process_group
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.amp import autocast
 
-from llama2.datasets.loader import Task
+from datasets.loader import Task
 from export import model_export
 
 # -----------------------------------------------------------------------------
-dataset_name = "tinystories"  # tokenized dataset name
+dataset_name = "cosmopedia_stories"  # tokenized dataset name
+csv_file_path = ""  # csv datasets file path
 data_dir = "./datas"  # tokenizer datasets dir
 # I/O
 out_dir = "out"
@@ -163,6 +163,7 @@ iter_batches = partial(
     max_seq_len=max_seq_len,
     prompt_max_len=prompt_max_len,
     text_max_len=text_max_len,
+    csv_file_path=csv_file_path
 )
 
 # init these up here, can override if _init_from='resume' (i.e. from a checkpoint)

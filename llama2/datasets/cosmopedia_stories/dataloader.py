@@ -15,8 +15,9 @@ class ChatGLMPretokSftDataset(Dataset):
     - u can choose sp bpe tokenizer to encode sft dataset, eg: chatglm(zh), llama2(en)
     """
 
-    def __init__(self, csv_file_path, max_seq_len=512, prompt_max_len=256, text_max_len=256):
+    def __init__(self, csv_file_path, max_seq_len=512, prompt_max_len=256, text_max_len=256, split="train"):
         super().__init__()
+        self.split = split
         self.df = pd.read_csv(csv_file_path)
         # like shuffle
         self.df = self.df.sample(frac=1.0)

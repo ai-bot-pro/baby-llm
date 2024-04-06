@@ -1,8 +1,8 @@
 from torch.utils.data import DataLoader
 
-from datasets.tinystories.dataloader import PretokDataset as TinyDataset
-from datasets.wikipedia_cn.dataloader import PretokDataset as WikipediaCnDataset
-from datasets.cosmopedia_stories.dataloader import ChatGLMPretokSftDataset as CosmopediaStoriesDataset
+from tinystories.dataloader import PretokDataset as TinyDataset
+from wikipedia_cn.dataloader import PretokDataset as WikipediaCnDataset
+from cosmopedia_stories.dataloader import ChatGLMPretokSftDataset as CosmopediaStoriesDataset
 
 
 class Task:
@@ -93,3 +93,72 @@ class CuDFDataloaderTask:
     use  DataLoader to load data, for pre-training, sft, rl(reward)
     see: https://docs.rapids.ai/api/cudf/stable/
     """
+
+
+def task_datasetClass(data_dir,
+                      vocab_size, vocab_source="custom",
+                      dataset_name="tinystories", batch_size=1,
+                      max_seq_len=512, device="cpu"):
+    iter_batches = partial(
+        Task().iter_batches,
+        dataset_name=dataset_name,
+        data_dir=data_dir,
+        batch_size=batch_size,
+        max_seq_len=max_seq_len,
+        vocab_size=vocab_size,
+        vocab_source=vocab_source,
+        device=device,
+        num_workers=0,
+    )
+    train_batch_iter = iter_batches(split="train")
+    X, Y = next(train_batch_iter)  # fetch the very first batch
+    print(X.shape, Y.shape)
+    print(X[0])
+    print(Y[0])
+
+
+def task_sftDatasetClass(csv_file_path,
+                         prompt_max_len=128, text_max_len=128,
+                         dataset_name="cosmopedia_stories", batch_size=1,
+                         max_seq_len=512, device="cpu"):
+    iter_batches = partial(
+        Task().sft_getitem_batches,
+        dataset_name=dataset_name,
+        batch_size=batch_size,
+        device=device,
+        num_workers=0,
+        max_seq_len=max_seq_len,
+        prompt_max_len=prompt_max_len,
+        text_max_len=text_max_len,
+    )
+    train_batch_iter = iter_batches(split="train", csv_file_path=csv_file_path)
+    X, Y, loss_mask = next(train_batch_iter)  # fetch the very first batch
+    print(X.shape, Y.shape, loss_mask.shape)
+    print(X[0])
+    print(Y[0])
+    print(loss_mask[0])
+
+
+if __name__ == "__main__":
+    import argparse
+    from functools import partial
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("stage", type=str, choices=[
+                        "task_datasetClass", "task_sftDatasetClass"])
+    parser.add_argument("-dn", "--dataset_name", type=str, default="",
+                        help="dataset_name from datasets dir")
+    parser.add_argument("-vs", "--vocab_size", type=int, default=4096,
+                        help="vocab size")
+    parser.add_argument("-d", "--data_dir", type=str, default="",
+                        help="vocab data dir")
+    parser.add_argument("-cfp", "--csv_file_path", type=str, default="",
+                        help="csv_file_path")
+
+    args = parser.parse_args()
+    print(args)
+
+    if args.stage == "task_datasetClass":
+        task_datasetClass(args.data_dir, args.vocab_size)
+    elif args.stage == "task_sftDatasetClass":
+        task_sftDatasetClass(args.csv_file_path)

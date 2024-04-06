@@ -1,5 +1,6 @@
 """
 from: https://github.com/karpathy/llama2.c/blob/master/train.py
+- use raw text unsupervised datasets with tokenizer(sp bpe)
 """
 
 import math
@@ -16,7 +17,7 @@ from torch.distributed import destroy_process_group, init_process_group
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.amp import autocast
 
-from llama2.datasets.loader import Task
+from datasets.loader import Task
 from export import model_export
 
 # -----------------------------------------------------------------------------
