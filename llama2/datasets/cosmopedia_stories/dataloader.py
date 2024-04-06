@@ -1,7 +1,7 @@
 import os
 
 from torch import from_numpy
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, default_collate
 from transformers import AutoTokenizer
 import numpy as np
 import pandas as pd
@@ -15,20 +15,18 @@ class ChatGLMPretokSftDataset(Dataset):
     - u can choose sp bpe tokenizer to encode sft dataset, eg: chatglm(zh), llama2(en)
     """
 
-    def __init__(self, data_dir, max_seq_len=512, prompt_max_len=512, text_max_len=512):
+    def __init__(self, csv_file_path, max_seq_len=512, prompt_max_len=511, text_max_len=511):
         super().__init__()
-        self.data_dir = data_dir
-        self.df = pd.read_csv(os.path.join(data_dir, 'sft_data.csv'))
+        self.df = pd.read_csv(csv_file_path)
         # like shuffle
         self.df = self.df.sample(frac=1.0)
         self.max_seq_len = max_seq_len
         self.prompt_max_len = prompt_max_len
         self.text_max_len = text_max_len
-        tokenizer = AutoTokenizer.from_pretrained(
+        self.tokenizer = AutoTokenizer.from_pretrained(
             "THUDM/chatglm3-6b", trust_remote_code=True)
-        self.tokenizer = tokenizer
-        self.bos = tokenizer.special_tokens['<bos>']
-        self.eos = tokenizer.special_tokens['<eos>']
+        self.bos = self.tokenizer.special_tokens['<bos>']  # 1
+        self.eos = self.tokenizer.special_tokens['<eos>']  # 2
         # note: if use chatGLM tokenizer.special_tokens['<pad>'] is unkw_id, just use 0 as pad_id
         self.pad = 0
 
@@ -41,22 +39,49 @@ class ChatGLMPretokSftDataset(Dataset):
             sample['prompt_zh'], add_special_tokens=False)
         text = self.tokenizer.encode(
             sample['text_zh'], add_special_tokens=False)
+        print(len(prompt), len(text))
         if len(prompt) > self.prompt_max_len:
             prompt = prompt[:self.prompt_max_len-2]
         if len(text) > self.text_max_len:
             text = text[:self.text_max_len-2]
-        #
+        print(len(prompt), len(text))
+
         input_id = prompt+[self.bos]+text+[self.eos]
         context_length = input_id.index(self.bos)
         mask_position = context_length - 1
-        pad_len = self.max_length - len(input_id)
+        pad_len = self.max_seq_len - len(input_id)
         input_id = input_id + [self.pad] * pad_len
         loss_mask = [0]*context_length+[1] * \
             (len(input_id[mask_position+1:])) if pad_len == 0 else [0]*context_length+[1] * \
             (len(input_id[mask_position+1:-pad_len])) + [0]*pad_len
-        #
+
         input_id = np.array(input_id)
         X = np.array(input_id[:-1]).astype(np.int64)
         Y = np.array(input_id[1:]).astype(np.int64)
         loss_mask = np.array(loss_mask[:-1])
+        print(X.shape, Y.shape, len(input_id))
         return from_numpy(X), from_numpy(Y), from_numpy(loss_mask)
+
+
+if __name__ == "__main__":
+    import argparse
+    from torch.utils.data import DataLoader
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("stage", type=str, choices=["check"])
+    parser.add_argument("-f", "--csv_file_path", type=str,
+                        help="csv file path ")
+    args = parser.parse_args()
+    print(args)
+
+    ds = ChatGLMPretokSftDataset(csv_file_path=args.csv_file_path)
+    dl = DataLoader(
+        ds, batch_size=2, drop_last=False, shuffle=False, pin_memory=True, num_workers=0
+    )
+    for step, (X, Y, loss_mask) in enumerate(dl):
+        print(step)
+        print(X.shape, Y.shape)
+        print(X[0])
+        print(Y[0])
+        print(loss_mask[0])
+        break

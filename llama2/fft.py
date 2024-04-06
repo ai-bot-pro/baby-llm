@@ -255,7 +255,7 @@ def estimate_loss(estimate_loss_datasets):
         losses = torch.zeros(eval_iters)  # keep on CPU
         # 遍历每批次模型的losses, 对每批次losses算均值loss
         for k in range(eval_iters):
-            X, Y = next(batch_iter)
+            X, Y, loss_mask = next(batch_iter)
             with ctx:
                 logits = model(X, Y)
                 loss = raw_model.last_loss
@@ -301,7 +301,7 @@ if wandb_log and master_process:
 
 # training loop
 train_batch_iter = iter_batches(split="train")
-X, Y = next(train_batch_iter)  # fetch the very first batch
+X, Y, loss_mask = next(train_batch_iter)  # fetch the very first batch
 t0 = time.time()
 local_iter_num = 0  # number of iterations in the lifetime of this process
 raw_model = model.module if ddp else model  # unwrap DDP container if needed
@@ -378,9 +378,13 @@ while True:
         with ctx:
             logits = model(X, Y)
             loss = raw_model.last_loss
+            if loss_mask:
+                loss_mask = loss_mask.view(-1)
+                loss = torch.sum(loss*loss_mask)/loss_mask.sum()
+
             loss = loss / gradient_accumulation_steps
         # immediately async prefetch next batch while model is doing the forward pass on the GPU
-        X, Y = next(train_batch_iter)
+        X, Y, loss_mask = next(train_batch_iter)
         # backward pass, with gradient scaling if training in fp16
         # 调用 GradScaler 的 backward() 方法计算梯度并缩放
         # 根据前向传播计算的loss值， 反向传播 更新模型参数权重

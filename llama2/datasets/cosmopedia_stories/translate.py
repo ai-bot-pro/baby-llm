@@ -2,11 +2,13 @@
 # https://zhuanlan.zhihu.com/p/564816807
 # u can change this for M/R op
 
-from deep_translator import GoogleTranslator
-from datasets import load_dataset, load_from_disk
 import argparse
 import time
 import random
+import os
+
+from datasets import load_dataset, load_from_disk
+from deep_translator import GoogleTranslator
 
 
 def local_mt(item):
@@ -62,7 +64,25 @@ def batch_filter_young_children(batch):
     return [item == "young_children" for item in batch["audience"]]
 
 
-def translate2save(src_dataset_dir: str, target_dataset_dir: str, hf_repo_id="", sample_size=0, format=""):
+def convert(src_dataset_dir: str, target_dataset_dir: str, format=""):
+    os.makedirs(target_dataset_dir, exist_ok=True)
+    data = load_from_disk(src_dataset_dir)
+    print(data)
+    # use pandas DF
+    data = data.to_pandas()
+    if format == "csv":
+        data.to_csv(os.path.join(target_dataset_dir, "train.csv"))
+    elif format == "json":
+        data.to_json(os.path.join(target_dataset_dir, "train.json"))
+    elif format == "parquet":
+        data.to_parquet(os.path.join(target_dataset_dir, "train.parquet"))
+    else:
+        raise ValueError(f"unsupport format {format}")
+    print(f"convert ok, save to{target_dataset_dir} format:{format}")
+
+
+def translate2save(src_dataset_dir: str, target_dataset_dir: str, hf_repo_id="", sample_size=0):
+    os.makedirs(target_dataset_dir, exist_ok=True)
     data = load_dataset(src_dataset_dir, split="train")
     print(data)
     data = data.filter(batch_filter_larg_text, batched=True)
@@ -77,21 +97,10 @@ def translate2save(src_dataset_dir: str, target_dataset_dir: str, hf_repo_id="",
     data = data.map(remote_mt_batch, batched=True,
                     batch_size=3, remove_columns=[])
     print(data)
-    if format == "csv":
-        # use pandas DF
-        data = data.to_pandas()
-        data.to_csv(target_dataset_dir)
-    elif format == "json":
-        data = data.to_pandas()
-        data.to_json(target_dataset_dir)
-    elif format == "parquet":
-        data = data.to_pandas()
-        data.to_parquet(target_dataset_dir)
-    else:
-        # defualt arrow format
-        data.save_to_disk(target_dataset_dir)
+    # defualt arrow format
+    data.save_to_disk(target_dataset_dir)
     if len(hf_repo_id) > 0:
-        data.push_to_hub(hf_repo_id)
+        data.push_to_hub(hf_repo_id,  private=True)
     print("translate ok, save to", target_dataset_dir)
 
 
@@ -107,7 +116,8 @@ def load2check(dataset_dir):
           [index])
 
 
-def local_translate2save(src_dataset_dir: str, target_dataset_dir: str):
+def local_translate2save(src_dataset_dir: str, target_dataset_dir: str, hf_repo_id=''):
+    os.makedirs(target_dataset_dir, exist_ok=True)
     data = load_dataset(src_dataset_dir, split="train")
     print(data)
     data = data.filter(batch_filter_middle_text, batched=True)
@@ -117,13 +127,15 @@ def local_translate2save(src_dataset_dir: str, target_dataset_dir: str):
     data = data.map(local_mt, batched=False)
     print(data)
     data.save_to_disk(target_dataset_dir)
+    if len(hf_repo_id) > 0:
+        data.push_to_hub(hf_repo_id, private=True)
     print("local translate ok, save to", target_dataset_dir)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("stage", type=str, choices=[
-                        "translate", "check", "local_mt"])
+                        "translate", "check", "local_mt", "convert"])
     parser.add_argument("-s", "--src_dir", type=str,
                         help="path to src dataset dir ")
     parser.add_argument("-t", "--target_dir", type=str,
@@ -139,9 +151,11 @@ if __name__ == "__main__":
 
     if args.stage == "translate":
         translate2save(args.src_dir, args.target_dir,
-                       hf_repo_id=args.hf_repo_id, sample_size=args.sample_size, format=args.file_format)
+                       hf_repo_id=args.hf_repo_id, sample_size=args.sample_size)
     elif args.stage == "check":
         load2check(args.target_dir)
+    elif args.stage == "convert":
+        convert(args.src_dir, args.target_dir, format=args.file_format)
     elif args.stage == "local_mt":
         from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
         # model_checkpoint = "Helsinki-NLP/opus-mt-en-zh"
