@@ -15,7 +15,7 @@ class ChatGLMPretokSftDataset(Dataset):
     - u can choose sp bpe tokenizer to encode sft dataset, eg: chatglm(zh), llama2(en)
     """
 
-    def __init__(self, csv_file_path, max_seq_len=512, prompt_max_len=511, text_max_len=511):
+    def __init__(self, csv_file_path, max_seq_len=512, prompt_max_len=256, text_max_len=256):
         super().__init__()
         self.df = pd.read_csv(csv_file_path)
         # like shuffle
@@ -51,9 +51,9 @@ class ChatGLMPretokSftDataset(Dataset):
         mask_position = context_length - 1
         pad_len = self.max_seq_len - len(input_id)
         input_id = input_id + [self.pad] * pad_len
-        loss_mask = [0]*context_length+[1] * \
-            (len(input_id[mask_position+1:])) if pad_len == 0 else [0]*context_length+[1] * \
-            (len(input_id[mask_position+1:-pad_len])) + [0]*pad_len
+        loss_mask = [-100]*context_length+[1] * \
+            (len(input_id[mask_position+1:])) if pad_len == 0 else [-100]*context_length+[1] * \
+            (len(input_id[mask_position+1:-pad_len])) + [-100]*pad_len
 
         input_id = np.array(input_id)
         X = np.array(input_id[:-1]).astype(np.int64)
