@@ -45,6 +45,9 @@ tips: 这里用数据集里的字符集作为一个简单的tokenizer 词表用�
       
    ![](https://raw.githubusercontent.com/weedge/baby-llm/main/docs/simple-moe.drawio.png)
 
+2. MoA(SMoE+MultiHeadAttention)-MoE(mixture of experts) LM: 模块化来源于稀疏专家混合语言模型(ModuleFormer) 
+   ![](https://raw.githubusercontent.com/weedge/baby-llm/main/docs/simple-moa-moe.drawio.png)
+
 ## start
 ```shell
 git clone https://github.com/weedge/baby-llm.git
@@ -84,7 +87,6 @@ ls loss_*.log | python3 simpleLM/plot.py
 - https://github.com/karpathy/makemore
 - https://github.com/AviSoori1x/makeMoE/blob/main/makeMoE_from_Scratch.ipynb
 - https://github.com/antirez/simple-language-model
-- https://www.youtube.com/watch?v=EXbgUXt8fFU
 
 # paper
 - [Dropout: A Simple Way to Prevent Neural Networks from Overfitting](https://jmlr.org/papers/volume15/srivastava14a/srivastava14a.pdf)

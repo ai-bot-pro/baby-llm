@@ -32,8 +32,6 @@ class Head(nn.Module):
         out = wei @ v  # (B, T, T) @ (B, T, C) -> (B, T, C)
         return out
 
-# Multi-Headed Self Attention
-
 
 class MultiHeadAttention(nn.Module):
     """ multiple heads of self-attention in parallel """
@@ -50,10 +48,9 @@ class MultiHeadAttention(nn.Module):
         out = self.dropout(self.proj(out))
         return out
 
-# Expert module
-
 
 class Expert(nn.Module):
+    # Expert module
     """ An MLP is a simple linear layer followed by a non-linearity i.e. each Expert """
 
     def __init__(self, n_embed, dropout):
@@ -68,32 +65,60 @@ class Expert(nn.Module):
     def forward(self, x):
         return self.net(x)
 
-# noisy top-k gating
-
 
 class NoisyTopkRouter(nn.Module):
+    # noisy top-k gating
+    r"""
+    实现了一个带有噪声的 Top-k 门控路由器，它通过对路由器logits添加噪声来引入随机性，
+    并使用 softmax 函数将加权的输出转换为概率分布，从而确定每个样本分配给哪些专家处理。
+    """
+
     def __init__(self, n_embed, num_experts, top_k):
+        r"""
+        n_embed：表示输入特征的维度大小。
+        num_experts：表示专家的数量。
+        top_k：表示每个样本将被分配给的前 k 个专家。
+        """
         super(NoisyTopkRouter, self).__init__()
         self.top_k = top_k
         # layer for router logits
+        # topkroute_linear：一个线性层，用于生成路由器的logits，
+        # 其输入维度为 n_embed，输出维度为 num_experts。
         self.topkroute_linear = nn.Linear(n_embed, num_experts)
+        # noise_linear：一个线性层，用于生成噪声的logits，
+        # 其输入维度同样为 n_embed，输出维度为 num_experts。
         self.noise_linear = nn.Linear(n_embed, num_experts)
 
     def forward(self, mh_output):
         # mh_ouput is the output tensor from multihead self attention block
+        # mh_output 是来自多头自注意力模块的输出张量。
+        # 通过 topkroute_linear 层将 mh_output 输入，得到原始的路由器logits。
         logits = self.topkroute_linear(mh_output)
 
         # Noise logits
+        # 通过 noise_linear 层将 mh_output 输入，得到噪声logits。
         noise_logits = self.noise_linear(mh_output)
 
         # Adding scaled unit gaussian noise to the logits
+        # torch.randn_like: 从标准正态/高斯分布（均值为0，标准差为1）中随机采样
+        # 添加一个缩放后的单位高斯噪声到路由器logits中。
+        # 缩放系数使用 F.softplus 函数应用到噪声logits上，然后与单位高斯噪声相乘。
         noise = torch.randn_like(logits)*F.softplus(noise_logits)
+        # 加入噪声的logits
         noisy_logits = logits + noise
 
+        # 对加入噪声后的logits执行 top-k 操作，
+        # 得到每个样本前 k 个最大值的logits和对应的索引。
         top_k_logits, indices = noisy_logits.topk(self.top_k, dim=-1)
+        # 创建一个与 noisy_logits 张量相同形状的全 -inf 的张量 zeros。
         zeros = torch.full_like(noisy_logits, float('-inf'))
+        # 使用 scatter 函数将每个样本前 k 个最大值的logits分散到 zeros 张量中，
+        # 得到稀疏的logits。
         sparse_logits = zeros.scatter(-1, indices, top_k_logits)
+        # 对稀疏的logits执行 softmax 操作，得到路由器的输出。
         router_output = F.softmax(sparse_logits, dim=-1)
+
+        # 返回路由器的输出以及对应的索引。
         return router_output, indices
 
 
@@ -108,29 +133,38 @@ class SparseMoE(nn.Module):
         self.top_k = top_k
 
     def forward(self, x):
+        # gating_output 表示每个样本被分配给每个专家的概率分数，
+        # indices 表示每个样本被分配给的专家索引。
         gating_output, indices = self.router(x)
+
+        # torch.zeros_like(x) 创建一个与输入张量 x 具有相同形状的全零张量 final_output，用于存储最终的输出。
         final_output = torch.zeros_like(x)
 
         # Reshape inputs for batch processing
+        # flat_x 和 flat_gating_output 将输入和门控输出展平为二维张量，以便进行批处理处理。
         flat_x = x.view(-1, x.size(-1))
         flat_gating_output = gating_output.view(-1, gating_output.size(-1))
 
         # Process each expert in parallel
         for i, expert in enumerate(self.experts):
             # Create a mask for the inputs where the current expert is in top-k
+            # 创建一个掩码 expert_mask，用于标识哪些输入应该由当前专家处理。
             expert_mask = (indices == i).any(dim=-1)
             flat_mask = expert_mask.view(-1)
 
             if flat_mask.any():
+                # 如果掩码中有任何真值，表示当前专家需要处理这些输入，则从 flat_x 中提取相应的输入，并将其传递给当前专家进行处理。
                 expert_input = flat_x[flat_mask]
                 expert_output = expert(expert_input)
 
                 # Extract and apply gating scores
+                # 从 flat_gating_output 中提取当前专家的门控输出，并将其乘以专家的输出，以获得加权的输出。
                 gating_scores = flat_gating_output[flat_mask, i].unsqueeze(1)
                 weighted_output = expert_output * gating_scores
 
                 # Update final output
                 # We need to scatter_add the weighted outputs to their original positions in the batch
+                # 使用 masked_scatter_ 函数将加权的输出散布到 final_output 张量的对应位置。
                 final_output.masked_scatter_(
                     expert_mask.unsqueeze(-1), weighted_output)
 
