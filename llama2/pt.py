@@ -21,7 +21,7 @@ from datasets.loader import Task
 from export import model_export
 
 # -----------------------------------------------------------------------------
-dataset_name = "cosmopedia_stories"  # tokenized dataset name
+dataset_name = "tinystories"  # tokenized dataset name
 data_dir = "./datas"  # tokenizer datasets dir
 # I/O
 out_dir = "out"

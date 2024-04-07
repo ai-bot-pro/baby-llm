@@ -1,3 +1,8 @@
+# torch
+
+- https://nn.labml.ai/
+- https://github.com/labmlai/annotated_deep_learning_paper_implementations
+
 ## method_params
 
 - cross_entropy
