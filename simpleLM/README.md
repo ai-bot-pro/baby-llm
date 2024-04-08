@@ -85,9 +85,11 @@ ls loss_*.log | python3 simpleLM/plot.py
 - https://en.wikipedia.org/wiki/Activation_function
 - https://karpathy.ai/zero-to-hero.html
 - https://github.com/karpathy/ng-video-lecture
+- https://github.com/antirez/simple-language-model
 - https://github.com/karpathy/makemore
 - https://github.com/AviSoori1x/makeMoE/blob/main/makeMoE_from_Scratch.ipynb
-- https://github.com/antirez/simple-language-model
+- https://github.com/tensorflow/mesh/blob/master/mesh_tensorflow/transformer/moe.py#L384
+- https://github.com/myshell-ai/JetMoE
 
 # paper
 - [Dropout: A Simple Way to Prevent Neural Networks from Overfitting](https://jmlr.org/papers/volume15/srivastava14a/srivastava14a.pdf)
