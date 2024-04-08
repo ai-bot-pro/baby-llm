@@ -96,5 +96,6 @@ ls loss_*.log | python3 simpleLM/plot.py
 - [A Neural Probabilistic Language Model](https://www.jmlr.org/papers/volume3/bengio03a/bengio03a.pdf)
 - [**GPT1-Improving Language Understanding by Generative Pre-Training**](https://s3-us-west-2.amazonaws.com/openai-assets/research-covers/language-unsupervised/language_understanding_paper.pdf)
 - [**Outrageosly Large Neural Networks: The Sparsely-Gated Mixture-Of-Experts layer**](https://arxiv.org/pdf/1701.06538.pdf)
+- [Switch Transformers: Scaling to Trillion Parameter Models with Simple and Efficient Sparsity](https://arxiv.org/abs/2101.03961)
 - [Mixtral of Experts](https://arxiv.org/pdf/2401.04088.pdf)
 - [**ModuleFormer: Modularity Emerges from Mixture-of-Experts**](https://arxiv.org/pdf/2306.04640.pdf)

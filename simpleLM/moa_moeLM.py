@@ -1,9 +1,12 @@
 r"""
-from: "ModuleFormer: Modularity Emerges from Mixture-of-Experts"
-paper: https://arxiv.org/pdf/2306.04640.pdf
-- use THE SPARSELY-GATED MIXTURE-OF-ATTENTIONS LAYER
+from: 
+- "Switch Transformers: Scaling to Trillion Parameter Models with Simple and Efficient Sparsity": https://arxiv.org/pdf/2101.03961.pdf
+- "ModuleFormer: Modularity Emerges from Mixture-of-Experts": https://arxiv.org/pdf/2306.04640.pdf
+
+- use THE SPARSELY-GATED MIXTURE-OF-EXPERTS ATTENTION LAYER
 - use THE SPARSELY-GATED MIXTURE-OF-EXPERTS(mlp) LAYER
 """
+import math
 
 import torch
 import torch.nn as nn
@@ -56,6 +59,158 @@ class MultiHeadAttention(nn.Module):
         return out
 
 
+class SparseMoEMultiHeadAttention(nn.Module):
+    """ spare moe + multiple heads of self-attention in parallel """
+
+    def __init__(self, num_heads, head_size, n_embed, block_size, dropout, num_experts=8, top_k=2):
+        super(SparseMoEMultiHeadAttention, self).__init__()
+
+        self.n_embed = n_embed
+        self.num_heads = num_heads
+        self.head_size = head_size
+        self.num_experts = num_experts
+        self.top_k = min(top_k, self.num_experts)
+
+        assert self.top_k > 0, f"topk must > 0"
+        assert self.num_heads > 0, f"num_heads must > 0"
+        assert num_heads % \
+            self.top_k == 0, f"need num_heads:{num_heads}%top_k:{self.top_k} == 0"
+
+        self.num_key_val_heads = num_heads/top_k
+        self.kv_proj_size = self.num_key_val_heads*head_size
+
+        self.input_linear = ParallelExperts(
+            num_experts, n_embed, self.kv_proj_size)
+        self.output_linear = ParallelExperts(
+            num_experts, self.kv_proj_size, n_embed)
+
+        self.router = NoisyTopkRouter(n_embed, num_experts, self.top_k)
+
+        self.k_proj = torch.nn.Linear(
+            n_embed, self.kv_proj_size, bias=False)
+        self.v_proj = torch.nn.Linear(
+            n_embed, self.kv_proj_size, bias=False)
+
+        self.register_buffer('tril', torch.tril(
+            torch.ones(block_size, block_size)))
+
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, x: torch.Tensor):
+        bsz, seq_len, feat_dim = x.size()
+
+        query_states = self.map(x)
+        key_states = self.k_proj(x)
+        value_states = self.v_proj(x)
+
+        query_states = query_states.view(
+            bsz, seq_len, self.num_heads, self.head_size
+        ).transpose(1, 2)
+        key_states = key_states.view(
+            bsz, seq_len, self.num_key_value_heads, self.head_size
+        ).transpose(1, 2)
+        value_states = value_states.view(
+            bsz, seq_len, self.num_key_value_heads, self.head_size
+        ).transpose(1, 2)
+
+        kv_seq_len = key_states.shape[2]  # seq_len
+
+        # repeat k/v heads if num_key_val_heads < num_heads, it's true
+        key_states = key_states.repeat(1, self.top_k, 1, 1)
+        value_states = value_states.repeat(1, self.top_k, 1, 1)
+
+        attn_weights = torch.matmul(query_states, key_states.transpose(2, 3)) / math.sqrt(
+            self.head_size
+        )
+        if attn_weights.size() != (bsz, self.num_heads, seq_len, kv_seq_len):
+            raise ValueError(
+                f"Attention weights should be of size {(bsz, self.num_heads, seq_len, kv_seq_len)}, but is"
+                f" {attn_weights.size()}"
+            )
+
+        # upcast attention to fp32
+        attn_weights = nn.functional.softmax(
+            attn_weights, dim=-1, dtype=torch.float32).to(query_states.dtype)
+        # attn_weights = self.dropout(attn_weights)
+        # attn_weights = nn.functional.dropout(attn_weights, p=self.attention_dropout, training=self.training)
+
+        attn_output = torch.matmul(attn_weights, value_states)
+        if attn_output.size() != (bsz, self.num_heads, seq_len, self.head_size):
+            raise ValueError(
+                f"`attn_output` should be of size {(bsz, self.num_heads, seq_len, self.head_size)}, but is"
+                f" {attn_output.size()}"
+            )
+
+        attn_output = attn_output.transpose(1, 2).contiguous()
+        attn_output = attn_output.reshape(
+            bsz, seq_len, self.top_k, self.kv_proj_size)
+
+        attn_output = self.reduce(attn_output)
+        attn_output = attn_output.view(bsz, seq_len, -1)
+
+        attn_output = self.dropout(attn_output)
+
+        return attn_output
+        # return attn_output, attn_weights
+
+    def map(self, x):
+        # 解析输入张量的形状，获取批次大小（bsz）、序列长度（length）和输入特征维度（emb_size）。
+        bsz, length, emb_size = x.size()
+        # 将输入张量 x 重新整形为二维张量，形状为 (bsz * length, emb_size)，以便进行批次级别的处理。
+        x = x.reshape(-1, emb_size)
+        # 调用 compute_gate 方法计算门控损失。
+        self.compute_gate(x)
+
+        # 根据 batch_index 提取每个样本所属的专家输入，形状为 (num_experts, expert_size)。
+        expert_inputs = x[self.batch_index]
+        # 将专家输入传递给 input_linear 层，使用专家大小信息进行线性变换，得到专家输出。
+        expert_outputs = self.input_linear(expert_inputs, self.expert_size)
+
+        # 创建一个全零张量 zeros，形状为 (bsz * length * top_k, hidden_size)，数据类型和设备与 expert_outputs 相同。
+        zeros = torch.zeros(
+            (bsz * length * self.top_k, self.hidden_size), dtype=expert_outputs.dtype, device=expert_outputs.device
+        )
+        # 使用 index_add 方法将专家输出根据 index_sorted_experts 分散到全零张量 zeros 中，得到混合输出张量 y。
+        y = zeros.index_add(0, self.index_sorted_experts, expert_outputs)
+        # 将混合输出张量 y 重新整形为四维张量，形状为(bsz, length, top_k, hidden_size)。
+        y = y.view(bsz, length, self.top_k, -1)
+        return y
+
+    def reduce(self, x: torch.Tensor):
+        # 解析输入张量的形状，获取批次大小（bsz）、序列长度（length）、专家数量（k）和嵌入维度（emb_size）。
+        bsz, length, k, emb_size = x.size()
+        # 将输入张量 x 重新整形为二维张量，形状为 (bsz * length * k, emb_size)。
+        x = x.reshape(-1, emb_size)
+
+        # 根据 index_sorted_experts 提取每个样本所属的专家输入，形状为 (num_experts, expert_size)。
+        expert_inputs = x[self.index_sorted_experts]
+        # 将专家输入传递给 output_linear 层，使用专家大小信息进行线性变换，得到专家输出。
+        expert_outputs = self.output_linear(expert_inputs, self.expert_size)
+
+        # 将专家输出乘以对应的门控值。
+        expert_outputs = expert_outputs * self.batch_gates[:, None]
+
+        # 创建一个全零张量 zeros，形状为 (bsz * length, input_size)，数据类型和设备与 expert_outputs 相同。
+        zeros = torch.zeros((bsz * length, self.input_size),
+                            dtype=expert_outputs.dtype, device=expert_outputs.device)
+        # 使用 index_add 方法将乘以门控值的专家输出张量根据 batch_index 分散到全零张量 zeros 中，得到降维后的输出张量 y。
+        y = zeros.index_add(0, self.batch_index, expert_outputs)
+        # 将降维后的输出张量 y 重新整形为三维张量，形状为 (bsz, length, input_size)。
+        y = y.view(bsz, length, self.input_size)
+        # 如果设置了偏置项，则将偏置项添加到输出张量 y 中。
+        if self.bias is not None:
+            y = y + self.bias
+        return y
+
+    def compute_gate(self, x):
+        top_k_indices, self.top_k_gates = self.router(x)
+
+        self.batch_gates, self.batch_index, expert_size, self.index_sorted_experts = compute_gating(
+            self.top_k, self.num_experts, self.top_k_gates, top_k_indices
+        )
+        self.expert_size = expert_size.tolist()
+
+
 class Expert(nn.Module):
     # Expert module
     """ An MLP is a simple linear layer followed by a non-linearity i.e. each Expert """
@@ -71,6 +226,58 @@ class Expert(nn.Module):
 
     def forward(self, x):
         return self.net(x)
+
+
+class ParallelExperts(nn.Module):
+    def __init__(self, num_experts, input_size, output_size) -> None:
+        """
+        Initialize the ParallelExperts module.
+        like a Expert pool
+        maybe manager diff export pool for feature to load :)
+
+        Args:
+            num_experts (int): Number of experts.
+            input_size (int): Size of the input.
+            output_size (int): Size of the output.
+            bias (bool): Whether to include bias terms.
+        """
+        super().__init__()
+        self.weight = nn.Parameter(torch.empty(
+            num_experts, output_size, input_size))
+        self.reset_parameters()
+        self.num_experts = num_experts
+        self.input_size = input_size
+        self.output_size = output_size
+
+    def extra_repr(self):
+        return "num_experts={}, input_size={}, output_size={}".format(
+            self.num_experts, self.input_size, self.output_size
+        )
+
+    def reset_parameters(self) -> None:
+        """
+        Reset the parameters of the model.
+        """
+        nn.init.uniform_(self.weight, -1.0 / self.weight.size(1),
+                         1.0 / self.weight.size(1))
+
+    def forward(self, inputs, expert_size):
+        """
+        Forward pass of the ParallelExperts module.
+
+        Args:
+            inputs (Tensor): Input tensor.
+            expert_size: Expert size information.
+
+        Returns:
+            Tensor: Output tensor.
+        """
+        input_list = inputs.split(expert_size, dim=0)
+        output_list = []
+        for i in range(self.num_experts):
+            output_list.append(F.linear(input_list[i], self.weight[i]))
+        results = torch.cat(output_list, dim=0)
+        return results
 
 
 class NoisyTopkRouter(nn.Module):
@@ -129,15 +336,62 @@ class NoisyTopkRouter(nn.Module):
         return router_output, indices
 
 
-class SparseMoE(nn.Module):
+@torch.jit.script
+def compute_gating(k: int, num_experts: int, top_k_gates: torch.Tensor, top_k_indices: torch.Tensor):
+    """
+    Compute gating values for the mixture of experts based on probabilities and top-k indices.
+
+    Args:
+        k (int): Number of experts to select.
+        num_experts (int): Total number of experts.
+        top_k_gates (torch.Tensor): Gating values for top-k experts (batch_size x k).
+        top_k_indices (torch.Tensor): Indices of top-k experts (batch_size x k).
+
+    Returns:
+        torch.Tensor: Batch-level gating values.
+        torch.Tensor: Batch-level expert indices.
+        torch.Tensor: Expert size for each expert.
+        torch.Tensor: Sorted indices of top-k experts.
+    """
+    zeros = torch.zeros([top_k_gates.size(0), num_experts],
+                        dtype=top_k_gates.dtype, device=top_k_gates.device)
+    gates = zeros.scatter(1, top_k_indices, 1)
+    # 计算每个专家被选择的次数，即每列中值为 1 的数量，得到专家大小（expert_size）。
+    expert_size = gates.long().sum(0)
+    # 将顶部 k 个专家的门控值和索引展平为一维张量，并对专家索引进行排序。
+    top_k_gates = top_k_gates.flatten()
+    top_k_experts = top_k_indices.flatten()
+    _, index_sorted_experts = top_k_experts.sort(0)
+    # 根据专家索引的排序结果，确定每个样本所属的批次索引（batch_index）。
+    batch_index = index_sorted_experts.div(k, rounding_mode="trunc")
+    # 提取排序后的专家门控值，得到批次级别的门控值（batch_gates）。
+    batch_gates = top_k_gates[index_sorted_experts]
+
+    return batch_gates, batch_index, expert_size, index_sorted_experts
+
+
+class BaseMoE(nn.Module):
+    """ the basic sparse mixture of experts module """
+
+    def __init__(self, n_embed, num_experts, top_k):
+        super(BaseMoE, self).__init__()
+        self.top_k = min(top_k, self.num_experts)
+        self.num_experts = num_experts
+        self.n_embed = n_embed
+
+        self.router = NoisyTopkRouter(n_embed, num_experts, self.top_k)
+
+    def forward(self, x):
+        pass
+
+
+class SparseMoE(BaseMoE):
     """ the sparse mixture of experts module """
 
     def __init__(self, n_embed, num_experts, top_k, dropout):
-        super(SparseMoE, self).__init__()
-        self.router = NoisyTopkRouter(n_embed, num_experts, top_k)
+        super(SparseMoE, self).__init__(n_embed, num_experts, top_k)
         self.experts = nn.ModuleList(
             [Expert(n_embed, dropout=dropout) for _ in range(num_experts)])
-        self.top_k = top_k
 
     def forward(self, x):
         # gating_output 表示每个样本被分配给每个专家的概率分数，
@@ -178,19 +432,93 @@ class SparseMoE(nn.Module):
         return final_output.view_as(x)
 
 
+class SparseMoEWithCapacity(BaseMoE):
+    r"""
+    加入Expert Capacity:每个专家(expert)能够处理的最大token数量的阈值
+    - 如果某个专家分配到的令牌数超过了它的容量,那么超出部分的令牌将不会被该层处理,可能会导致信息损失
+    - 适当增加专家容量可以减少这种溢出情况,但也会增加计算和通信开销。因此需要在专家容量和效率之间权衡。
+    - 在Switch Transformer中,作者通过上采样和下采样技术,允许不同层使用不同数量的专家,从而优化计算和内存利用率
+    合理设置专家容量因子可以平衡模型性能和效率
+    code detail from: 
+    - https://github.com/tensorflow/mesh/blob/master/mesh_tensorflow/transformer/moe.py#L384
+    - https://github.com/AviSoori1x/makeMoE/blob/main/makeMoE_from_Scratch_with_Expert_Capacity.ipynb
+    """
+
+    def __init__(self, n_embed, num_experts, top_k, capacity_factor=1.0):
+        super(SparseMoEWithCapacity, self).__init__(
+            n_embed, num_experts, top_k)
+        self.experts = nn.ModuleList([Expert(n_embed)
+                                     for _ in range(num_experts)])
+        # add capacity_factor
+        self.capacity_factor = capacity_factor
+
+    def forward(self, x):
+        # Assuming x has shape [batch_size, seq_len, n_embd]
+        batch_size, seq_len, _ = x.shape
+        gating_output, indices = self.router(x)
+        final_output = torch.zeros_like(x)
+
+        # Flatten the batch and sequence dimensions to treat each token independently
+        # Now shape [batch_size * seq_len, n_embd]
+        flat_x = x.view(-1, x.size(-1))
+        flat_gating_output = gating_output.view(-1, gating_output.size(-1))
+
+        # 将 tokens_per_batch 除以 self.num_experts，得到每个专家应该处理的平均token数量，
+        # 然后乘以 self.capacity_factor 来调整基本容量。最后，将结果转换为整数，得到每个专家的最终容量
+        tokens_per_batch = batch_size * seq_len * self.top_k
+        expert_capacity = int(
+            (tokens_per_batch / self.num_experts) * self.capacity_factor)
+
+        # 创建与 flat_x 相同形状的全零张量 updates，用于存储每个tokens的更新值。
+        updates = torch.zeros_like(flat_x)
+
+        for i, expert in enumerate(self.experts):
+            r"""
+            对每个专家进行循环遍历，并根据其索引和门控输出选择相应的tokens。
+            如果选择的token数量超过了专家的容量，则只选择前面的部分。
+            然后，将选定的token输入到相应的专家中，得到专家输出，
+            并根据门控输出对其进行加权。将加权输出累加到 updates 张量中。
+            """
+            expert_mask = (indices == i).any(dim=-1)
+            flat_mask = expert_mask.view(-1)
+            selected_indices = torch.nonzero(flat_mask).squeeze(-1)
+
+            limited_indices = selected_indices[:expert_capacity] if selected_indices.numel(
+            ) > expert_capacity else selected_indices
+            if limited_indices.numel() > 0:
+                expert_input = flat_x[limited_indices]
+                expert_output = expert(expert_input)
+
+                gating_scores = flat_gating_output[limited_indices, i].unsqueeze(
+                    1)
+                weighted_output = expert_output * gating_scores
+                updates.index_add_(0, limited_indices, weighted_output)
+
+        # 将 updates 张量重新整形为与 x 相同的形状，并将其加到 final_output 中，得到最终输出。
+        final_output += updates.view(batch_size, seq_len, -1)
+
+        return final_output
+
+
 class Block(nn.Module):
     """ 
     Mixture of Experts Transformer block: communication followed by computation (multi-head self attention + SparseMoE) 
     that may be repeated several number of times; Copy pasting key architecture variables for clarity
     """
 
-    def __init__(self, n_embed, n_head, num_experts, top_k, block_size, dropout):
+    def __init__(self, n_embed, n_head, num_experts, top_k, block_size, dropout, capacity_factor=0.0):
         # n_embed: embedding dimension, n_head: the number of heads we'd like
         super().__init__()
         head_size = n_embed // n_head
-        self.sa = MultiHeadAttention(
+
+        self.sa = SparseMoEMultiHeadAttention(
             n_head, head_size, n_embed, block_size, dropout)
-        self.smoe = SparseMoE(n_embed, num_experts, top_k, dropout)
+
+        if capacity_factor >= 1.0:
+            self.smoe = SparseMoEWithCapacity(
+                n_embed, num_experts, top_k, dropout, capacity_factor=capacity_factor)
+        else:
+            self.smoe = SparseMoE(n_embed, num_experts, top_k, dropout)
         self.ln1 = nn.LayerNorm(n_embed)
         self.ln2 = nn.LayerNorm(n_embed)
 
@@ -200,19 +528,19 @@ class Block(nn.Module):
         return x
 
 
-class SparseMoELanguageModel(nn.Module):
+class SparseMoAMoELanguageModel(nn.Module):
     """
     putting  all together to crease a sparse mixture of experts language model
     """
 
-    def __init__(self, vocab_size, n_head, num_experts, top_k, n_layer, n_embed, block_size, dropout, nn_init="kaiming_normal"):
+    def __init__(self, vocab_size, n_head, num_experts, top_k, n_layer, n_embed, block_size, dropout, nn_init="kaiming_normal", capacity_factor=0.0):
         super().__init__()
         self.block_size = block_size
         # each token directly reads off the logits for the next token from a lookup table
         self.token_embedding_table = nn.Embedding(vocab_size, n_embed)
         self.position_embedding_table = nn.Embedding(block_size, n_embed)
         self.blocks = nn.Sequential(*[Block(n_embed, n_head=n_head, num_experts=num_experts,
-                                    top_k=top_k,  block_size=block_size, dropout=dropout) for _ in range(n_layer)])
+                                    top_k=top_k,  block_size=block_size, dropout=dropout, capacity_factor=capacity_factor) for _ in range(n_layer)])
         self.ln_f = nn.LayerNorm(n_embed)  # final layer norm
         self.lm_head = nn.Linear(n_embed, vocab_size)
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
