@@ -70,6 +70,7 @@ python3 simpleLM/train.py --model_name=bigramLM
 python3 simpleLM/train.py --model_name=mlpLM
 python3 simpleLM/train.py --model_name=gptLM
 python3 simpleLM/train.py --model_name=moeLM
+python3 simpleLM/train.py --model_name=moa_moeLM
 
 # plot train/validation loss
 ls loss_*.log | python3 simpleLM/plot.py 

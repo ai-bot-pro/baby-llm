@@ -13,52 +13,6 @@ import torch.nn as nn
 from torch.nn import functional as F
 
 
-class Head(nn.Module):
-    """ one head of self-attention """
-
-    def __init__(self, head_size, n_embed, block_size, dropout):
-        super().__init__()
-        self.key = nn.Linear(n_embed, head_size, bias=False)
-        self.query = nn.Linear(n_embed, head_size, bias=False)
-        self.value = nn.Linear(n_embed, head_size, bias=False)
-        self.register_buffer('tril', torch.tril(
-            torch.ones(block_size, block_size)))
-
-        self.dropout = nn.Dropout(dropout)
-
-    def forward(self, x):
-        B, T, C = x.shape
-        k = self.key(x)   # (B,T,C)
-        q = self.query(x)  # (B,T,C)
-        # compute attention scores ("affinities")
-        # (B, T, C) @ (B, C, T) -> (B, T, T)
-        wei = q @ k.transpose(-2, -1) * C**-0.5
-        wei = wei.masked_fill(
-            self.tril[:T, :T] == 0, float('-inf'))  # (B, T, T)
-        wei = F.softmax(wei, dim=-1)  # (B, T, T)
-        wei = self.dropout(wei)
-        # perform the weighted aggregation of the values
-        v = self.value(x)  # (B,T,C)
-        out = wei @ v  # (B, T, T) @ (B, T, C) -> (B, T, C)
-        return out
-
-
-class MultiHeadAttention(nn.Module):
-    """ multiple heads of self-attention in parallel """
-
-    def __init__(self, num_heads, head_size, n_embed, block_size, dropout):
-        super().__init__()
-        self.heads = nn.ModuleList(
-            [Head(head_size, n_embed, block_size, dropout) for _ in range(num_heads)])
-        self.proj = nn.Linear(n_embed, n_embed)
-        self.dropout = nn.Dropout(dropout)
-
-    def forward(self, x):
-        out = torch.cat([h(x) for h in self.heads], dim=-1)
-        out = self.dropout(self.proj(out))
-        return out
-
-
 class SparseMoEMultiHeadAttention(nn.Module):
     """ spare moe + multiple heads of self-attention in parallel """
 
@@ -502,7 +456,7 @@ class SparseMoEWithCapacity(BaseMoE):
 
 class Block(nn.Module):
     """ 
-    Mixture of Experts Transformer block: communication followed by computation (multi-head self attention + SparseMoE) 
+    Mixture of Experts Transformer block: communication followed by computation (SparseMoE-multi-head self attention + SparseMoE) 
     that may be repeated several number of times; Copy pasting key architecture variables for clarity
     """
 
@@ -512,7 +466,7 @@ class Block(nn.Module):
         head_size = n_embed // n_head
 
         self.sa = SparseMoEMultiHeadAttention(
-            n_head, head_size, n_embed, block_size, dropout)
+            n_head, head_size, n_embed, block_size, dropout, num_experts=num_experts, top_k=top_k)
 
         if capacity_factor >= 1.0:
             self.smoe = SparseMoEWithCapacity(
