@@ -46,6 +46,9 @@ tips: 这里用数据集里的字符集作为一个简单的tokenizer 词表用�
    ![](https://raw.githubusercontent.com/weedge/baby-llm/main/docs/simple-moe.drawio.png)
 
 2. MoA(SMoE+MultiHeadAttention)-MoE(mixture of experts) LM: 模块化来源于稀疏专家混合语言模型(ModuleFormer) 
+   - 引入专家容量（Expert Capacity factor）
+   - Load Balancing Loss
+   - 相关详情见:[**Switch Transformers: Scaling to Trillion Parameter Models with Simple and Efficient Sparsity**](https://arxiv.org/abs/2101.03961)
    ![](https://raw.githubusercontent.com/weedge/baby-llm/main/docs/simple-moa-moe.drawio.png)
 
 ## start
@@ -76,8 +79,9 @@ python3 simpleLM/train.py --model_name=moa_moeLM
 ls loss_*.log | python3 simpleLM/plot.py 
 # tips: 这里没有使用wandb来记录loss, 简单直接通过plot来绘制曲线图
 ```
-附：[simpleLM训练笔记](https://colab.research.google.com/drive/1ArSBhdnET4-o6KpX6qP7VXhYrVTg0lKN?usp=sharing)
-
+附：
+- [simpleLM训练笔记](https://colab.research.google.com/drive/1ArSBhdnET4-o6KpX6qP7VXhYrVTg0lKN?usp=sharing)
+- []()
 
 # 参考
 - **https://lena-voita.github.io/nlp_course/language_modeling.html**
@@ -99,6 +103,6 @@ ls loss_*.log | python3 simpleLM/plot.py
 - [A Neural Probabilistic Language Model](https://www.jmlr.org/papers/volume3/bengio03a/bengio03a.pdf)
 - [**GPT1-Improving Language Understanding by Generative Pre-Training**](https://s3-us-west-2.amazonaws.com/openai-assets/research-covers/language-unsupervised/language_understanding_paper.pdf)
 - [**Outrageosly Large Neural Networks: The Sparsely-Gated Mixture-Of-Experts layer**](https://arxiv.org/pdf/1701.06538.pdf)
-- [Switch Transformers: Scaling to Trillion Parameter Models with Simple and Efficient Sparsity](https://arxiv.org/abs/2101.03961)
+- [**Switch Transformers: Scaling to Trillion Parameter Models with Simple and Efficient Sparsity**](https://arxiv.org/abs/2101.03961)
 - [Mixtral of Experts](https://arxiv.org/pdf/2401.04088.pdf)
-- [**ModuleFormer: Modularity Emerges from Mixture-of-Experts**](https://arxiv.org/pdf/2306.04640.pdf)
+- [ModuleFormer: Modularity Emerges from Mixture-of-Experts](https://arxiv.org/pdf/2306.04640.pdf)

@@ -331,7 +331,6 @@ def compute_gating(k: int, num_experts: int, top_k_gates: torch.Tensor, top_k_in
     return batch_gates, batch_index, expert_size, index_sorted_experts
 
 
-@torch.jit.script
 def compute_aux_loss(num_experts: int,
                      top_k_gates: torch.Tensor,
                      top_k_indices: torch.Tensor,
@@ -351,11 +350,11 @@ def compute_aux_loss(num_experts: int,
         torch.Tensor: The calculated auxiliary loss.
     """
     # 对logits进行softmax操作，得到每个类别的概率分布
-    probs = torch.softmax(logits, dim=1)
+    probs = torch.softmax(logits, dim=-1)
     zeros = torch.zeros_like(probs)
     # Convert zeros to match top_k_gates dtype
     zeros = zeros.to(top_k_gates.dtype)
-    gates = zeros.scatter(1, top_k_indices, top_k_gates)
+    gates = zeros.scatter(-1, top_k_indices, top_k_gates)
 
     # 获取 logits 张量的批次大小，即样本数量
     count = logits.size(0)
