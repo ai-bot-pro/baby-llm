@@ -248,7 +248,7 @@ class NoisyTopkRouter(nn.Module):
         top_k：表示每个样本将被分配给的前 k 个专家。
         """
         super(NoisyTopkRouter, self).__init__()
-        self.aux_loss = None
+        self.aux_loss = 0.0
         self.top_k = top_k
         self.num_experts = num_experts
         # layer for router logits
@@ -522,7 +522,7 @@ class Block(nn.Module):
 
         # echo block auxiliary loss for training
         # moe self-attention auxiliary loss + moe auxiliary loss
-        self.aux_loss = None
+        self.aux_loss = 0.0
 
         self.sa = SparseMoEMultiHeadAttention(
             n_head, head_size, n_embed, block_size, dropout, num_experts=num_experts, top_k=top_k)
@@ -586,9 +586,11 @@ class SparseMoAMoELanguageModel(nn.Module):
             torch.arange(T, device=self.device))  # (T,C)
         x = tok_emb + pos_emb  # (B,T,C)
         # x = self.blocks(x)  # (B,T,C)
+        aux_loss = 0.0
         for block in self.blocks:
             x = block(x)
-            aux_loss += block.aux_loss
+            if self.training:
+                aux_loss += block.aux_loss
 
         x = self.ln_f(x)  # (B,T,C)
         logits = self.lm_head(x)  # (B,T,vocab_size)
