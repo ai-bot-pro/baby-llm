@@ -8,6 +8,7 @@ import numpy as np
 import pickle
 
 # hyperparameters
+# no config this, just a simple process
 batch_size = 64  # how many independent sequences will we process in parallel?
 block_size = 256  # what is the maximum context length for predictions?
 max_iters = 5000
@@ -33,6 +34,7 @@ num_experts = 8  # experts num
 top_k = 2  # top-k experts
 nn_init = "kaiming_normal"  # kaiming_normal / xavier_normal
 capacity_factor = 0.0  # expert capacity factor
+aux_loss_coef = 0.01  # load auxiliary loss coefficient
 
 # ------------
 model_name = "gptLM"  # bigramLM / mlpLM / gptLM / moeLM
@@ -189,7 +191,7 @@ match model_name:
     case "moa_moeLM":
         from moa_moeLM import SparseMoAMoELanguageModel
         model = SparseMoAMoELanguageModel(
-            vocab_size, n_head, num_experts, top_k, n_layer, n_embd, block_size, dropout, nn_init=nn_init, capacity_factor=capacity_factor)
+            vocab_size, n_head, num_experts, top_k, n_layer, n_embd, block_size, dropout, nn_init=nn_init, capacity_factor=capacity_factor, aux_loss_coef=aux_loss_coef)
 
 if model is None:
     raise ValueError("Unknown model name")

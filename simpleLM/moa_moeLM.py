@@ -248,7 +248,9 @@ class NoisyTopkRouter(nn.Module):
         top_k：表示每个样本将被分配给的前 k 个专家。
         """
         super(NoisyTopkRouter, self).__init__()
+        self.aux_loss = None
         self.top_k = top_k
+        self.num_experts = num_experts
         # layer for router logits
         # topkroute_linear：一个线性层，用于生成路由器的logits，
         # 其输入维度为 n_embed，输出维度为 num_experts。
@@ -286,6 +288,11 @@ class NoisyTopkRouter(nn.Module):
         # 对稀疏的logits执行 softmax 操作，得到路由器的输出。
         router_output = F.softmax(sparse_logits, dim=-1)
 
+        # 训练时才计算辅助loss值, 为了专家之间的负载平衡
+        if self.training:
+            self.aux_loss = compute_aux_loss(self.num_experts, router_output,
+                                             indices, noisy_logits)
+
         # 返回路由器的输出以及对应的索引。
         return router_output, indices
 
@@ -322,6 +329,55 @@ def compute_gating(k: int, num_experts: int, top_k_gates: torch.Tensor, top_k_in
     batch_gates = top_k_gates[index_sorted_experts]
 
     return batch_gates, batch_index, expert_size, index_sorted_experts
+
+
+@torch.jit.script
+def compute_aux_loss(num_experts: int,
+                     top_k_gates: torch.Tensor,
+                     top_k_indices: torch.Tensor,
+                     logits: torch.Tensor):
+    """
+    Calculate and return the auxiliary loss based on the accumulated statistics.
+    switch transformers: https://arxiv.org/pdf/2101.03961.pdf  
+    A. Differentiable Load Balancing Loss
+
+    Args:
+        num_experts (int): The number of experts.
+        top_k_gates (tensor): k个最大值的对应logits, 其每个元素表示对应logit概率值。
+        top_k_gates (tensor): k个最大值的对应logits索引, 其每个元素表示logit对应索引值。
+        logits (tensor): 其每个元素表示对应logit概率值。
+
+    Returns:
+        torch.Tensor: The calculated auxiliary loss.
+    """
+    # 对logits进行softmax操作，得到每个类别的概率分布
+    probs = torch.softmax(logits, dim=1)
+    zeros = torch.zeros_like(probs)
+    # Convert zeros to match top_k_gates dtype
+    zeros = zeros.to(top_k_gates.dtype)
+    gates = zeros.scatter(1, top_k_indices, top_k_gates)
+
+    # 获取 logits 张量的批次大小，即样本数量
+    count = logits.size(0)
+    # 计算每个专家被选中的概率之和，即将概率沿着批次维度求和。
+    probs = probs.sum(0)
+    # 计算每个专家被选中的频率，即计算门控值大于0的次数（即专家被选中的次数），
+    # 然后将其沿着批次维度求和。
+    freq = (gates > 0).float().sum(0)
+    # 计算 logits 张量经过 softmax 处理后的平方和的对数。
+    # 这里首先使用 softmax 函数将 logits 转换为概率分布，
+    # 然后计算概率分布的每个样本的平方和，并取对数，最后将结果沿着批次维度求和。
+    lsesq = (torch.log(torch.exp(logits).sum(dim=-1)) ** 2).sum()
+
+    # 计算专家选择损失，其计算方式为对每个专家的概率和频率进行归一化，然后计算它们的点积，最后将结果乘以专家数量。
+    switchloss = num_experts * \
+        (F.normalize(probs, p=1, dim=0) * F.normalize(freq, p=1, dim=0)).sum()
+    # 计算 z 损失，即 logits 的对数平方和除以样本数量
+    zloss = lsesq / count
+    # 将专家选择损失和 z 损失加权相加得到最终的辅助损失
+    loss = switchloss + 0.1 * zloss
+
+    return loss
 
 
 class BaseMoE(nn.Module):
@@ -392,7 +448,7 @@ class SparseMoEWithCapacity(BaseMoE):
     - 如果某个专家分配到的令牌数超过了它的容量,那么超出部分的令牌将不会被该层处理,可能会导致信息损失
     - 适当增加专家容量可以减少这种溢出情况,但也会增加计算和通信开销。因此需要在专家容量和效率之间权衡。
     - 在Switch Transformer中,作者通过上采样和下采样技术,允许不同层使用不同数量的专家,从而优化计算和内存利用率
-    合理设置专家容量因子可以平衡模型性能和效率
+    合理设置专家容量因子可以平衡模型性能效果和效率
     code detail from: 
     - https://github.com/tensorflow/mesh/blob/master/mesh_tensorflow/transformer/moe.py#L384
     - https://github.com/AviSoori1x/makeMoE/blob/main/makeMoE_from_Scratch_with_Expert_Capacity.ipynb
@@ -465,6 +521,10 @@ class Block(nn.Module):
         super().__init__()
         head_size = n_embed // n_head
 
+        # echo block auxiliary loss for training
+        # moe self-attention auxiliary loss + moe auxiliary loss
+        self.aux_loss = None
+
         self.sa = SparseMoEMultiHeadAttention(
             n_head, head_size, n_embed, block_size, dropout, num_experts=num_experts, top_k=top_k)
 
@@ -479,6 +539,8 @@ class Block(nn.Module):
     def forward(self, x):
         x = x + self.sa(self.ln1(x))
         x = x + self.smoe(self.ln2(x))
+        if self.training:
+            self.aux_loss = self.sa.router.aux_loss + self.smoe.router.aux_loss
         return x
 
 
@@ -487,14 +549,17 @@ class SparseMoAMoELanguageModel(nn.Module):
     putting  all together to crease a sparse mixture of experts language model
     """
 
-    def __init__(self, vocab_size, n_head, num_experts, top_k, n_layer, n_embed, block_size, dropout, nn_init="kaiming_normal", capacity_factor=0.0):
+    def __init__(self, vocab_size, n_head, num_experts, top_k, n_layer, n_embed, block_size, dropout, nn_init="kaiming_normal", capacity_factor=0.0, aux_loss_coef=0.01):
         super().__init__()
+        self.aux_loss_coef = aux_loss_coef
         self.block_size = block_size
         # each token directly reads off the logits for the next token from a lookup table
         self.token_embedding_table = nn.Embedding(vocab_size, n_embed)
         self.position_embedding_table = nn.Embedding(block_size, n_embed)
-        self.blocks = nn.Sequential(*[Block(n_embed, n_head=n_head, num_experts=num_experts,
-                                    top_k=top_k,  block_size=block_size, dropout=dropout, capacity_factor=capacity_factor) for _ in range(n_layer)])
+        self.blocks = nn.ModuleList(
+            [Block(n_embed, n_head=n_head, num_experts=num_experts,
+                   top_k=top_k, block_size=block_size, dropout=dropout,
+                   capacity_factor=capacity_factor) for _ in range(n_layer)])
         self.ln_f = nn.LayerNorm(n_embed)  # final layer norm
         self.lm_head = nn.Linear(n_embed, vocab_size)
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -521,17 +586,23 @@ class SparseMoAMoELanguageModel(nn.Module):
         pos_emb = self.position_embedding_table(
             torch.arange(T, device=self.device))  # (T,C)
         x = tok_emb + pos_emb  # (B,T,C)
-        x = self.blocks(x)  # (B,T,C)
+        # x = self.blocks(x)  # (B,T,C)
+        for block in self.blocks:
+            x = block(x)
+            aux_loss += block.aux_loss
+
         x = self.ln_f(x)  # (B,T,C)
         logits = self.lm_head(x)  # (B,T,vocab_size)
 
-        if targets is None:
-            loss = None
-        else:
+        loss = None
+        if targets is not None:
             B, T, C = logits.shape
             logits = logits.view(B*T, C)
             targets = targets.view(B*T)
             loss = F.cross_entropy(logits, targets)
+
+        if targets is not None and self.training:
+            loss += self.aux_loss_coef*aux_loss.to(loss.device)
 
         return logits, loss
 
