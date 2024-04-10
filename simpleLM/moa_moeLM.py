@@ -16,8 +16,16 @@ from torch.nn import functional as F
 class SparseMoEMultiHeadAttention(nn.Module):
     """ spare moe + multiple heads of self-attention in parallel """
 
-    def __init__(self, num_heads, head_size, n_embed, block_size, dropout, num_experts=8, top_k=2):
+    def __init__(self, num_heads, head_size, n_embed, block_size, dropout, num_experts=8, top_k=2, reduce_bias=True):
         super(SparseMoEMultiHeadAttention, self).__init__()
+
+        # 偏置是可学习的参数，通常用于线性层（如全连接层）和卷积层中。
+        # 模型中引入偏置项，有助于模型更好地拟合训练数据和提高模型的表达能力
+        # 在训练过程中，模型会通过梯度下降等优化算法自动学习到合适的偏置值，从而使模型的预测更准确。
+        self.p_reduce_bias = None
+        if reduce_bias:
+            self.p_reduce_bias = torch.nn.Parameter(torch.empty(n_embed))
+            torch.nn.init.zeros_(self.p_reduce_bias)
 
         self.n_embed = n_embed
         self.num_heads = num_heads
@@ -61,10 +69,10 @@ class SparseMoEMultiHeadAttention(nn.Module):
             bsz, seq_len, self.num_heads, self.head_size
         ).transpose(1, 2)
         key_states = key_states.view(
-            bsz, seq_len, self.num_key_value_heads, self.head_size
+            bsz, seq_len, self.num_key_val_heads, self.head_size
         ).transpose(1, 2)
         value_states = value_states.view(
-            bsz, seq_len, self.num_key_value_heads, self.head_size
+            bsz, seq_len, self.num_key_val_heads, self.head_size
         ).transpose(1, 2)
 
         kv_seq_len = key_states.shape[2]  # seq_len
@@ -120,13 +128,13 @@ class SparseMoEMultiHeadAttention(nn.Module):
         # 将专家输入传递给 input_linear 层，使用专家大小信息进行线性变换，得到专家输出。
         expert_outputs = self.input_linear(expert_inputs, self.expert_size)
 
-        # 创建一个全零张量 zeros，形状为 (bsz * length * top_k, hidden_size)，数据类型和设备与 expert_outputs 相同。
+        # 创建一个全零张量 zeros，形状为 (bsz * length * top_k, kv_proj_size)，数据类型和设备与 expert_outputs 相同。
         zeros = torch.zeros(
-            (bsz * length * self.top_k, self.hidden_size), dtype=expert_outputs.dtype, device=expert_outputs.device
+            (bsz * length * self.top_k, self.kv_proj_size), dtype=expert_outputs.dtype, device=expert_outputs.device
         )
         # 使用 index_add 方法将专家输出根据 index_sorted_experts 分散到全零张量 zeros 中，得到混合输出张量 y。
         y = zeros.index_add(0, self.index_sorted_experts, expert_outputs)
-        # 将混合输出张量 y 重新整形为四维张量，形状为(bsz, length, top_k, hidden_size)。
+        # 将混合输出张量 y 重新整形为四维张量，形状为(bsz, length, top_k, kv_proj_size)。
         y = y.view(bsz, length, self.top_k, -1)
         return y
 
@@ -144,20 +152,20 @@ class SparseMoEMultiHeadAttention(nn.Module):
         # 将专家输出乘以对应的门控值。
         expert_outputs = expert_outputs * self.batch_gates[:, None]
 
-        # 创建一个全零张量 zeros，形状为 (bsz * length, input_size)，数据类型和设备与 expert_outputs 相同。
-        zeros = torch.zeros((bsz * length, self.input_size),
+        # 创建一个全零张量 zeros，形状为 (bsz * length, n_embed)，数据类型和设备与 expert_outputs 相同。
+        zeros = torch.zeros((bsz * length, self.n_embed),
                             dtype=expert_outputs.dtype, device=expert_outputs.device)
         # 使用 index_add 方法将乘以门控值的专家输出张量根据 batch_index 分散到全零张量 zeros 中，得到降维后的输出张量 y。
         y = zeros.index_add(0, self.batch_index, expert_outputs)
-        # 将降维后的输出张量 y 重新整形为三维张量，形状为 (bsz, length, input_size)。
-        y = y.view(bsz, length, self.input_size)
+        # 将降维后的输出张量 y 重新整形为三维张量，形状为 (bsz, length, n_embed)。
+        y = y.view(bsz, length, self.n_embed)
         # 如果设置了偏置项，则将偏置项添加到输出张量 y 中。
-        if self.bias is not None:
-            y = y + self.bias
+        if self.p_reduce_bias is not None:
+            y = y + self.p_reduce_bias
         return y
 
     def compute_gate(self, x):
-        top_k_indices, self.top_k_gates = self.router(x)
+        self.top_k_gates, top_k_indices = self.router(x)
 
         self.batch_gates, self.batch_index, expert_size, self.index_sorted_experts = compute_gating(
             self.top_k, self.num_experts, self.top_k_gates, top_k_indices
@@ -316,7 +324,7 @@ def compute_gating(k: int, num_experts: int, top_k_gates: torch.Tensor, top_k_in
     """
     zeros = torch.zeros([top_k_gates.size(0), num_experts],
                         dtype=top_k_gates.dtype, device=top_k_gates.device)
-    gates = zeros.scatter(1, top_k_indices, 1)
+    gates = zeros.scatter(-1, top_k_indices, 1)
     # 计算每个专家被选择的次数，即每列中值为 1 的数量，得到专家大小（expert_size）。
     expert_size = gates.long().sum(0)
     # 将顶部 k 个专家的门控值和索引展平为一维张量，并对专家索引进行排序。
