@@ -285,5 +285,8 @@ class MoeLayer(nn.Module):
 ![](./MoE-mixtral.drawio.png)
 
 # 笔记
-- [makeMoE_from_Scratch](https://colab.research.google.com/drive/1o-wzk9-tTdKyG7LLEkj1y3j4g3xY6Mx0?usp=sharing)
 - [mixtral-llama.cpp-inference](https://colab.research.google.com/drive/1LJtHLepg6v_BhTPZtxcyuko3DC-vUVd2?usp=sharing)
+- [makeMoE_from_Scratch](https://colab.research.google.com/drive/1o-wzk9-tTdKyG7LLEkj1y3j4g3xY6Mx0?usp=sharing)
+- [makeMoE_from_Scratch_with_Expert_Capacity](https://github.com/weedge/doraemon-nb/blob/main/makeMoE_from_Scratch_with_Expert_Capacity.ipynb)
+- [makeMoE_from_Scratch_with_Expert_Capacity_Aux_Loss_Balance](https://github.com/weedge/doraemon-nb/blob/main/makeMoE_from_Scratch_with_Expert_Capacity_Aux_Loss_Balance.ipynb)
+- [makeMoA_MoE_from_Scratch_with_Expert_Capacity_Aux_Loss_Balance](https://github.com/weedge/doraemon-nb/blob/main/makeMoA_MoE_from_Scratch_with_Expert_Capacity_Aux_Loss_Balance.ipynb)

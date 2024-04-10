@@ -81,7 +81,7 @@ ls loss_*.log | python3 simpleLM/plot.py
 ```
 附：
 - [simpleLM训练笔记](https://colab.research.google.com/drive/1ArSBhdnET4-o6KpX6qP7VXhYrVTg0lKN?usp=sharing)
-- []()
+- [moa_moeLM训练笔记](https://github.com/weedge/doraemon-nb/blob/main/makeMoA_MoE_from_Scratch_with_Expert_Capacity_Aux_Loss_Balance.ipynb)
 
 # 参考
 - **https://lena-voita.github.io/nlp_course/language_modeling.html**
