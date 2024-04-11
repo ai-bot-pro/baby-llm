@@ -38,7 +38,7 @@ class SparseMoEMultiHeadAttention(nn.Module):
         assert num_heads % \
             self.top_k == 0, f"need num_heads:{num_heads}%top_k:{self.top_k} == 0"
 
-        self.num_key_val_heads = num_heads/top_k
+        self.num_key_val_heads = int(num_heads/top_k)
         self.kv_proj_size = self.num_key_val_heads*head_size
 
         self.input_linear = ParallelExperts(
@@ -392,7 +392,7 @@ class BaseMoE(nn.Module):
 
     def __init__(self, n_embed, num_experts, top_k):
         super(BaseMoE, self).__init__()
-        self.top_k = min(top_k, self.num_experts)
+        self.top_k = min(top_k, num_experts)
         self.num_experts = num_experts
         self.n_embed = n_embed
 
