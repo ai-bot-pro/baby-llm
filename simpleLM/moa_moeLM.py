@@ -19,7 +19,7 @@ class SparseMoEMultiHeadAttention(nn.Module):
     def __init__(self, num_heads, head_size, n_embed, block_size, dropout, num_experts=8, top_k=2, reduce_bias=True):
         super(SparseMoEMultiHeadAttention, self).__init__()
 
-        # 偏置是可学习的参数，通常用于线性层（如全连接层）和卷积层中。
+        # 偏置是可学习的参数，通常用于线性层（如全连接层）和卷积层中: a = Wx + Bias
         # 模型中引入偏置项，有助于模型更好地拟合训练数据和提高模型的表达能力
         # 在训练过程中，模型会通过梯度下降等优化算法自动学习到合适的偏置值，从而使模型的预测更准确。
         self.p_reduce_bias = None
@@ -38,6 +38,9 @@ class SparseMoEMultiHeadAttention(nn.Module):
         assert num_heads % \
             self.top_k == 0, f"need num_heads:{num_heads}%top_k:{self.top_k} == 0"
 
+        # num_heads = topk * num_key_val_heads
+        # kv_proj_size = num_key_val_heads * head_size
+        # num_heads * head_size = topk * kv_proj_size
         self.num_key_val_heads = int(num_heads/top_k)
         self.kv_proj_size = self.num_key_val_heads*head_size
 
@@ -59,53 +62,69 @@ class SparseMoEMultiHeadAttention(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x: torch.Tensor):
+        # B:bsz, S:seq_len=block_size, C:feat_dim=n_embed
         bsz, seq_len, feat_dim = x.size()
 
-        query_states = self.map(x)
-        key_states = self.k_proj(x)
-        value_states = self.v_proj(x)
+        # H:num_heads, kvH:num_key_val_heads, D:head_size
+        query_states = self.map(x)  # B S H*D
+        key_states = self.k_proj(x)  # B S kvH*D
+        value_states = self.v_proj(x)  # B S kvH*D
 
         query_states = query_states.view(
             bsz, seq_len, self.num_heads, self.head_size
-        ).transpose(1, 2)
+        ).transpose(1, 2)  # B H S D
         key_states = key_states.view(
             bsz, seq_len, self.num_key_val_heads, self.head_size
-        ).transpose(1, 2)
+        ).transpose(1, 2)  # B kvH S D
         value_states = value_states.view(
             bsz, seq_len, self.num_key_val_heads, self.head_size
-        ).transpose(1, 2)
-
-        kv_seq_len = key_states.shape[2]  # seq_len
+        ).transpose(1, 2)  # B kvH S D
 
         # repeat k/v heads if num_key_val_heads < num_heads, it's true
-        key_states = key_states.repeat(1, self.top_k, 1, 1)
-        value_states = value_states.repeat(1, self.top_k, 1, 1)
+        key_states = key_states.repeat(1, self.top_k, 1, 1)  # B H S D
+        value_states = value_states.repeat(1, self.top_k, 1, 1)  # B H S D
 
-        attn_weights = torch.matmul(query_states, key_states.transpose(2, 3)) / math.sqrt(
-            self.head_size
-        )
-        if attn_weights.size() != (bsz, self.num_heads, seq_len, kv_seq_len):
+        # (B H S D) @ (B H D S) * D**-0.5 -> (B H S S)
+        attn_weights = torch.matmul(
+            query_states, key_states.transpose(2, 3)
+        ) / math.sqrt(self.head_size)
+
+        # check attention weights shape
+        if attn_weights.size() != (bsz, self.num_heads, seq_len, seq_len):
             raise ValueError(
-                f"Attention weights should be of size {(bsz, self.num_heads, seq_len, kv_seq_len)}, but is"
+                f"Attention weights should be of size {(bsz, self.num_heads, seq_len, seq_len)}, but is"
                 f" {attn_weights.size()}"
             )
 
-        # upcast attention to fp32
-        attn_weights = nn.functional.softmax(
-            attn_weights, dim=-1, dtype=torch.float32).to(query_states.dtype)
-        # attn_weights = self.dropout(attn_weights)
-        # attn_weights = nn.functional.dropout(attn_weights, p=self.attention_dropout, training=self.training)
+        # cuasle sequence masked fill with -inf
+        attn_weights = attn_weights.masked_fill(
+            self.tril[:seq_len, :seq_len] == 0, float('-inf'))  # (B H S S)
 
+        # upcast attention to fp32
+        attn_weights = F.softmax(
+            attn_weights, dim=-1, dtype=torch.float32).to(query_states.dtype)
+
+        # dropout, if trainning loss have some overfit happen, open it
+        attn_weights = self.dropout(attn_weights)
+        # attn_weights = nn.functional.dropout(attn_weights, p=self.dropout, training=self.training)
+
+        # (B H S S) @ (B H S D) -> (B H S D)
         attn_output = torch.matmul(attn_weights, value_states)
+
+        # check attention output shape
         if attn_output.size() != (bsz, self.num_heads, seq_len, self.head_size):
             raise ValueError(
                 f"`attn_output` should be of size {(bsz, self.num_heads, seq_len, self.head_size)}, but is"
                 f" {attn_output.size()}"
             )
 
-        attn_output = attn_output.transpose(1, 2).contiguous()
+        # 内存连续的张量意味着张量的元素在内存中是按照其在张量中的顺序连续存储的，没有间隔
+        # 调用一些需要连续张量作为输入的函数(reshape)时可能会引发错误。
+        # 因此，在执行一些操作之前，需要确保张量是连续的
+        attn_output = attn_output.transpose(1, 2).contiguous()  # B S H D
+        # num_heads(H) * head_size(D) = topk * kv_proj_size
         attn_output = attn_output.reshape(
-            bsz, seq_len, self.top_k, self.kv_proj_size)
+            bsz, seq_len, self.top_k, self.kv_proj_size)  # B S topk kv_proj_size
 
         attn_output = self.reduce(attn_output)
         attn_output = attn_output.view(bsz, seq_len, -1)
@@ -139,7 +158,7 @@ class SparseMoEMultiHeadAttention(nn.Module):
         return y
 
     def reduce(self, x: torch.Tensor):
-        # 解析输入张量的形状，获取批次大小（bsz）、序列长度（length）、专家数量（k）和嵌入维度（emb_size）。
+        # 解析输入张量的形状，获取批次大小（bsz）、序列长度（length）、专家数量（k）和嵌入维度（emb_size=kv_proj_size）。
         bsz, length, k, emb_size = x.size()
         # 将输入张量 x 重新整形为二维张量，形状为 (bsz * length * k, emb_size)。
         x = x.reshape(-1, emb_size)
