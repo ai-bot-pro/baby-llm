@@ -106,3 +106,4 @@ ls loss_*.log | python3 simpleLM/plot.py
 - [**Switch Transformers: Scaling to Trillion Parameter Models with Simple and Efficient Sparsity**](https://arxiv.org/abs/2101.03961)
 - [Mixtral of Experts](https://arxiv.org/pdf/2401.04088.pdf)
 - [ModuleFormer: Modularity Emerges from Mixture-of-Experts](https://arxiv.org/pdf/2306.04640.pdf)
+- [JetMoE: Reaching Llama2 Performance with 0.1M Dollars](https://arxiv.org/pdf/2404.07413.pdf)

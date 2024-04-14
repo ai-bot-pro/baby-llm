@@ -14,7 +14,11 @@ from torch.nn import functional as F
 
 
 class SparseMoEMultiHeadAttention(nn.Module):
-    """ spare moe + multiple heads of self-attention in parallel """
+    """ 
+    spare moe + multiple heads of self-attention in parallel 
+    more detail see: Attention Expert from JetMoE: Reaching Llama2 Performance with 0.1M Dollars
+    https://arxiv.org/pdf/2404.07413.pdf
+    """
 
     def __init__(self, num_heads, head_size, n_embed, block_size, dropout, num_experts=8, top_k=2, reduce_bias=True):
         super(SparseMoEMultiHeadAttention, self).__init__()
@@ -85,9 +89,9 @@ class SparseMoEMultiHeadAttention(nn.Module):
         value_states = value_states.repeat(1, self.top_k, 1, 1)  # B H S D
 
         # (B H S D) @ (B H D S) * D**-0.5 -> (B H S S)
-        attn_weights = torch.matmul(
-            query_states, key_states.transpose(2, 3)
-        ) / math.sqrt(self.head_size)
+        attn_weights = query_states@key_states.transpose(
+            2, 3) * self.head_size**-0.5
+        # attn_weights = torch.matmul(query_states, key_states.transpose(2, 3)) / math.sqrt(self.head_size)
 
         # check attention weights shape
         if attn_weights.size() != (bsz, self.num_heads, seq_len, seq_len):
@@ -109,7 +113,8 @@ class SparseMoEMultiHeadAttention(nn.Module):
         # attn_weights = nn.functional.dropout(attn_weights, p=self.dropout, training=self.training)
 
         # (B H S S) @ (B H S D) -> (B H S D)
-        attn_output = torch.matmul(attn_weights, value_states)
+        attn_output = attn_weights@value_states
+        # attn_output = torch.matmul(attn_weights, value_states)
 
         # check attention output shape
         if attn_output.size() != (bsz, self.num_heads, seq_len, self.head_size):
