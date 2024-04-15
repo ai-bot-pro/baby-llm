@@ -77,6 +77,7 @@ def custom_tokenizer_process(item, tokenizer):
 def pretokenize(data_dir, vocab_size, tokenizer_model=None, batch_size=30, test_size=0.1, train_size=0.9):
     """
     pretokenize the dataset with custom tokenizer , save tokenids bytes to file 
+    need rm *.{test,train}.bin
     """
     tokenizer_model = os.path.join(
         data_dir, f"tok{vocab_size}.model") if tokenizer_model is None else tokenizer_model
@@ -129,6 +130,7 @@ def tokenizer_process(item, tokenizer):
 def pretokenize_with_chatGLM(data_dir, tokenizer, batch_size=30, test_size=0.1, train_size=0.9):
     """
     pretokenize the dataset with chatGLM tokenizer , save tokenids bytes to file 
+    need rm *.{test,train}.bin
     """
     tokenized_filename = {}
     tokenized_filename["test"] = os.path.join(

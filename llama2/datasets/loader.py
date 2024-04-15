@@ -148,6 +148,8 @@ if __name__ == "__main__":
                         "task_datasetClass", "task_sftDatasetClass"])
     parser.add_argument("-dn", "--dataset_name", type=str, default="",
                         help="dataset_name from datasets dir")
+    parser.add_argument("-vsrc", "--vocab_source", type=str, default="",
+                        help="vocab_source")
     parser.add_argument("-vs", "--vocab_size", type=int, default=4096,
                         help="vocab size")
     parser.add_argument("-d", "--data_dir", type=str, default="",
@@ -159,6 +161,7 @@ if __name__ == "__main__":
     print(args)
 
     if args.stage == "task_datasetClass":
-        task_datasetClass(args.data_dir, args.vocab_size, dataset_name=args.dataset_name)
+        task_datasetClass(args.data_dir, args.vocab_size,
+                          dataset_name=args.dataset_name, vocab_source=args.vocab_source)
     elif args.stage == "task_sftDatasetClass":
         task_sftDatasetClass(args.csv_file_path)
