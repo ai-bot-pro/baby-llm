@@ -9,8 +9,10 @@ from concurrent.futures import ProcessPoolExecutor
 from functools import partial
 import numpy as np
 
-from datasets.tokenizer import Tokenizer
-from datasets.preprocess import merge_tokenizer, print_tokenizer
+import sys
+sys.path.append(os.path.split(sys.path[0])[0])
+from _common.tokenizer import Tokenizer
+from _common.preprocess import merge_tokenizer, print_tokenizer
 
 os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
 

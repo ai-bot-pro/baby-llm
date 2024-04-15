@@ -11,8 +11,10 @@ from tqdm import tqdm
 from datasets import load_dataset
 import sentencepiece as spm
 
-from datasets.tokenizer import Tokenizer
-from datasets.preprocess import print_tokenizer
+import sys
+sys.path.append(os.path.split(sys.path[0])[0])
+from _common.tokenizer import Tokenizer
+from _common.preprocess import print_tokenizer
 
 os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
 
