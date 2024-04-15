@@ -33,7 +33,7 @@ def train_vocab(data_dir, vocab_size):
     num_shards = 10
 
     # 1) export a large chunk of text as a single text file all.txt
-    all_file = os.path.join(data_dir, "all.txt")
+    all_file = os.path.join(data_dir, "..", "all.txt")
     shard_filenames = sorted(glob.glob(os.path.join(data_dir, "*.json")))
 
     print(f"Writing temporary file {all_file} with {num_shards} shards...")
@@ -82,11 +82,12 @@ def pretokenize(data_dir, vocab_size, tokenizer_model=None, batch_size=30, test_
         data_dir, f"tok{vocab_size}.model") if tokenizer_model is None else tokenizer_model
     tokenizer = Tokenizer(tokenizer_model)
 
+    # save .bin files into a new tok{N} directory
     tokenized_filename = {}
     tokenized_filename["test"] = os.path.join(
-        data_dir, f"tok{vocab_size}", f"{test_size}.test.bin")
+        data_dir, f"tok{vocab_size}_{test_size}.test.bin")
     tokenized_filename["train"] = os.path.join(
-        data_dir, f"tok{vocab_size}", f"{train_size}.train.bin")
+        data_dir, f"tok{vocab_size}_{train_size}.train.bin")
 
     # ds = load_dataset(data_dir, split="train[:3]")
     ds = load_dataset(data_dir, split="train")
@@ -104,7 +105,7 @@ def pretokenize(data_dir, vocab_size, tokenizer_model=None, batch_size=30, test_
             f.write(all_tokens.tobytes())
         # calculate the average sequence length (they are separated by BOS=1)
         avg_seq_len = all_tokens.size / \
-            ((all_tokens == tokenizer.special_tokens['<bos>']).sum())
+            ((all_tokens == tokenizer.bos_id).sum())
 
         # eg: Saved ./datas/datasets/pleisto/wikipedia-cn-20230720-filtered/chatGLM_64793_0.9.train.bin, average seqlen: 2839.82
         print(
@@ -186,7 +187,7 @@ if __name__ == "__main__":
     # depending on the stage call the appropriate function
     if args.stage == "train_vocab":
         train_vocab(data_dir=args.data_dir, vocab_size=args.vocab_size)
-    if args.stage == "pretokenize":
+    elif args.stage == "pretokenize":
         pretokenize(
             args.data_dir, args.vocab_size, batch_size=args.batch_size, test_size=args.test_size, train_size=args.train_size)
     elif args.stage == "pretokenize_with_chatGLM3":

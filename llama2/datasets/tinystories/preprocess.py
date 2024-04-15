@@ -91,6 +91,7 @@ def process_shard(args, data_dir, vocab_size, tokenizer_model=None):
     else:
         # save .bin files into a new tok{N} directory
         bin_dir = os.path.join(data_dir, f"tok{vocab_size}")
+        os.makedirs(bin_dir, exist_ok=True)
         shard_basename = os.path.basename(shard)
         bin_basename = shard_basename.replace(".json", ".bin")
         tokenized_filename = os.path.join(bin_dir, bin_basename)

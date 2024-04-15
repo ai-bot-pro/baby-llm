@@ -159,6 +159,6 @@ if __name__ == "__main__":
     print(args)
 
     if args.stage == "task_datasetClass":
-        task_datasetClass(args.data_dir, args.vocab_size)
+        task_datasetClass(args.data_dir, args.vocab_size, dataset_name=args.dataset_name)
     elif args.stage == "task_sftDatasetClass":
         task_sftDatasetClass(args.csv_file_path)
