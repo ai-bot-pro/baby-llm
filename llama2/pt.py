@@ -103,9 +103,13 @@ min_lr = 0.0  # minimum learning rate, should be ~= learning_rate/10 per Chinchi
 
 # validating checks
 assert vocab_source in ["llama2", "custom", "chatglm"]
-assert vocab_source == "custom" and vocab_size > 0, "The custom vocab size must > 0"
-assert vocab_source == "llama2" and vocab_size == 32000, "The vocab from Meta has 32K tokens"
-assert vocab_source == "chatglm" and vocab_size == 64793, "The vocab from chatglm has 64793 tokens"
+match vocab_source:
+    case "custom":
+        assert vocab_size > 0, "The custom vocab size must > 0"
+    case "llama2":
+        assert vocab_size == 32000, "The vocab from Meta has 32K tokens"
+    case "chatglm":
+        assert vocab_size == 64793, "The vocab from chatglm has 64793 tokens"
 
 # various inits, derived attributes, I/O setup
 ddp = int(os.environ.get("RANK", -1)) != -1  # is this a ddp run?

@@ -1,3 +1,6 @@
+import sys
+import os
+
 from torch.utils.data import DataLoader
 
 from tinystories.dataloader import PretokDataset as TinyDataset
