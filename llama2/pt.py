@@ -95,7 +95,7 @@ config = {k: globals()[k] for k in config_keys}  # will be useful for logging
 # -----------------------------------------------------------------------------
 
 estimate_loss_datasets = [] if len(
-    estimate_loss_split_datasets) > 0 else estimate_loss_split_datasets.split(",")
+    estimate_loss_split_datasets) == 0 else estimate_loss_split_datasets.split(",")
 
 # fixing some hyperparams to sensible defaults
 lr_decay_iters = max_iters  # should be ~= max_iters per Chinchilla
@@ -249,7 +249,7 @@ if ddp:
 
 @torch.no_grad()
 def estimate_loss(estimate_loss_datasets):
-    out = {}
+    out = {'train': 0.0, 'val': 0.0}
     model.eval()
     # 分别对训练集和验证集进行估计
     for split in estimate_loss_datasets:
@@ -315,7 +315,7 @@ while True:
         param_group["lr"] = lr
 
     # evaluate the loss on train/val sets and write checkpoints
-    if iter_num % eval_interval == 0 and master_process:
+    if len(estimate_loss_datasets) > 0 and iter_num % eval_interval == 0 and master_process:
         # train训练数据用于参数（权重和偏置）的学习，
         # val验证数据用于参数的性能评估
         losses = estimate_loss(estimate_loss_datasets)
