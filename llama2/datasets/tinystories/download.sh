@@ -14,7 +14,7 @@ do
   esac
 done
 
-huggingface-cli login
+#huggingface-cli login
 
 # roneneldan/TinyStories
 huggingface-cli download \

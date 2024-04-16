@@ -2,6 +2,7 @@ import glob
 import json
 import os
 import argparse
+import sys
 
 from tqdm import tqdm
 import sentencepiece as spm
@@ -9,10 +10,9 @@ from concurrent.futures import ProcessPoolExecutor
 from functools import partial
 import numpy as np
 
-import sys
 sys.path.append(os.path.split(sys.path[0])[0])
-from _common.tokenizer import Tokenizer
 from _common.preprocess import merge_tokenizer, print_tokenizer
+from _common.tokenizer import Tokenizer
 
 os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
 
@@ -24,7 +24,7 @@ def train_vocab(data_dir, vocab_size):
     where N is the vocab size. This is also where the pretok .bin files will go.
     """
     assert vocab_size > 0, "Vocab size must be positive"
-    assert vocab_size <= (1 < 16), "Vocab size must less than 2^16"
+    assert vocab_size <= (1 << 16), "Vocab size must less than 2^16"
 
     # output file prefix path for sentencepiece
     prefix = os.path.join(data_dir, f"tok{vocab_size}")

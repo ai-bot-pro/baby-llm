@@ -26,10 +26,10 @@ class ChatGLMPretokSftDataset(Dataset):
         self.text_max_len = text_max_len
         self.tokenizer = AutoTokenizer.from_pretrained(
             "THUDM/chatglm3-6b", trust_remote_code=True)
-        self.bos = self.tokenizer.special_tokens['<bos>']  # 1
-        self.eos = self.tokenizer.special_tokens['<eos>']  # 2
-        # note: if use chatGLM tokenizer.special_tokens['<pad>'] is unkw_id, just use 0 as pad_id
-        self.pad = 0
+        self.bos_id = self.tokenizer.special_tokens['<bos>']  # 1
+        self.eos_id = self.tokenizer.special_tokens['<eos>']  # 2
+        # note: if use chatGLM tokenizer.special_tokens['<pad>'] is unkw_id, just use -1 as pad_id from sp
+        self.pad_id = -1
 
     def __len__(self):
         return self.df.shape[0]
@@ -47,14 +47,14 @@ class ChatGLMPretokSftDataset(Dataset):
             text = text[:self.text_max_len-2]
         print(len(prompt), len(text))
 
-        input_id = prompt+[self.bos]+text+[self.eos]
-        context_length = input_id.index(self.bos)
+        input_id = prompt+[self.bos_id]+text+[self.eos_id]
+        context_length = input_id.index(self.bos_id)
         mask_position = context_length - 1
         pad_len = self.max_seq_len - len(input_id)
-        input_id = input_id + [self.pad] * pad_len
-        loss_mask = [-100]*context_length+[1] * \
-            (len(input_id[mask_position+1:])) if pad_len == 0 else [-100]*context_length+[1] * \
-            (len(input_id[mask_position+1:-pad_len])) + [-100]*pad_len
+        input_id = input_id + [self.pad_id] * pad_len
+        loss_mask = [self.pad_id]*context_length+[1] * \
+            (len(input_id[mask_position+1:])) if pad_len == 0 else [self.pad_id]*context_length+[1] * \
+            (len(input_id[mask_position+1:-pad_len])) + [self.pad_id]*pad_len
 
         input_id = np.array(input_id)
         X = np.array(input_id[:-1]).astype(np.int64)

@@ -51,4 +51,4 @@ spm_train \
 - [tokenizer](https://colab.research.google.com/drive/1xCAFx7xuXcVaYPNgCHHGLCmvvR2F-SJu?usp=sharing)
 
 ## 参考
-- [karpathy/minibpe](ihttps://github.com/karpathy/minbpe) | [youtube: Let's build the GPT Tokenizer](https://www.youtube.com/watch?v=zduSFxRajkE)
+- [karpathy/minibpe](https://github.com/karpathy/minbpe) | [youtube: Let's build the GPT Tokenizer](https://www.youtube.com/watch?v=zduSFxRajkE)

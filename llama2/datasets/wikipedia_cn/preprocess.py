@@ -13,8 +13,8 @@ import sentencepiece as spm
 
 import sys
 sys.path.append(os.path.split(sys.path[0])[0])
-from _common.tokenizer import Tokenizer
 from _common.preprocess import print_tokenizer
+from _common.tokenizer import Tokenizer
 
 os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
 
@@ -82,6 +82,7 @@ def pretokenize(data_dir, vocab_size, tokenizer_model=None, batch_size=30, test_
     tokenizer_model = os.path.join(
         data_dir, f"tok{vocab_size}.model") if tokenizer_model is None else tokenizer_model
     tokenizer = Tokenizer(tokenizer_model)
+    print(tokenizer.string())
 
     # save .bin files into a new tok{N} directory
     tokenized_filename = {}
@@ -108,7 +109,7 @@ def pretokenize(data_dir, vocab_size, tokenizer_model=None, batch_size=30, test_
         avg_seq_len = all_tokens.size / \
             ((all_tokens == tokenizer.bos_id).sum())
 
-        # eg: Saved ./datas/datasets/pleisto/wikipedia-cn-20230720-filtered/chatGLM_64793_0.9.train.bin, average seqlen: 2839.82
+        # eg: Saved ./datas/pleisto/wikipedia-cn-20230720-filtered/tok18899_0.9.train.bin, average seqlen: 751.24
         print(
             f"Saved {tokenized_filename[split]}, average seqlen: {avg_seq_len:.2f}")
     return
@@ -191,7 +192,8 @@ if __name__ == "__main__":
         train_vocab(data_dir=args.data_dir, vocab_size=args.vocab_size)
     elif args.stage == "pretokenize":
         pretokenize(
-            args.data_dir, args.vocab_size, batch_size=args.batch_size, test_size=args.test_size, train_size=args.train_size)
+            args.data_dir, args.vocab_size, tokenizer_model=args.tokenizer_model,
+            batch_size=args.batch_size, test_size=args.test_size, train_size=args.train_size)
     elif args.stage == "pretokenize_with_chatGLM3":
         tokenizer = AutoTokenizer.from_pretrained(
             "THUDM/chatglm3-6b", trust_remote_code=True)

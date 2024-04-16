@@ -328,9 +328,10 @@ class Transformer(nn.Module):
             logits = self.output(h)
             # 计算单批数据的损失函数
             # 交叉熵的目的是获取输出概率（P）并测量与真值的距离
-            # target 为one-hot编码, 则 交叉熵误差的值是由正确解标签所对应的输出结果决定, ignore_index作为忽略索引参数值， 在计算梯度时被忽略，不会对梯度产生贡献, 默认是-100
+            # target 为one-hot编码, 则 交叉熵误差的值是由正确解标签所对应的输出结果决定, 
+            # ignore_index作为忽略索引参数值， 在计算梯度时被忽略，不会对梯度产生贡献, 默认是-1
             self.last_loss = F.cross_entropy(
-                logits.view(-1, logits.size(-1)), targets.view(-1), ignore_index=-100)
+                logits.view(-1, logits.size(-1)), targets.view(-1), ignore_index=-1)
         else:
             # inference-time mini-optimization: only forward the output on the very last position
             # note: using list [-1] to preserve the time dim
