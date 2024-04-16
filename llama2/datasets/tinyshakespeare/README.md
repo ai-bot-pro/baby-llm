@@ -1,5 +1,7 @@
 
-this dataset is from https://github.com/karpathy/char-rnn; just download and preprocess, then use this script to pretokenize, to debug/test pretokenize and pre-trainning
+this dataset is from https://github.com/karpathy/char-rnn; 
+just download and preprocess, then use this script to pretokenize, 
+to debug/test pretokenize and pre-trainning
 
 ```shell
 # 1. download tinyshakespeare
@@ -9,7 +11,10 @@ bash ./llama2/datasets/tinyshakespeare/download.sh -d ${datas_dir}
 python3 ./llama2/datasets/tinyshakespeare/preprocess.py train_vocab --vocab_size=323 --data_dir=${data_dir}
 
 # 3. if need merge, merge trained tokenizer to src tokenizer
+# src from https://huggingface.co/meta-llama/Llama-2-7b-hf tokenizer to merge
 python3 ./llama2/datasets/_common/preprocess.py merge_tokenizer --data_dir=${data_dir} --src_tokenizer_model="meta-llama/Llama-2-7b-hf" --merge_tokenizer_model=${merge} --src_from="llama2"
+# src from custom tokenizer to merge
+python3 ./llama2/datasets/_common/preprocess.py merge_tokenizer --data_dir=${data_dir} --src_tokenizer_model=${src} --merge_tokenizer_model=${merge} --src_from="coustom"
 
 # print tokenizer vocab size
 python3 ./llama2/datasets/_common/preprocess.py print_tokenizer --tokenizer_model=${model}

@@ -17,6 +17,6 @@ done
 
 # HuggingFaceTB/cosmopedia stories
 huggingface-cli download \
-  --repo-type dataset HuggingFaceTB/cosmopedia data/stories/train-00013-of-00043.parquet \
+  --repo-type dataset HuggingFaceTB/cosmopedia data/stories/train-00014-of-00043.parquet \
   --local-dir ${data_dir}/HuggingFaceTB/cosmopedia \
   --local-dir-use-symlinks False
