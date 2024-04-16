@@ -3,6 +3,7 @@ import os
 
 from torch.utils.data import DataLoader
 
+from tinyshakespeare.dataloader import PretokDataset as TinyShakespeareDataset
 from tinystories.dataloader import PretokDataset as TinyDataset
 from wikipedia_cn.dataloader import PretokDataset as WikipediaCnDataset
 from cosmopedia_stories.dataloader import ChatGLMPretokSftDataset as CosmopediaStoriesDataset
@@ -23,6 +24,7 @@ class Task:
         # if use only one file, u need set num_workers=0
         # use iter stream to load data
         self.datasetClass = {
+            "tinyshakespeare": TinyShakespeareDataset,
             "tinystories": TinyDataset,
             "wikipedia_cn": WikipediaCnDataset,
             # just merge all datasets into one to train
@@ -146,6 +148,9 @@ if __name__ == "__main__":
     import argparse
     from functools import partial
 
+    r"""
+    python3 ./llama2/datasets/loader.py task_datasetClass --dataset_name=tinyshakespeare --vocab_size=323 --data_dir=./datas/datasets
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument("stage", type=str, choices=[
                         "task_datasetClass", "task_sftDatasetClass"])
