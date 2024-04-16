@@ -136,7 +136,7 @@ if __name__ == "__main__":
     parser.add_argument("--data_dir", type=str,
                         default="./datas", help="process data dir")
     parser.add_argument("--src_tokenizer_model", type=str,
-                        default="", help="src tokenizer model file")
+                        default=None, help="src tokenizer model file")
     parser.add_argument("--merge_tokenizer_model", type=str,
                         default="", help="merge tokenizer model file")
     parser.add_argument("--tokenizer_model", type=str,

@@ -1,5 +1,5 @@
-# chatGLM use the sp bpe tokenizer like llama2 tokenizer
-# Qwen use the tiktoken bpe tokenizer like gpt tokenizer
+# llama2 use the sp bpe tokenizer
+# gpt use the tiktoken bpe tokenizer
 import os
 import argparse
 import glob
@@ -29,22 +29,7 @@ def train_vocab(data_dir, vocab_size):
     # output file prefix path for sentencepiece
     prefix = os.path.join(data_dir, f"tok{vocab_size}")
 
-    # how many shards we'll use for vocab training, kept low for efficiency
-    num_shards = 10
-
-    # 1) export a large chunk of text as a single text file all.txt
-    all_file = os.path.join(data_dir, "..", "all.txt")
-    shard_filenames = sorted(glob.glob(os.path.join(data_dir, "*.json")))
-
-    print(f"Writing temporary file {all_file} with {num_shards} shards...")
-    with open(all_file, "w", encoding="utf-8") as of:
-        for shard in tqdm(shard_filenames[:num_shards]):
-            with open(shard, "r") as f:
-                data = json.load(f)
-            for example in data:
-                text = example["completion"]
-                text = text.strip()
-                of.write(text + "\n")
+    all_file = os.path.join(data_dir, "tinyshakespeare.txt")
     print(f"Size is: {os.path.getsize(all_file) / 1024 / 1024:.2f} MB")
 
     # 2) train the sentencepiece model
@@ -68,13 +53,14 @@ def train_vocab(data_dir, vocab_size):
     print("Done.")
 
 
-def custom_tokenizer_process(item, tokenizer):
-    token_ids = tokenizer.batch_encode(item["completion"], bos=True, eos=False)
+def custom_tokenizer_process(sentences, tokenizer):
+    token_ids = []
+    for sentence in sentences:
+        token_ids += tokenizer.encode(sentence, bos=True, eos=False)
+    return token_ids
 
-    return {"input_ids": token_ids}
 
-
-def pretokenize(data_dir, vocab_size, tokenizer_model=None, batch_size=30, test_size=0.1, train_size=0.9):
+def pretokenize(data_dir, vocab_size, tokenizer_model=None, train_size=0.9):
     """
     pretokenize the dataset with custom tokenizer , save tokenids bytes to file 
     need rm *.{test,train}.bin
@@ -87,21 +73,28 @@ def pretokenize(data_dir, vocab_size, tokenizer_model=None, batch_size=30, test_
     # save .bin files into a new tok{N} directory
     tokenized_filename = {}
     tokenized_filename["test"] = os.path.join(
-        data_dir, f"tok{vocab_size}_{test_size}.test.bin")
+        data_dir, f"tok{vocab_size}_{1-train_size:.1f}.test.bin")
     tokenized_filename["train"] = os.path.join(
         data_dir, f"tok{vocab_size}_{train_size}.train.bin")
 
-    # ds = load_dataset(data_dir, split="train[:3]")
-    ds = load_dataset(data_dir, split="train")
-    print(f'dataset: {ds}')
-    ds = ds.train_test_split(test_size=test_size, train_size=train_size)
-    print(f'split train dataset [{test_size}:{train_size}]: {ds}')
+    input_file_path = os.path.join(data_dir, "tinyshakespeare.txt")
+    with open(input_file_path, 'r') as f:
+        data = f.read()
+    print(f"length of dataset in characters: {len(data):,}")
+    split_data = data.split("\n\n")
+    print(split_data[:4])
+    sentence_len = len(split_data)
+    print(f"length of dataset in sentences: {sentence_len:,}")
+    ds = {} 
+    ds["train"] = split_data[:int(sentence_len*train_size)]
+    ds["test"] = split_data[int(sentence_len*train_size):]
+
+    print(f'split train dataset [train:test] [{len(ds["train"]):,}:{len(ds["test"]):,}]')
     for split in ["train", "test"]:
-        ds[split] = ds[split].map(custom_tokenizer_process, batched=True,
-                                  batch_size=batch_size, remove_columns=["source", "completion"], fn_kwargs={"tokenizer": tokenizer})
-        print(f'after tokenizer process {split} dataset: {ds[split]}')
+        token_ids = custom_tokenizer_process(ds[split], tokenizer)
+        print(f'after tokenizer process {split} token_ids len: {len(token_ids):,}')
         # convert to uint16 nparray, note: tokenizer vocab_size must <= 2^16
-        all_tokens = np.array(ds[split]["input_ids"], dtype=np.uint16)
+        all_tokens = np.array(token_ids, dtype=np.uint16)
         # write the bytes
         with open(tokenized_filename[split], "wb") as f:
             f.write(all_tokens.tobytes())
@@ -115,49 +108,57 @@ def pretokenize(data_dir, vocab_size, tokenizer_model=None, batch_size=30, test_
     return
 
 
-def tokenizer_process(item, tokenizer):
-    inputs = tokenizer(item["completion"],
-                       padding=True, truncation=True, add_special_tokens=False).input_ids
+def tokenizer_process(sentences, tokenizer):
     input_ids = []
-    for input_id in inputs:
-        # add sp bpe BOS id to partition the input_ids, just like tinystories pretokenizer
-        input_id.append(tokenizer.special_tokens['<bos>'])
-        if len(input_id) > 1:  # likely
-            input_ids.extend(input_id)
+    for sentence in sentences:
+        inputs = tokenizer(sentence, padding=True, truncation=True,
+                           add_special_tokens=False).input_ids
+        for input_id in inputs:
+            # add sp bpe BOS id to partition the input_ids, just like tinystories pretokenizer
+            input_id.append(tokenizer.special_tokens['<bos>'])
+            if len(input_id) > 1:  # likely
+                input_ids.extend(input_id)
 
-    return {"input_ids": input_ids}
+    return input_ids
 
 
-def pretokenize_with_chatGLM(data_dir, tokenizer, batch_size=30, test_size=0.1, train_size=0.9):
+def pretokenize_with_llama2(data_dir, tokenizer, train_size=0.9):
     """
-    pretokenize the dataset with chatGLM tokenizer , save tokenids bytes to file 
+    pretokenize the dataset with llama2 tokenizer , save tokenids bytes to file 
     need rm *.{test,train}.bin
     """
     tokenized_filename = {}
     tokenized_filename["test"] = os.path.join(
-        data_dir, f"chatGLM_{tokenizer.vocab_size}_{test_size}.test.bin")
+        data_dir, f"llama2_{tokenizer.vocab_size}_{1-train_size:.1f}.test.bin")
     tokenized_filename["train"] = os.path.join(
-        data_dir, f"chatGLM_{tokenizer.vocab_size}_{train_size}.train.bin")
+        data_dir, f"llama2_{tokenizer.vocab_size}_{train_size}.train.bin")
 
-    # ds = load_dataset(data_dir, split="train[:3]")
-    ds = load_dataset(data_dir, split="train")
-    print(f'dataset: {ds}')
-    ds = ds.train_test_split(test_size=test_size, train_size=train_size)
-    print(f'split train dataset [{test_size}:{train_size}]: {ds}')
+    input_file_path = os.path.join(data_dir, "tinyshakespeare.txt")
+    with open(input_file_path, 'r') as f:
+        data = f.read()
+    print(f"length of dataset in characters: {len(data):,}")
+    split_data = data.split("\n\n")
+    print(split_data[:4])
+    sentence_len = len(split_data)
+    print(f"length of dataset in sentences: {sentence_len:,}")
+    ds = {} 
+    ds["train"] = split_data[:int(sentence_len*train_size)]
+    ds["test"] = split_data[int(sentence_len*train_size):]
+
+    print(f'split train dataset [train:test] [{len(ds["train"]):,}:{len(ds["test"]):,}]')
     for split in ["train", "test"]:
-        ds[split] = ds[split].map(tokenizer_process, batched=True,
-                                  batch_size=batch_size, remove_columns=["source", "completion"], fn_kwargs={"tokenizer": tokenizer})
-        print(f'after tokenizer process {split} dataset: {ds[split]}')
+        token_ids = tokenizer_process(ds[split], tokenizer)
+        print(f'after tokenizer process {split} token_ids len: {len(token_ids):,}')
         # convert to uint16 nparray, note: tokenizer vocab_size must <= 2^16
-        all_tokens = np.array(ds[split]["input_ids"], dtype=np.uint16)
+        all_tokens = np.array(token_ids, dtype=np.uint16)
         # write the bytes
         with open(tokenized_filename[split], "wb") as f:
             f.write(all_tokens.tobytes())
         # calculate the average sequence length (they are separated by BOS=1)
         avg_seq_len = all_tokens.size / \
-            ((all_tokens == tokenizer.special_tokens['<bos>']).sum())
+            ((all_tokens == tokenizer.bos_id).sum())
 
-        # eg: Saved ./datas/datasets/pleisto/wikipedia-cn-20230720-filtered/chatGLM_64793_0.9.train.bin, average seqlen: 2839.82
+        # eg: Saved ./datas/pleisto/wikipedia-cn-20230720-filtered/tok18899_0.9.train.bin, average seqlen: 751.24
         print(
             f"Saved {tokenized_filename[split]}, average seqlen: {avg_seq_len:.2f}")
     return
@@ -166,24 +167,18 @@ def pretokenize_with_chatGLM(data_dir, tokenizer, batch_size=30, test_size=0.1, 
 if __name__ == "__main__":
     """
     These stages are designed to be run in order.
-    python preprocess.py train_vocab --data_dir=./datas/datasets/pleisto/wikipedia-cn-20230720-filtered --vocab_size=64793
-    python preprocess.py pretokenize_with_chatGLM3 --data_dir=./datas/datasets/pleisto/wikipedia-cn-20230720-filtered
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("stage", type=str, choices=[
-                        "train_vocab", "pretokenize", "pretokenize_with_chatGLM3", "print_tokenizer"])
+                        "train_vocab", "pretokenize", "pretokenize_with_llama23", "print_tokenizer"])
     parser.add_argument("-vs", "--vocab_size", type=int, default=4096,
                         help="pretokenization vocab size")
     parser.add_argument("-dd", "--data_dir", type=str,
                         default="", help="dataset dir")
     parser.add_argument("-tm", "--tokenizer_model", type=str,
                         default=None, help="tokenizer_model file(*.bin/*.model)")
-    parser.add_argument("-tts", "--test_size", type=float,
-                        default=0.1, help="dataset test size")
     parser.add_argument("-tns", "--train_size", type=float,
                         default=0.9, help="dataset train size")
-    parser.add_argument("-bs", "--batch_size", type=int,
-                        default=2, help="pretokenize batch size")
     args = parser.parse_args()
     print(f'args: {args}')
 
@@ -192,12 +187,13 @@ if __name__ == "__main__":
         train_vocab(data_dir=args.data_dir, vocab_size=args.vocab_size)
     elif args.stage == "pretokenize":
         pretokenize(
-            args.data_dir, args.vocab_size, tokenizer_model=args.tokenizer_model,
-            batch_size=args.batch_size, test_size=args.test_size, train_size=args.train_size)
-    elif args.stage == "pretokenize_with_chatGLM3":
+            args.data_dir, args.vocab_size, 
+            tokenizer_model=args.tokenizer_model,
+            train_size=args.train_size)
+    elif args.stage == "pretokenize_with_llama2":
         tokenizer = AutoTokenizer.from_pretrained(
-            "THUDM/chatglm3-6b", trust_remote_code=True)
-        pretokenize_with_chatGLM(
+            "meta-llama/Llama-2-7b-hf", trust_remote_code=True)
+        pretokenize_with_llama2(
             args.data_dir, tokenizer, batch_size=args.batch_size, test_size=args.test_size, train_size=args.train_size)
     elif args.stage == "print_tokenizer":
         print_tokenizer(tokenizer_model=args.tokenizer_model)

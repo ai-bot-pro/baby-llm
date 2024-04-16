@@ -98,7 +98,7 @@ def merge_tokenizer_from_llama2(data_dir, merge_tokenizer_model, src_tokenizer_m
     output_hf_dir = os.path.join(data_dir, 'merged_tokenizer_hf')
     tokenizer = LlamaTokenizer(vocab_file=tokenizer_vocab_model_file)
     tokenizer.save_pretrained(output_hf_dir)
-    print(f"{merge_sp_model} tokenizer has been saved to hf tokenizer {output_hf_dir}")
+    print(f"{tokenizer_vocab_model_file} tokenizer has been saved to hf tokenizer {output_hf_dir}")
 
 
 def print_tokenizer(tokenizer_model):
@@ -128,7 +128,7 @@ if __name__ == "__main__":
     parser.add_argument("--data_dir", type=str,
                         default="./datas", help="process data dir")
     parser.add_argument("--src_tokenizer_model", type=str,
-                        default="", help="src tokenizer model file")
+                        default="meta-llama/Llama-2-7b-hf", help="src tokenizer model file")
     parser.add_argument("--src_from", type=str,
                         default="llama2", help="src tokenizer from")
     parser.add_argument("--merge_tokenizer_model", type=str,
