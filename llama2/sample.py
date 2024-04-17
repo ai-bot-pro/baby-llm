@@ -1,5 +1,7 @@
 """
 Sample from the trained model with PyTorch
+eg:
+python3 llama2/sample.py --checkpoint=./out/ckpt.pt --tokenizer=./datas/datasets/tok323.model --start="<s>"
 """
 import os
 from contextlib import nullcontext

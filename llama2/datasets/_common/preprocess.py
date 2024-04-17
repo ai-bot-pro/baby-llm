@@ -6,7 +6,9 @@ import argparse
 
 import sentencepiece as spm
 from sentencepiece import sentencepiece_model_pb2 as sp_pb2_model
-from transformers import LlamaTokenizer
+from transformers import LlamaTokenizer, PreTrainedTokenizerFast
+
+from huggingface_hub import upload_file, upload_folder
 
 import sys
 sys.path.append(os.path.split(sys.path[0])[0])
@@ -15,7 +17,10 @@ from _common.tokenizer import Tokenizer
 os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
 
 
-def merge_tokenizer(data_dir, merge_tokenizer_model, src_tokenizer_model="meta-llama/Llama-2-7b-hf", src_from="llama2", prefix_name="new"):
+def merge_tokenizer(data_dir, merge_tokenizer_model,
+                    src_tokenizer_model="meta-llama/Llama-2-7b-hf",
+                    src_from="llama2", prefix_name="new",
+                    push_to_hub=False, hf_path="", repo_id=""):
     if src_from == 'llama2':
         merge_tokenizer_from_llama2(
             data_dir, merge_tokenizer_model, src_tokenizer_model)
@@ -24,6 +29,14 @@ def merge_tokenizer(data_dir, merge_tokenizer_model, src_tokenizer_model="meta-l
             data_dir, merge_tokenizer_model, src_tokenizer_model, prefix_name=prefix_name)
     else:
         raise ValueError(f"src_from:{src_from} not supported")
+
+    output_hf_dir = os.path.join(data_dir, 'merged_tokenizer_hf')
+    if push_to_hub:
+        upload_folder(
+            folder_path=output_hf_dir,
+            path_in_repo=hf_path,
+            repo_id=repo_id,
+        )
 
 
 def merge_tokenizer_from_custom(data_dir, merge_tokenizer_model, src_tokenizer_model, prefix_name="new"):
@@ -60,6 +73,15 @@ def merge_tokenizer_from_custom(data_dir, merge_tokenizer_model, src_tokenizer_m
 
     print_tokenizer(tokenizer_vocab_model_file)
 
+    return
+    #todo: 保存hf tokenizer格式
+    merged_sp_model = spm.SentencePieceProcessor()
+    merged_sp_model.Load(tokenizer_vocab_model_file)
+    output_hf_dir = os.path.join(data_dir, 'merged_tokenizer_hf')
+    tokenizer = PreTrainedTokenizerFast(tokenizer_object=merged_sp_model)
+    tokenizer.save_pretrained(output_hf_dir)
+    print(f"{tokenizer_vocab_model_file} tokenizer has been saved to hf tokenizer {output_hf_dir}")
+
 
 def merge_tokenizer_from_llama2(data_dir, merge_tokenizer_model, src_tokenizer_model="meta-llama/Llama-2-7b-hf"):
     """
@@ -95,6 +117,9 @@ def merge_tokenizer_from_llama2(data_dir, merge_tokenizer_model, src_tokenizer_m
         print(
             f"{src_tokenizer_model} merge {merge_tokenizer_model} tokenizer has been saved to {tokenizer_vocab_model_file}")
 
+    print_tokenizer(tokenizer_vocab_model_file)
+
+    # 保存hf tokenizer格式
     output_hf_dir = os.path.join(data_dir, 'merged_tokenizer_hf')
     tokenizer = LlamaTokenizer(vocab_file=tokenizer_vocab_model_file)
     tokenizer.save_pretrained(output_hf_dir)
@@ -137,14 +162,23 @@ if __name__ == "__main__":
                         default="new", help="merged file prefix name")
     parser.add_argument("--tokenizer_model", type=str,
                         default="", help="tokenizer model file")
+    parser.add_argument("--push_to_hub", type=bool,
+                        help="Whether or not to push the model to the hub",
+                        default=False)
+    parser.add_argument("--hf_path", type=str, help="huggingface model path")
+    parser.add_argument("--repo_id", type=str, help="huggingface repo id")
     args = parser.parse_args()
 
     # depending on the stage call the appropriate function
     if args.stage == "merge_tokenizer":
         merge_tokenizer(data_dir=args.data_dir,
                         merge_tokenizer_model=args.merge_tokenizer_model,
-                        src_tokenizer_model=args.src_tokenizer_model, src_from=args.src_from,
-                        prefix_name=args.prefix_name)
+                        src_tokenizer_model=args.src_tokenizer_model,
+                        src_from=args.src_from,
+                        prefix_name=args.prefix_name,
+                        push_to_hub=args.push_to_hub,
+                        hf_path=args.hf_path,
+                        repo_id=args.repo_id)
     elif args.stage == "print_tokenizer":
         print_tokenizer(tokenizer_model=args.tokenizer_model)
     else:

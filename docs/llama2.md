@@ -111,7 +111,8 @@ Tips: 数据集的加载DataLoader 以[**Apache Arrow columnar memory format**](
    - tf-pb: tensorflow框架中，使用tf.saved_model.save()保存模型参数，使用tf.saved_model.load()加载模型参数; [tensorflow-saved-model](https://www.tensorflow.org/guide/saved_model)
    - pt-py(pickle): pytorch框架中，通过pickle保存模型文件，使用torch.save(model, path)保存模型参数，使用torch.load(path)加载模型参数; [pytorch-save-load](https://pytorch.org/tutorials/beginner/saving_loading_models.html)
    - GGUF: 头文件信息，权重参数tensor信息，k-量化信息，元数据信息,以及通用模型架构信息等,易于扩展， [gguf规范文档](https://github.com/ggerganov/ggml/blob/master/docs/gguf.md) | [中文](https://github.com/weedge/ggml/blob/master/docs/gguf-cn.md) | [用于量化 GGUF 模型的量化格式](https://github.com/ggerganov/ggml/blob/master/src/ggml-quants.h)。(ps:现在模型参数好像保存格式还没有统一规范，针对标准模型架构类型定义通用规范，以及扩展)
-    - 其他：通过自定义的格式保存模型参数，比如保存为json格式，或者保存为二进制格式(python通过struct.pack()进行序列化,其他语言获取头文件信息和元数据进行反序列化)，或者保存为其他格式。
+   - huggingface safetensors格式： https://github.com/huggingface/safetensors 其实主要是可以在不同的深度学习框架下加载和训练文本生成和自然语言处理模型；结合自家的Transforms库进行加载。
+   - 其他：通过自定义的格式保存模型参数，比如保存为json格式，或者保存为二进制格式(python通过struct.pack()进行序列化,其他语言获取头文件信息和元数据进行反序列化)，或者保存为其他格式。
 
 Tips: 至于是否对保存序列化数据的文件压缩，取决于具体的应用场景，比如模型参数量很大，压缩后会有很大的压缩率，但是会增加模型加载和存储的复杂度，所以在模型参数量很大时，建议压缩。(pb 是大数据中常使用的序列化格式)
 
