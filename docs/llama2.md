@@ -223,3 +223,10 @@ if init_from == "resume" and "optimizer" in checkpoint:
 3. [inference-llama2.cpp](https://colab.research.google.com/drive/18Z9LswuBAfKDlKCoOohBZMSubqiryHaJ?usp=sharing)
 4. [LLM-GGUF](https://colab.research.google.com/drive/1ReWUOQL1guB-QhEgkQiPFlXcC7qEDgWZ?usp=sharing)
 5. [Fine-tune Llama 2 in Google Colab](https://colab.research.google.com/drive/1zl7_R50tfcyEjjHNzeD-HUeYnfq5eg-G?usp=sharing)
+
+## 参考
+- https://docs.python.org/zh-cn/3.11/library/pickle.html
+- https://arrow.apache.org/docs/format/Columnar.html
+- https://community.arm.com/arm-community-blogs/b/architectures-and-processors-blog/posts/apache-optimization-on-arm
+- https://parquet.apache.org/docs/file-format/
+- https://github.com/ggerganov/ggml/blob/master/docs/gguf.md
