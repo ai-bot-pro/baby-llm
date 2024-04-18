@@ -1,6 +1,7 @@
 #!/bin/bash
 set -e 
 
+
 begin=0
 end=42
 stories_cn=10000
@@ -28,6 +29,8 @@ done
 [ $end -lt 0 ] && [ $end -ge 43 ] && echo "end ${end} must >= 0 && < 43" && exit 1
 [ $end -lt $begin ] && echo "end ${end} must > begin ${begin}" && exit 1
 [ $stories_cn -le 0 ] && echo "stories_cn ${stores_cn} must > 0" && exit 1
+
+pip3 install -q deep_translator datasets
 
 for i in `seq ${begin} ${end}`;do
     bash llama2/datasets/cosmopedia_stories/download.sh -s ${i}

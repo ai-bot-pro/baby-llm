@@ -12,6 +12,13 @@ Among the "output" versions of .bin files:
 - v0,1-vN: Improved .bin files with a proper header, cache alignment, etc.
 
 This script aspires to provide all of these conversions.
+
+===========================================
+meta llama2 convert to hf:
+ https://github.com/huggingface/transformers/blob/main/src/transformers/models/llama/convert_llama_weights_to_hf.py
+
+hf convert to meta llama2:
+https://github.com/meta-llama/llama-recipes/blob/main/src/llama_recipes/tools/convert_hf_weights_to_llama.py
 """
 import os
 import gzip
@@ -378,10 +385,7 @@ def load_checkpoint(checkpoint):
     model.eval()
     return model
 
-# 加载已经预训练好的原始meta-llama2模型文件
-# 比如： https://huggingface.co/meta-llama/Llama-2-7b
-
-
+# 加载已经预训练好的原始meta-llama2模型文件: https://github.com/meta-llama/llama
 def load_meta_model(model_path):
     params_path = os.path.join(model_path, 'params.json')
     with open(params_path) as f:
@@ -459,8 +463,6 @@ def load_meta_model(model_path):
 
 # 加载huggingface预训练llama2模型
 # 比如： https://huggingface.co/meta-llama/Llama-2-7b-hf
-
-
 def load_hf_model(model_path):
 
     try:
