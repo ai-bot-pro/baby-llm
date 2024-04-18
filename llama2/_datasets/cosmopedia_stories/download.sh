@@ -37,6 +37,8 @@ else
   exit 1
 fi
 
+[ -f "${data_dir}/HuggingFaceTB/cosmopedia/${file_name}" ] && exit 0
+
 #huggingface-cli login
 
 # HuggingFaceTB/cosmopedia stories

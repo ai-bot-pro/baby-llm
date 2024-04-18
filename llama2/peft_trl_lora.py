@@ -8,6 +8,7 @@ from typing import Optional
 from dataclasses import dataclass, field
 
 from transformers import (
+    pipeline,
     AutoModelForCausalLM,
     AutoTokenizer,
     BitsAndBytesConfig,
@@ -30,7 +31,7 @@ class ScriptArguments:
             "help": "The model that you want to train from the Hugging Face hub"},
     )
     dataset_dir: Optional[str] = field(
-        default="./data/datasets/guanaco-llama2-1k",
+        default="./datas/datasets/guanaco-llama2-1k",
         metadata={"help": "firstly The instruction dataset to use"},
     )
     hf_dataset_name: Optional[str] = field(
@@ -213,7 +214,7 @@ model = AutoModelForCausalLM.from_pretrained(
 )
 print(model.config)
 model.config.use_cache = False
-# model.config.pretraining_tp = 1
+model.config.pretraining_tp = 1
 print(model)
 # model.print_trainable_parameters()
 tokenizer = AutoTokenizer.from_pretrained(
@@ -224,6 +225,13 @@ print(tokenizer)
 tokenizer.pad_token = tokenizer.eos_token
 tokenizer.padding_side = "right"  # Fix weird overflow issue with fp16 training
 print(tokenizer)
+
+prompt = "hello"
+pipe = pipeline(task="text-generation", model=model,
+                tokenizer=tokenizer, max_length=200)
+result = pipe(f"<s>{prompt}")
+print(result)
+# exit(0)
 
 # Load LoRA configuration
 peft_config = LoraConfig(
@@ -273,6 +281,15 @@ print(trainer)
 
 # Train model
 trainer.train(resume_from_checkpoint=script_args.resume_from_checkpoint)
+
+prompt = "hello"
+pipe = pipeline(task="text-generation", model=model,
+                tokenizer=tokenizer, max_length=200)
+# result = pipe(f"<s>{prompt}")
+result = pipe(f"<s>[INST] {prompt} [/INST]")
+print(result)
+# exit(0)
+
 
 # Save trained model
 trainer.model.save_pretrained(script_args.new_model)

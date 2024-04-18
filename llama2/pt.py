@@ -2,7 +2,11 @@
 from: https://github.com/karpathy/llama2.c/blob/master/train.py
 - use raw text unsupervised datasets with tokenizer(sp bpe)
 eg:
-python3 ./llama2/pt.py --device=cpu --vocab_source=custom --vocab_size=323 --data_dir=./datas/datasets --dataset_name=tinyshakespeare --compile=False --eval_interval=10 --eval_iters=2 --batch_size=8
+python3 ./llama2/pt.py --device=cpu --vocab_source=custom --vocab_size=323 \
+    --data_dir=./datas/datasets --dataset_name=tinyshakespeare --compile=False \
+    --eval_interval=10 --eval_iters=2 \
+    --batch_size=8 --dim=64 --n_layers=5 --n_heads=8 --n_kv_heads=4 --multiple_of=4 \
+    --learning_rate=1e-3 --dropout=0.05 --beta2=0.99 --weight_decay=0.01
 """
 
 import math
