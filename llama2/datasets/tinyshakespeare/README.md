@@ -23,5 +23,7 @@ python3 ./llama2/datasets/_common/preprocess.py print_tokenizer --tokenizer_mode
 python3 ./llama2/datasets/tinyshakespeare/preprocess.py pretokenize --vocab_size=323 --data_dir=${data_dir} --tokenizer_model=${model} --train_size=0.9
 
 # 5. export pb tokenizer model to binary file for LM training and inference if use sentencepiece
-python3 ./llama2/datasets/tinyshakespeare/tokenizer.py --tokenizer-model=${model}
+python3 ./llama2/datasets/_common/tokenizer.py export --tokenizer-model=${model}
+# export hf tokenizer dir
+python3 ./llama2/datasets/_common/tokenizer.py export_to_hf --tokenizer-model=${model} --output_hf_dir=${hf_dir}
 ```

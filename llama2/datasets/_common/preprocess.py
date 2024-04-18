@@ -6,29 +6,15 @@ meta llama2 convert to hf:
 """
 import os
 import argparse
-import warnings
-
 
 import sentencepiece as spm
 from sentencepiece import sentencepiece_model_pb2 as sp_pb2_model
 from transformers import LlamaTokenizer
-
-# 是用 fast tokenizer 会多出一个tokenizer.json 用于加速定位偏移加载
-try:
-    from transformers import LlamaTokenizerFast
-except ImportError as e:
-    warnings.warn(e)
-    warnings.warn(
-        "The converted tokenizer will be the `slow` tokenizer. To use the fast, update your `tokenizers` library and re-run the tokenizer conversion"
-    )
-    LlamaTokenizerFast = None
-#LlamaTokenizerFast = None
-
-from huggingface_hub import upload_file, upload_folder
+from huggingface_hub import upload_folder
 
 import sys
 sys.path.append(os.path.split(sys.path[0])[0])
-from _common.tokenizer import Tokenizer
+from _common.tokenizer import Tokenizer, write_tokenizer_to_hf
 
 os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
 
@@ -53,15 +39,6 @@ def merge_tokenizer(data_dir, merge_tokenizer_model,
             path_in_repo=hf_path,
             repo_id=repo_id,
         )
-
-
-def write_tokenizer_to_hf(tokenizer_path, input_tokenizer_path):
-    # Initialize the tokenizer based on the `spm` model, the same as llama tokenizer
-    tokenizer_class = LlamaTokenizer if LlamaTokenizerFast is None else LlamaTokenizerFast
-    print(f"Saving a {tokenizer_class.__name__} to {tokenizer_path}.")
-    tokenizer = tokenizer_class(input_tokenizer_path)
-    tokenizer.save_pretrained(tokenizer_path)
-    print(f"{input_tokenizer_path} tokenizer has been saved to hf tokenizer {tokenizer_path}")
 
 
 def merge_tokenizer_from_custom(data_dir, merge_tokenizer_model, src_tokenizer_model, prefix_name="new"):

@@ -4,9 +4,31 @@
 import os
 import struct
 import argparse
+import warnings
 from typing import List
 
 from sentencepiece import SentencePieceProcessor
+from transformers import LlamaTokenizer
+# 是用 fast tokenizer 会多出一个tokenizer.json 用于加速定位偏移加载
+try:
+    from transformers import LlamaTokenizerFast
+except ImportError as e:
+    warnings.warn(e)
+    warnings.warn(
+        "The converted tokenizer will be the `slow` tokenizer. To use the fast, update your `tokenizers` library and re-run the tokenizer conversion"
+    )
+    LlamaTokenizerFast = None
+#LlamaTokenizerFast = None
+
+
+def write_tokenizer_to_hf(tokenizer_path, input_tokenizer_path):
+    os.makedirs(tokenizer_path, exist_ok=True)
+    # Initialize the tokenizer based on the `spm` model, the same as llama tokenizer
+    tokenizer_class = LlamaTokenizer if LlamaTokenizerFast is None else LlamaTokenizerFast
+    print(f"Saving a {tokenizer_class.__name__} to {tokenizer_path}.")
+    tokenizer = tokenizer_class(input_tokenizer_path)
+    tokenizer.save_pretrained(tokenizer_path)
+    print(f"{input_tokenizer_path} tokenizer has been saved to hf tokenizer {tokenizer_path}")
 
 
 class Tokenizer:
@@ -90,9 +112,19 @@ class Tokenizer:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument("stage", type=str, choices=[
+                        "export_to_hf", "export"])
     parser.add_argument("-t", "--tokenizer-model", type=str,
                         help="optional path to custom tokenizer ")
+    parser.add_argument("-o", "--output_hf_dir", type=str,
+                        help="output hf tokenizer dir ")
     args = parser.parse_args()
 
-    t = Tokenizer(args.tokenizer_model)
-    t.export()
+    if args.stage=="export":
+        t = Tokenizer(args.tokenizer_model)
+        t.export()
+    elif args.stage == "export_to_hf":
+        output_hf_dir = args.tokenizer_model.replace('.model', '')
+        write_tokenizer_to_hf(output_hf_dir, args.tokenizer_model)
+    else:
+        raise ValueError(f"Unknown stage {args.stage}")
