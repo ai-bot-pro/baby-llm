@@ -1,5 +1,7 @@
 # llama2 use the sp bpe tokenizer
 # gpt use the tiktoken bpe tokenizer
+from _common.preprocess import print_tokenizer
+from _common.tokenizer import Tokenizer
 import os
 import argparse
 import glob
@@ -13,8 +15,6 @@ import sentencepiece as spm
 
 import sys
 sys.path.append(os.path.split(sys.path[0])[0])
-from _common.tokenizer import Tokenizer
-from _common.preprocess import print_tokenizer
 
 os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
 
@@ -85,14 +85,16 @@ def pretokenize(data_dir, vocab_size, tokenizer_model=None, train_size=0.9):
     print(split_data[:4])
     sentence_len = len(split_data)
     print(f"length of dataset in sentences: {sentence_len:,}")
-    ds = {} 
+    ds = {}
     ds["train"] = split_data[:int(sentence_len*train_size)]
     ds["test"] = split_data[int(sentence_len*train_size):]
 
-    print(f'split train dataset [train:test] [{len(ds["train"]):,}:{len(ds["test"]):,}]')
+    print(
+        f'split train dataset [train:test] [{len(ds["train"]):,}:{len(ds["test"]):,}]')
     for split in ["train", "test"]:
         token_ids = custom_tokenizer_process(ds[split], tokenizer)
-        print(f'after tokenizer process {split} token_ids len: {len(token_ids):,}')
+        print(
+            f'after tokenizer process {split} token_ids len: {len(token_ids):,}')
         # convert to uint16 nparray, note: tokenizer vocab_size must <= 2^16
         all_tokens = np.array(token_ids, dtype=np.uint16)
         # write the bytes
@@ -141,14 +143,16 @@ def pretokenize_with_llama2(data_dir, tokenizer, train_size=0.9):
     print(split_data[:4])
     sentence_len = len(split_data)
     print(f"length of dataset in sentences: {sentence_len:,}")
-    ds = {} 
+    ds = {}
     ds["train"] = split_data[:int(sentence_len*train_size)]
     ds["test"] = split_data[int(sentence_len*train_size):]
 
-    print(f'split train dataset [train:test] [{len(ds["train"]):,}:{len(ds["test"]):,}]')
+    print(
+        f'split train dataset [train:test] [{len(ds["train"]):,}:{len(ds["test"]):,}]')
     for split in ["train", "test"]:
         token_ids = tokenizer_process(ds[split], tokenizer)
-        print(f'after tokenizer process {split} token_ids len: {len(token_ids):,}')
+        print(
+            f'after tokenizer process {split} token_ids len: {len(token_ids):,}')
         # convert to uint16 nparray, note: tokenizer vocab_size must <= 2^16
         all_tokens = np.array(token_ids, dtype=np.uint16)
         # write the bytes
@@ -170,7 +174,8 @@ if __name__ == "__main__":
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("stage", type=str, choices=[
-                        "train_vocab", "pretokenize", "pretokenize_with_llama23", "print_tokenizer"])
+                        "train_vocab", "pretokenize",
+                        "pretokenize_with_llama2", "print_tokenizer"])
     parser.add_argument("-vs", "--vocab_size", type=int, default=4096,
                         help="pretokenization vocab size")
     parser.add_argument("-dd", "--data_dir", type=str,
@@ -187,7 +192,7 @@ if __name__ == "__main__":
         train_vocab(data_dir=args.data_dir, vocab_size=args.vocab_size)
     elif args.stage == "pretokenize":
         pretokenize(
-            args.data_dir, args.vocab_size, 
+            args.data_dir, args.vocab_size,
             tokenizer_model=args.tokenizer_model,
             train_size=args.train_size)
     elif args.stage == "pretokenize_with_llama2":

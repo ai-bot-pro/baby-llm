@@ -33,11 +33,11 @@ done
 pip3 install -q deep_translator datasets
 
 for i in `seq ${begin} ${end}`;do
-    bash llama2/datasets/cosmopedia_stories/download.sh -s ${i}
-    python3 llama2/datasets/cosmopedia_stories/translate.py translate \
+    bash llama2/_datasets/cosmopedia_stories/download.sh -s ${i}
+    python3 llama2/_datasets/cosmopedia_stories/translate.py translate \
         -s ./datas/datasets/HuggingFaceTB/cosmopedia/data/stories \
         -t ./datas/datasets/HuggingFaceTB/cosmopedia_zh${i} -ss $stories_cn
-    python3 llama2/datasets/cosmopedia_stories/translate.py convert \
+    python3 llama2/_datasets/cosmopedia_stories/translate.py convert \
         -s ./datas/datasets/HuggingFaceTB/cosmopedia_zh${i} \
         -t ./datas/datasets/HuggingFaceTB/cosmopedia/csv/stories -ff csv 
     mv ./datas/datasets/HuggingFaceTB/cosmopedia/csv/stories/train.csv \

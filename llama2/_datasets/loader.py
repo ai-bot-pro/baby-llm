@@ -149,7 +149,7 @@ if __name__ == "__main__":
     from functools import partial
 
     r"""
-    python3 ./llama2/datasets/loader.py task_datasetClass --dataset_name=tinyshakespeare --vocab_size=323 --data_dir=./datas/datasets
+    python3 ./llama2/_datasets/loader.py task_datasetClass --dataset_name=tinyshakespeare --vocab_size=323 --data_dir=./datas/datasets
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("stage", type=str, choices=[

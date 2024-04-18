@@ -230,3 +230,4 @@ if init_from == "resume" and "optimizer" in checkpoint:
 - https://community.arm.com/arm-community-blogs/b/architectures-and-processors-blog/posts/apache-optimization-on-arm
 - https://parquet.apache.org/docs/file-format/
 - https://github.com/ggerganov/ggml/blob/master/docs/gguf.md
+- https://huggingface.co/docs/safetensors/convert-weights

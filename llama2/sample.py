@@ -8,7 +8,7 @@ from contextlib import nullcontext
 import torch
 from model import ModelArgs, Transformer
 
-from datasets._common.tokenizer import Tokenizer
+from _datasets._common.tokenizer import Tokenizer
 
 
 # -----------------------------------------------------------------------------
