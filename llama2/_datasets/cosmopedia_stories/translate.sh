@@ -1,12 +1,16 @@
 #!/bin/bash
+# if push to hf hub dataset need 
+# huggingface-cli login --token $hf_token --add-to-git-credential  
 set -e 
 
 
 begin=0
 end=42
 stories_cn=10000
+push_to_hf_repo_id="weege007/HuggingFaceTB-cosmopedia-cn"
+push_to_hf_repo_id=""
 
-while getopts b:e:s: flag; do
+while getopts b:e:s:p: flag; do
   case "${flag}" in
     b)
       begin=${OPTARG};;
@@ -14,6 +18,8 @@ while getopts b:e:s: flag; do
       end=${OPTARG};;
     s)
       stories_cn=${OPTARG};;
+    p)
+      push_to_hf_repo_id=${OPTARG};;
     \?)
       echo "Invalid option: ${OPTARG}" 1>&2
       exit 1
@@ -44,4 +50,12 @@ for i in `seq ${begin} ${end}`;do
        ./datas/datasets/HuggingFaceTB/cosmopedia/csv/stories/${i}.csv
     rm -rf ./datas/datasets/HuggingFaceTB/cosmopedia_zh${i}
     rm -f ./datas/datasets/HuggingFaceTB/cosmopedia/data/stories/*.parquet
+
+    if [ -z "$push_to_hf_repo_id" ];then
+      huggingface-cli upload \
+        --repo-type dataset $push_to_hf_repo_id \
+        ./datas/datasets/HuggingFaceTB/cosmopedia/csv/stories/${i}.csv \
+        /stories-young_children/${i}.csv
+    fi 
+
 done
