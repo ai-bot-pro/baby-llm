@@ -36,7 +36,7 @@ done
 [ $end -lt $begin ] && echo "end ${end} must > begin ${begin}" && exit 1
 [ $stories_cn -le 0 ] && echo "stories_cn ${stores_cn} must > 0" && exit 1
 
-pip3 install -q deep_translator datasets
+pip3 install -q deep_translator datasets huggingface_hub
 
 for i in `seq ${begin} ${end}`;do
     bash llama2/_datasets/cosmopedia_stories/download.sh -s ${i}
@@ -52,10 +52,17 @@ for i in `seq ${begin} ${end}`;do
     rm -f ./datas/datasets/HuggingFaceTB/cosmopedia/data/stories/*.parquet
 
     if [ -z "$push_to_hf_repo_id" ];then
+      #export HF_ENDPOINT="https://huggingface.co"
+      #export CURL_CA_BUNDLE=""
       huggingface-cli upload \
         --repo-type dataset $push_to_hf_repo_id \
         ./datas/datasets/HuggingFaceTB/cosmopedia/csv/stories/${i}.csv \
         /stories-young_children/${i}.csv
+      #python3 ./llama2/_datasets/cosmopedia_stories/upload_hf.py upload_file \
+      #  -rt dataset \
+      #  -r weege007/HuggingFaceTB-cosmopedia-cn \
+      #  -f ./datas/datasets/HuggingFaceTB/cosmopedia/csv/stories/${i}.csv \
+      #  -p /stories-young_children/${i}.csv
     fi 
 
 done
