@@ -51,7 +51,7 @@ for i in `seq ${begin} ${end}`;do
     rm -rf ./datas/datasets/HuggingFaceTB/cosmopedia_zh${i}
     rm -f ./datas/datasets/HuggingFaceTB/cosmopedia/data/stories/*.parquet
 
-    if [ -z "$push_to_hf_repo_id" ];then
+    if [ -n "$push_to_hf_repo_id" ];then
       #export HF_ENDPOINT="https://huggingface.co"
       #export CURL_CA_BUNDLE=""
       huggingface-cli upload \
