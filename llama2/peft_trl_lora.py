@@ -218,7 +218,7 @@ model.config.pretraining_tp = 1
 print(model)
 # model.print_trainable_parameters()
 tokenizer = AutoTokenizer.from_pretrained(
-    script_args.model_name, trust_remote_code=True
+    script_args.model_name, trust_remote_code=True, is_fast=False
 )
 print(tokenizer)
 # note: llama2 sp bpe no pad_token id, use eos_token
@@ -235,6 +235,8 @@ print(result)
 
 # Load LoRA configuration
 peft_config = LoraConfig(
+    target_modules=["q_proj", "k_proj", "v_proj",
+                    "gate_proj", "up_proj", "down_proj"],
     lora_alpha=script_args.lora_alpha,
     lora_dropout=script_args.lora_dropout,
     r=script_args.lora_r,
@@ -278,6 +280,8 @@ trainer = SFTTrainer(
     packing=script_args.packing,
 )
 print(trainer)
+print(trainer.model)
+trainer.model.print_trainable_parameters()
 
 # Train model
 trainer.train(resume_from_checkpoint=script_args.resume_from_checkpoint)
