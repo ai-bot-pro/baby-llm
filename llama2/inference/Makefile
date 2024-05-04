@@ -11,13 +11,13 @@ init:
 # the most basic way of building that is most likely to work on most systems
 .PHONY: build 
 build: init main.c
-	$(CC) -O3 -o ${BIN_DIR}/inference main.c -lm
+	$(CC) -std=c11 -O3 -o ${BIN_DIR}/inference main.c -lm
 
 # useful for a debug build, can then e.g. analyze with valgrind, example:
 # $ valgrind --leak-check=full ./inference out/model.bin -n 3
 .PHONY: build_debug
 build_debug: init main.c
-	$(CC) -g -o ${BIN_DIR}/inference main.c -lm
+	$(CC) -g -std=c11 -o ${BIN_DIR}/inference main.c -lm
 
 # https://gcc.gnu.org/onlinedocs/gcc/Optimize-Options.html
 # https://simonbyrne.github.io/notes/fastmath/
@@ -30,14 +30,14 @@ build_debug: init main.c
 # In our specific application this is *probably* okay to use
 .PHONY: build_fast
 build_fast: init main.c
-	$(CC) -Ofast -o ${BIN_DIR}/inference main.c -lm
+	$(CC) -std=c11 -Ofast -o ${BIN_DIR}/inference main.c -lm
 
 # additionally compiles with OpenMP, allowing multithreaded builds
 # make sure to also enable multiple threads when buildning, e.g.:
 # OMP_NUM_THREADS=4 ./inference out/model.bin
 .PHONY: build_omp
 build_omp: init main.c
-	$(CC) -Ofast -fopenmp -march=native main.c  -lm  -o ${BIN_DIR}/inference
+	$(CC) -std=c11 -Ofast -fopenmp -march=native main.c  -lm  -o ${BIN_DIR}/inference
 
 clean:
-	@rm -f ${BIN_DIR}/*
+	@rm -rf ${BIN_DIR}/*

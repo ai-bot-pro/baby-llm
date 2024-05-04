@@ -1,6 +1,8 @@
 /* Inference for Llama-2 Transformer model in pure C */
 // changed from: https://github.com/karpathy/llama2.c/blob/master/run.c
 
+#define _POSIX_C_SOURCE 200809L
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -10,6 +12,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/mman.h>
+#include <stdint.h>
 // ----------------------------------------------------------------------------
 // Transformer model
 
