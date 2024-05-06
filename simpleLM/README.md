@@ -36,7 +36,11 @@ tips: 这里用数据集里的字符集作为一个简单的tokenizer 词表用�
 1. GPT(Generative Pre-trained Transformer) LM: 使用类似GPT2模型，加入位置embedding, block(attention机制, FFN(MLP)前馈层, 以及残差连接)， 以及对输入权重参数进行了初始化(如果初始化为0,反向传播时更新权重变的没有意义;为了防止"权重均一化"（严格地讲，是为了瓦解权重的对称结构），必须随机生成初始值;常采用定义标准差正太分布(高斯分布),这里标准差std=0.02)，
 ![](https://raw.githubusercontent.com/weedge/baby-llm/main/docs/simple-gpt.drawio.png)
 
-1. MoE(mixture of experts) LM: 稀疏专家混合语言模型(SMoE) 
+2. layer/block wise scaling GPT LM: 使用类似GPT2模型，使用 layer/block wise scaling (scaling attention qkv heads, ffn intermediate sizes), 详情见:
+   - [OpenELM: An Efficient Language Model Family with Open-source Training and Inference Framework](https://arxiv.org/abs/2404.14619)
+   - [DeLighT: Deep and Light-weight Transformer](https://arxiv.org/abs/2008.00623)
+
+3. MoE(mixture of experts) LM: 稀疏专家混合语言模型(SMoE) 
    - 稀疏专家混合而不是孤立的前馈神经网络。
    - 使用了top-k门控和noisy top-k门控实现。
    - 模型训练初始化 - 这里使用了Kaiming He初始化，
@@ -45,7 +49,7 @@ tips: 这里用数据集里的字符集作为一个简单的tokenizer 词表用�
       
    ![](https://raw.githubusercontent.com/weedge/baby-llm/main/docs/simple-moe.drawio.png)
 
-2. MoA(SMoE+MultiHeadAttention)-MoE(mixture of experts) LM: 模块化来源于稀疏专家混合语言模型(ModuleFormer) 
+4. MoA(SMoE+MultiHeadAttention)-MoE(mixture of experts) LM: 模块化来源于稀疏专家混合语言模型(ModuleFormer) 
    - 引入专家容量（Expert Capacity factor）
    - Load Balancing Loss
    - 相关详情见:[**Switch Transformers: Scaling to Trillion Parameter Models with Simple and Efficient Sparsity**](https://arxiv.org/abs/2101.03961)
@@ -72,6 +76,7 @@ python3 simpleLM/datasets/shakespeare_char/prepare.py
 python3 simpleLM/train.py --model_name=bigramLM
 python3 simpleLM/train.py --model_name=mlpLM
 python3 simpleLM/train.py --model_name=gptLM
+python3 simpleLM/train.py --model_name=block_wise_scaling_gptLM
 python3 simpleLM/train.py --model_name=moeLM
 python3 simpleLM/train.py --model_name=moa_moeLM
 

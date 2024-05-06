@@ -36,8 +36,16 @@ nn_init = "kaiming_normal"  # kaiming_normal / xavier_normal
 capacity_factor = 0.0  # expert capacity factor
 aux_loss_coef = 0.01  # load auxiliary loss coefficient
 
+# block-wise scaling
+qkv_multiplier_min = 0.5
+qkv_multiplier_max = 1.0
+ffn_multiplier_min = 0.5
+ffn_multiplier_max = 4.0
+ffn_intermediate_divisor = 256
+
 # ------------
-model_name = "gptLM"  # bigramLM / mlpLM / gptLM / moeLM
+# bigramLM / mlpLM / gptLM / moeLM / moa_moeLM / block_wise_scaling_gptLM
+model_name = "gptLM"
 compile = False  # use PyTorch 2.0 to compile the model to be faster
 # wget https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt
 dataset = 'shakespeare_char'
@@ -49,7 +57,10 @@ exec(open(f"{_cur_work_dir}/args.py").read())
 # change global args by custom --key=value
 change_global_args()
 
+qkv_multipliers = [qkv_multiplier_min, qkv_multiplier_max]
+ffn_multipliers = [ffn_multiplier_min, ffn_multiplier_max]
 torch.manual_seed(1337)
+
 
 # with open(dataset, 'r', encoding='utf-8') as f:
 #    print(f"read dataset:{dataset}")
@@ -184,6 +195,11 @@ match model_name:
         from gptLM import GPTLanguageModel
         model = GPTLanguageModel(
             vocab_size, n_embd, block_size, n_layer, n_head, dropout)
+    case "block_wise_scaling_gptLM":
+        from block_wise_scaling_gptLM import DelightGPTLanguageModel
+        model = DelightGPTLanguageModel(
+            vocab_size, n_embd, block_size, n_layer, n_head, dropout,
+            qkv_multipliers, ffn_multipliers, ffn_intermediate_divisor)
     case "moeLM":
         from moeLM import SparseMoELanguageModel
         model = SparseMoELanguageModel(
@@ -191,7 +207,8 @@ match model_name:
     case "moa_moeLM":
         from moa_moeLM import SparseMoAMoELanguageModel
         model = SparseMoAMoELanguageModel(
-            vocab_size, n_head, num_experts, top_k, n_layer, n_embd, block_size, dropout, nn_init=nn_init, capacity_factor=capacity_factor, aux_loss_coef=aux_loss_coef)
+            vocab_size, n_head, num_experts, top_k, n_layer, n_embd, block_size, dropout, nn_init=nn_init,
+            capacity_factor=capacity_factor, aux_loss_coef=aux_loss_coef)
 
 if model is None:
     raise ValueError("Unknown model name")
