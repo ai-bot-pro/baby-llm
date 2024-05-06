@@ -91,7 +91,8 @@ class FeedFoward(nn.Module):
 class Block(nn.Module):
     """ Transformer block: communication followed by computation """
 
-    def __init__(self, n_embd, n_head, block_size, dropout, layer_index, num_qkv_heads, ffn_intermediate_sizes):
+    def __init__(self, n_embd, n_head, block_size, dropout,
+                 layer_index, num_qkv_heads, ffn_intermediate_sizes):
         # n_embd: embedding dimension, n_head: the number of heads we'd like
         super().__init__()
         head_size = n_embd // n_head
@@ -123,14 +124,17 @@ class DelightGPTLanguageModel(nn.Module):
         self.position_embedding_table = nn.Embedding(block_size, n_embd)
 
         # init layer/block wise scaling
-        self._init_block_wise_scaling_attetion(
+        self._init_block_wise_scaling_attention(
             n_layer, n_embd, n_head, qkv_multipliers)
         self._init_block_wise_scaling_ffn(
             n_layer, n_embd, ffn_multipliers, ffn_intermediate_divisor)
-        assert self.num_qkv_heads.count() > 0, f"num_qkv_heads is empty"
-        assert self.ffn_intermediate_sizes.count() > 0, f"ffn_intermediate_sizes is empty"
-        self.blocks = nn.ModuleList(
-            *[Block(n_embd, n_head, block_size, dropout, layer_index, self.num_qkv_heads, self.ffn_intermediate_sizes) for layer_index in range(n_layer)])
+        assert len(self.num_qkv_heads) > 0, f"num_qkv_heads is empty"
+        assert len(
+            self.ffn_intermediate_sizes) > 0, f"ffn_intermediate_sizes is empty"
+        self.blocks = nn.ModuleList([
+            Block(n_embd, n_head, block_size, dropout, layer_index,
+                  self.num_qkv_heads, self.ffn_intermediate_sizes)
+            for layer_index in range(n_layer)])
 
         self.ln_f = nn.LayerNorm(n_embd)  # final layer norm
         self.lm_head = nn.Linear(n_embd, vocab_size)
