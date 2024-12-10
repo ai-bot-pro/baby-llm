@@ -14,7 +14,6 @@ from transformers import (
     BitsAndBytesConfig,
     HfArgumentParser,
     TrainingArguments,
-    HfArgumentParser,
 )
 import datasets as ds
 import torch
@@ -181,7 +180,7 @@ if len(script_args.dataset_dir) > 0:
 elif len(script_args.hf_dataset_name) > 0:
     dataset = ds.load_dataset(script_args.hf_dataset_name, split="train")
 else:
-    raise ValueError(f"dataset don't load")
+    raise ValueError("dataset don't load")
 
     # Load tokenizer and model with QLoRA configuration
 compute_dtype = getattr(torch, script_args.bnb_4bit_compute_dtype)

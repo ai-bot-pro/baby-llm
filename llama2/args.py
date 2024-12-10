@@ -20,7 +20,7 @@ def change_global_args(begin_index=1):
                 # if that goes wrong, just use the string
                 attempt = val
             # ensure the types match ok
-            assert type(attempt) == type(globals()[key])
+            assert type(attempt) == type(globals()[key])  # noqa: E721
             # cross fingers
             print(f"Overriding: {key} = {attempt}")
             globals()[key] = attempt
