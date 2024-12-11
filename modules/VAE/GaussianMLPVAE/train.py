@@ -17,6 +17,7 @@ def load_data(dataset_path: str, batch_size: int):
 
     train_dataset = MNIST(dataset_path, transform=mnist_transform, train=True, download=True)
     test_dataset = MNIST(dataset_path, transform=mnist_transform, train=False, download=True)
+    print("train_dataset", train_dataset, "test_dataset", test_dataset)
 
     kwargs = {
         "num_workers": multiprocessing.cpu_count(),
@@ -24,6 +25,7 @@ def load_data(dataset_path: str, batch_size: int):
     }
     train_loader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True, **kwargs)
     test_loader = DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=False, **kwargs)
+    print("train_loader", train_loader, "test_loader", test_loader)
     return train_loader, test_loader
 
 
@@ -36,7 +38,9 @@ def show_image(x, idx, batch_size):
 
 if __name__ == "__main__":
     dataset_path = "./datas/datasets"
+    os.makedirs(dataset_path, exist_ok=True)
     model_ckpt_path = "./datas/models/VAE/"
+    os.makedirs(model_ckpt_path, exist_ok=True)
 
     # Model Hyperparameters
     batch_size = 100
@@ -67,26 +71,26 @@ if __name__ == "__main__":
     epochs = 100
     minloss = 100  # Track minimum validation loss found so far.
     for epoch in range(epochs):
-        overall_loss = 0
+        batch_loss = 0
+        # len(train_loader) = (Number of datapoints)/batch_size
         for batch_idx, (x, _) in enumerate(train_loader):
-            x = x.view(batch_size, x_dim)
-            x = x.to(DEVICE)
+            x = x.view(batch_size, x_dim).to(DEVICE)
 
             optimizer.zero_grad()
 
             x_hat, mean, log_var = model(x)
             loss = model.loss_function(x, x_hat, mean, log_var)
+            # print(batch_idx, loss)
 
-            print(f"epoch: {epoch}, batch_idx:{batch_idx} loss: {loss.item()}")
-            overall_loss += loss.item()
+            batch_loss += loss.item()
 
             loss.backward()
             optimizer.step()
 
-        mean_loss = overall_loss / len(train_loader)
-        (print("\tEpoch", epoch + 1, "complete!", "\tAverage Loss: ", mean_loss),)
+        avg_loss = batch_loss / (len(train_loader) * batch_size)
+        print("Epoch", epoch + 1, "complete!", "\tAverage Loss: ", avg_loss)
 
-        best_so_far = loss < minloss
+        best_so_far = avg_loss < minloss
         if best_so_far:  # save model ckpt
             # generate from the model
             path = os.path.join(model_ckpt_path, model_filename)

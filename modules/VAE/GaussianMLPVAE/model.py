@@ -124,7 +124,7 @@ class GaussianMLPVAEModel(nn.Module):
         """
         计算变分自编码器的损失函数值。
 
-        该函数将重构损失(reproduction loss) 和KL散度(Kullback-Leibler Divergence, KLD) 结合起来， 以计算总损失。
+        该函数将重构损失(reconstruction loss) 和KL散度(Kullback-Leibler Divergence, KLD) 结合起来， 以计算总损失。
 
         参数:
         - x: 真实数据，用于计算重构损失。
@@ -137,13 +137,13 @@ class GaussianMLPVAEModel(nn.Module):
         """
 
         # 计算重构损失，使用二元交叉熵作为损失函数
-        reproduction_loss = nn.functional.binary_cross_entropy(x_hat, x, reduction="sum")
+        reconstruction_loss = nn.functional.binary_cross_entropy(x_hat, x, reduction="sum")
 
         # 计算KL散度，用于正则化损失，避免过拟合
         KLD = -0.5 * torch.sum(1 + log_var - mean.pow(2) - log_var.exp())
 
         # 返回总损失，即重构损失和KL散度的和
-        return reproduction_loss + KLD
+        return reconstruction_loss + KLD
 
 
 if __name__ == "__main__":
