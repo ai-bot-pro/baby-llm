@@ -4,6 +4,7 @@ use hf transformers, trl and peft with lora config to train model
 Install the following libraries:
 pip3 install accelerate==0.21.0 peft==0.4.0 bitsandbytes==0.40.2 transformers==4.31.0 trl==0.4.7 scipy tensorboardX==2.6.2
 """
+
 from typing import Optional
 from dataclasses import dataclass, field
 
@@ -26,8 +27,7 @@ class ScriptArguments:
     model_name: Optional[str] = field(
         # default="meta-llama/Llama-2-7b-hf",
         default="./out/model_hf",
-        metadata={
-            "help": "The model that you want to train from the Hugging Face hub"},
+        metadata={"help": "The model that you want to train from the Hugging Face hub"},
     )
     dataset_dir: Optional[str] = field(
         default="./datas/datasets/guanaco-llama2-1k",
@@ -40,7 +40,7 @@ class ScriptArguments:
     new_model: Optional[str] = field(
         # default="llama-2-7b-miniguanaco",
         default="baby-llm-llama-2-miniguanaco",
-        metadata={"help": "Fine-tuned model name"}
+        metadata={"help": "Fine-tuned model name"},
     )
     merge_and_push: Optional[bool] = field(
         default=False, metadata={"help": "Merge and push weights after training"}
@@ -48,9 +48,7 @@ class ScriptArguments:
 
     # QLoRA parameters
     # https://arxiv.org/abs/2305.14314
-    lora_r: Optional[int] = field(
-        default=64, metadata={"help": "LoRA attention dimension"}
-    )
+    lora_r: Optional[int] = field(default=64, metadata={"help": "LoRA attention dimension"})
     lora_alpha: Optional[int] = field(
         default=16, metadata={"help": "Alpha parameter for LoRA scaling"}
     )
@@ -85,16 +83,11 @@ class ScriptArguments:
     num_train_epochs: Optional[int] = field(
         default=1, metadata={"help": "Number of training epochs"}
     )
-    fp16: Optional[bool] = field(
-        default=False, metadata={"help": "Enable fp16 training"}
-    )
-    bf16: Optional[bool] = field(
-        default=False, metadata={"help": "Enable bf16 training"}
-    )
+    fp16: Optional[bool] = field(default=False, metadata={"help": "Enable fp16 training"})
+    bf16: Optional[bool] = field(default=False, metadata={"help": "Enable bf16 training"})
     tf32: Optional[bool] = field(
         default=True,
-        metadata={
-            "help": "Enable the TF32 mode (available in Ampere and newer GPUs)"},
+        metadata={"help": "Enable the TF32 mode (available in Ampere and newer GPUs)"},
     )
     per_device_train_batch_size: Optional[int] = field(
         default=4, metadata={"help": "Batch size per GPU for training"}
@@ -117,27 +110,20 @@ class ScriptArguments:
     )
     weight_decay: Optional[int] = field(
         default=0.001,
-        metadata={
-            "help": "Weight decay to apply to all layers except bias/LayerNorm weights"
-        },
+        metadata={"help": "Weight decay to apply to all layers except bias/LayerNorm weights"},
     )
-    optim: Optional[str] = field(
-        default="paged_adamw_32bit", metadata={"help": "Optimizer to use"}
-    )
+    optim: Optional[str] = field(default="paged_adamw_32bit", metadata={"help": "Optimizer to use"})
     lr_scheduler_type: str = field(
         default="cosine",
         metadata={"help": "Learning rate schedule"},
     )
     max_steps: int = field(
         default=-1,
-        metadata={
-            "help": "Number of training steps (overrides num_train_epochs)"},
+        metadata={"help": "Number of training steps (overrides num_train_epochs)"},
     )
     warmup_ratio: float = field(
         default=0.03,
-        metadata={
-            "help": "Ratio of steps for a linear warmup (from 0 to learning rate)"
-        },
+        metadata={"help": "Ratio of steps for a linear warmup (from 0 to learning rate)"},
     )
     group_by_length: bool = field(
         default=True,
@@ -145,16 +131,11 @@ class ScriptArguments:
             "help": "Group sequences into batches with same length. Saves memory and speeds up training considerably"
         },
     )
-    save_steps: float = field(
-        default=0, metadata={"help": "Save checkpoint every X updates steps"}
-    )
-    logging_steps: int = field(
-        default=1, metadata={"help": "Log every X updates steps"}
-    )
+    save_steps: float = field(default=0, metadata={"help": "Save checkpoint every X updates steps"})
+    logging_steps: int = field(default=1, metadata={"help": "Log every X updates steps"})
     resume_from_checkpoint: bool = field(
         default=False,
-        metadata={
-            "help": "Allows to resume training from the latest checkpoint in output_dir"}
+        metadata={"help": "Allows to resume training from the latest checkpoint in output_dir"},
     )
 
     # SFT parameters
@@ -172,7 +153,7 @@ class ScriptArguments:
 parser = HfArgumentParser(ScriptArguments)
 arr_script_args = parser.parse_args_into_dataclasses()
 script_args = arr_script_args[0]
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
+device = "cuda" if torch.cuda.is_available() else "cpu"
 
 # Load dataset (you can process it here)
 if len(script_args.dataset_dir) > 0:
@@ -226,16 +207,14 @@ tokenizer.padding_side = "right"  # Fix weird overflow issue with fp16 training
 print(tokenizer)
 
 prompt = "hello"
-pipe = pipeline(task="text-generation", model=model,
-                tokenizer=tokenizer, max_length=200)
+pipe = pipeline(task="text-generation", model=model, tokenizer=tokenizer, max_length=200)
 result = pipe(f"<s>{prompt}")
 print(result)
 # exit(0)
 
 # Load LoRA configuration
 peft_config = LoraConfig(
-    target_modules=["q_proj", "k_proj", "v_proj",
-                    "gate_proj", "up_proj", "down_proj"],
+    target_modules=["q_proj", "k_proj", "v_proj", "gate_proj", "up_proj", "down_proj"],
     lora_alpha=script_args.lora_alpha,
     lora_dropout=script_args.lora_dropout,
     r=script_args.lora_r,
@@ -286,8 +265,7 @@ trainer.model.print_trainable_parameters()
 trainer.train(resume_from_checkpoint=script_args.resume_from_checkpoint)
 
 prompt = "hello"
-pipe = pipeline(task="text-generation", model=model,
-                tokenizer=tokenizer, max_length=200)
+pipe = pipeline(task="text-generation", model=model, tokenizer=tokenizer, max_length=200)
 # result = pipe(f"<s>{prompt}")
 result = pipe(f"<s>[INST] {prompt} [/INST]")
 print(result)
@@ -309,7 +287,5 @@ if script_args.merge_and_push:
     model = model.merge_and_unload()
     print(model)
 
-    model.push_to_hub(script_args.new_model,
-                      use_temp_dir=False, private=True)
-    tokenizer.push_to_hub(script_args.new_model,
-                          use_temp_dir=False, private=True)
+    model.push_to_hub(script_args.new_model, use_temp_dir=False, private=True)
+    tokenizer.push_to_hub(script_args.new_model, use_temp_dir=False, private=True)

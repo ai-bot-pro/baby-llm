@@ -37,23 +37,32 @@ class Task:
             # just merge all datasets into one to train
         }
 
-    def iter_batches(self, batch_size, device, num_workers=0, dataset_name="tinystories", **dataset_kwargs):
-        assert dataset_name in self.datasetClass, f"{dataset_name} pre-training dataset don't support"
+    def iter_batches(
+        self, batch_size, device, num_workers=0, dataset_name="tinystories", **dataset_kwargs
+    ):
+        assert (
+            dataset_name in self.datasetClass
+        ), f"{dataset_name} pre-training dataset don't support"
         ds = self.datasetClass[dataset_name](**dataset_kwargs)
         num_workers = 0 if dataset_name == "wikipedia_cn" else num_workers
-        dl = DataLoader(
-            ds, batch_size=batch_size, pin_memory=True, num_workers=num_workers
-        )
+        dl = DataLoader(ds, batch_size=batch_size, pin_memory=True, num_workers=num_workers)
         for x, y in dl:
             x = x.to(device, non_blocking=True)
             y = y.to(device, non_blocking=True)
             yield x, y
 
-    def sft_getitem_batches(self, batch_size, device, num_workers=0, dataset_name="", **dataset_kwargs):
+    def sft_getitem_batches(
+        self, batch_size, device, num_workers=0, dataset_name="", **dataset_kwargs
+    ):
         assert dataset_name in self.sftDatasetClass, f"{dataset_name} sft dataset don't support"
         ds = self.sftDatasetClass[dataset_name](**dataset_kwargs)
         dl = DataLoader(
-            ds, batch_size=batch_size, drop_last=False, shuffle=False, pin_memory=True, num_workers=num_workers
+            ds,
+            batch_size=batch_size,
+            drop_last=False,
+            shuffle=False,
+            pin_memory=True,
+            num_workers=num_workers,
         )
         for step, (x, y, loss_mask) in enumerate(dl):
             x = x.to(device, non_blocking=True)
@@ -100,10 +109,15 @@ class CuDFDataloaderTask:
     """
 
 
-def task_datasetClass(data_dir,
-                      vocab_size, vocab_source="custom",
-                      dataset_name="tinystories", batch_size=1,
-                      max_seq_len=512, device="cpu"):
+def task_datasetClass(
+    data_dir,
+    vocab_size,
+    vocab_source="custom",
+    dataset_name="tinystories",
+    batch_size=1,
+    max_seq_len=512,
+    device="cpu",
+):
     iter_batches = partial(
         Task().iter_batches,
         dataset_name=dataset_name,
@@ -122,10 +136,15 @@ def task_datasetClass(data_dir,
     print(Y[0])
 
 
-def task_sftDatasetClass(csv_file_path,
-                         prompt_max_len=128, text_max_len=128,
-                         dataset_name="cosmopedia_stories", batch_size=1,
-                         max_seq_len=512, device="cpu"):
+def task_sftDatasetClass(
+    csv_file_path,
+    prompt_max_len=128,
+    text_max_len=128,
+    dataset_name="cosmopedia_stories",
+    batch_size=1,
+    max_seq_len=512,
+    device="cpu",
+):
     iter_batches = partial(
         Task().sft_getitem_batches,
         dataset_name=dataset_name,
@@ -152,24 +171,24 @@ if __name__ == "__main__":
     python3 ./llama2/_datasets/loader.py task_datasetClass --dataset_name=tinyshakespeare --vocab_size=323 --data_dir=./datas/datasets
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("stage", type=str, choices=[
-                        "task_datasetClass", "task_sftDatasetClass"])
-    parser.add_argument("-dn", "--dataset_name", type=str, default="",
-                        help="dataset_name from datasets dir")
-    parser.add_argument("-vsrc", "--vocab_source", type=str, default="",
-                        help="vocab_source")
-    parser.add_argument("-vs", "--vocab_size", type=int, default=4096,
-                        help="vocab size")
-    parser.add_argument("-d", "--data_dir", type=str, default="",
-                        help="vocab data dir")
-    parser.add_argument("-cfp", "--csv_file_path", type=str, default="",
-                        help="csv_file_path")
+    parser.add_argument("stage", type=str, choices=["task_datasetClass", "task_sftDatasetClass"])
+    parser.add_argument(
+        "-dn", "--dataset_name", type=str, default="", help="dataset_name from datasets dir"
+    )
+    parser.add_argument("-vsrc", "--vocab_source", type=str, default="", help="vocab_source")
+    parser.add_argument("-vs", "--vocab_size", type=int, default=4096, help="vocab size")
+    parser.add_argument("-d", "--data_dir", type=str, default="", help="vocab data dir")
+    parser.add_argument("-cfp", "--csv_file_path", type=str, default="", help="csv_file_path")
 
     args = parser.parse_args()
     print(args)
 
     if args.stage == "task_datasetClass":
-        task_datasetClass(args.data_dir, args.vocab_size,
-                          dataset_name=args.dataset_name, vocab_source=args.vocab_source)
+        task_datasetClass(
+            args.data_dir,
+            args.vocab_size,
+            dataset_name=args.dataset_name,
+            vocab_source=args.vocab_source,
+        )
     elif args.stage == "task_sftDatasetClass":
         task_sftDatasetClass(args.csv_file_path)

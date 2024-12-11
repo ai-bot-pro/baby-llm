@@ -1,0 +1,9 @@
+#https://docs.astral.sh/ruff/configuration/
+exclude = []
+indent-width = 4
+line-length = 100
+
+[format]
+exclude = ["*.pyi", "*.ipynb"]
+[lint]
+ignore = ["F401", "F403", "F405", "F541", "F841"]

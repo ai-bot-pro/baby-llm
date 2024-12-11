@@ -24,6 +24,7 @@ class ModelArgs:
     max_seq_len: int = 2048
     dropout: float = 0.0
 
+
 # https://github.com/bzhangGo/rmsnorm
 # RMSNorm 根据均方根 (RMS) 对一层神经元的输入求和进行正则化，从而赋予模型重新缩放不变性和隐式学习率自适应能力。
 # RMSNorm 计算更简单，因此比 LayerNorm 更高效。
@@ -44,8 +45,7 @@ class RMSNorm(torch.nn.Module):
 
 
 def precompute_freqs_cis(dim: int, end: int, theta: float = 10000.0):
-    freqs = 1.0 / (theta ** (torch.arange(0, dim, 2)
-                   [: (dim // 2)].float() / dim))
+    freqs = 1.0 / (theta ** (torch.arange(0, dim, 2)[: (dim // 2)].float() / dim))
     t = torch.arange(end, device=freqs.device)  # type: ignore
     freqs = torch.outer(t, freqs).float()  # type: ignore
     freqs_cos = torch.cos(freqs)  # real part
@@ -57,20 +57,16 @@ def reshape_for_broadcast(freqs_cis: torch.Tensor, x: torch.Tensor):
     ndim = x.ndim
     assert 0 <= 1 < ndim
     assert freqs_cis.shape == (x.shape[1], x.shape[-1])
-    shape = [d if i == 1 or i == ndim -
-             1 else 1 for i, d in enumerate(x.shape)]
+    shape = [d if i == 1 or i == ndim - 1 else 1 for i, d in enumerate(x.shape)]
     return freqs_cis.view(shape)
+
 
 # https://kexue.fm/archives/8265
 
 
 def apply_rotary_emb(
-    xq: torch.Tensor,
-    xk: torch.Tensor,
-    freqs_cos: torch.Tensor,
-    freqs_sin: torch.Tensor
+    xq: torch.Tensor, xk: torch.Tensor, freqs_cos: torch.Tensor, freqs_sin: torch.Tensor
 ) -> Tuple[torch.Tensor, torch.Tensor]:
-
     # reshape xq and xk to match the complex representation
     xq_r, xq_i = xq.float().reshape(xq.shape[:-1] + (-1, 2)).unbind(-1)
     xk_r, xk_i = xk.float().reshape(xk.shape[:-1] + (-1, 2)).unbind(-1)
@@ -115,23 +111,18 @@ class Attention(nn.Module):
         self.n_rep = self.n_local_heads // self.n_local_kv_heads
         self.head_dim = args.dim // args.n_heads
         self.wq = nn.Linear(args.dim, args.n_heads * self.head_dim, bias=False)
-        self.wk = nn.Linear(args.dim, self.n_kv_heads *
-                            self.head_dim, bias=False)
-        self.wv = nn.Linear(args.dim, self.n_kv_heads *
-                            self.head_dim, bias=False)
+        self.wk = nn.Linear(args.dim, self.n_kv_heads * self.head_dim, bias=False)
+        self.wv = nn.Linear(args.dim, self.n_kv_heads * self.head_dim, bias=False)
         self.wo = nn.Linear(args.n_heads * self.head_dim, args.dim, bias=False)
         self.attn_dropout = nn.Dropout(args.dropout)
         self.resid_dropout = nn.Dropout(args.dropout)
         self.dropout = args.dropout
 
         # use flash attention or a manual implementation?
-        self.flash = hasattr(torch.nn.functional,
-                             'scaled_dot_product_attention')
+        self.flash = hasattr(torch.nn.functional, "scaled_dot_product_attention")
         if not self.flash:
-            print(
-                "WARNING: using slow attention. Flash Attention requires PyTorch >= 2.0")
-            mask = torch.full(
-                (1, 1, args.max_seq_len, args.max_seq_len), float("-inf"))
+            print("WARNING: using slow attention. Flash Attention requires PyTorch >= 2.0")
+            mask = torch.full((1, 1, args.max_seq_len, args.max_seq_len), float("-inf"))
             mask = torch.triu(mask, diagonal=1)
             self.register_buffer("mask", mask)
 
@@ -169,12 +160,17 @@ class Attention(nn.Module):
             # flash implementation
             # https://github.com/Dao-AILab/flash-attention
             output = torch.nn.functional.scaled_dot_product_attention(
-                xq, xk, xv, attn_mask=None, dropout_p=self.dropout if self.training else 0.0, is_causal=True)
+                xq,
+                xk,
+                xv,
+                attn_mask=None,
+                dropout_p=self.dropout if self.training else 0.0,
+                is_causal=True,
+            )
         else:
             # manual implementation
-            scores = torch.matmul(xq, xk.transpose(2, 3)) / \
-                math.sqrt(self.head_dim)
-            assert hasattr(self, 'mask')
+            scores = torch.matmul(xq, xk.transpose(2, 3)) / math.sqrt(self.head_dim)
+            assert hasattr(self, "mask")
             # (bs, n_local_heads, seqlen, cache_len + seqlen)
             scores = scores + self.mask[:, :, :seqlen, :seqlen]
             # Softmax的含义就在于不再唯一的确定某一个最大值，而是为每个输出分类的结果都赋予一个概率值，表示属于每个类别的可能性(权重)。
@@ -204,8 +200,7 @@ class FeedForward(nn.Module):
         if hidden_dim is None:
             hidden_dim = 4 * dim
             hidden_dim = int(2 * hidden_dim / 3)
-            hidden_dim = multiple_of * \
-                ((hidden_dim + multiple_of - 1) // multiple_of)
+            hidden_dim = multiple_of * ((hidden_dim + multiple_of - 1) // multiple_of)
         self.w1 = nn.Linear(dim, hidden_dim, bias=False)
         self.w2 = nn.Linear(hidden_dim, dim, bias=False)
         self.w3 = nn.Linear(dim, hidden_dim, bias=False)
@@ -240,9 +235,7 @@ class TransformerBlock(nn.Module):
         # 残差连接（residual connection）是深度神经网络中的一种常见技术，它的作用是解决梯度消失和梯度爆炸问题，同时也可以帮助模型更快地收敛。
         # 残差连接通过在每个层的输出与输入之间添加一个跨层连接来解决这个问题。更具体地说，残差连接将前一层的输出直接添加到当前层的输出中，从而提供了一种绕过非线性变换的路径。这样，网络就可以学习到在信息压缩或拉伸后保留重要信息的方法，同时也减轻了梯度消失或梯度爆炸的问题。
         # attention residual connection
-        h = x + \
-            self.attention.forward(
-                self.attention_norm(x), freqs_cos, freqs_sin)
+        h = x + self.attention.forward(self.attention_norm(x), freqs_cos, freqs_sin)
         # ffn residual connection
         out = h + self.feed_forward.forward(self.ffn_norm(h))
         return out
@@ -278,7 +271,8 @@ class Transformer(nn.Module):
 
         # some useful precompute for the RoPE relative positional embeddings
         freqs_cos, freqs_sin = precompute_freqs_cis(
-            self.params.dim // self.params.n_heads, self.params.max_seq_len)
+            self.params.dim // self.params.n_heads, self.params.max_seq_len
+        )
         self.register_buffer("freqs_cos", freqs_cos, persistent=False)
         self.register_buffer("freqs_sin", freqs_sin, persistent=False)
 
@@ -288,9 +282,8 @@ class Transformer(nn.Module):
         # attention out_projection 权重初始值 标准差 0.02/sqrt(2 * n_layers) 的正态分布
         # ffn up_projection 权重初始值 标准差 0.02/sqrt(2 * n_layers) 的正态分布
         for pn, p in self.named_parameters():
-            if pn.endswith('w3.weight') or pn.endswith('wo.weight'):
-                torch.nn.init.normal_(
-                    p, mean=0.0, std=0.02/math.sqrt(2 * params.n_layers))
+            if pn.endswith("w3.weight") or pn.endswith("wo.weight"):
+                torch.nn.init.normal_(p, mean=0.0, std=0.02 / math.sqrt(2 * params.n_layers))
 
         # Initialize attribute for the loss of the last forward call. This will be set if the forward is called with a targets tensor.
         self.last_loss = None
@@ -328,10 +321,11 @@ class Transformer(nn.Module):
             logits = self.output(h)
             # 计算单批数据的损失函数
             # 交叉熵的目的是获取输出概率（P）并测量与真值的距离
-            # target 为one-hot编码, 则 交叉熵误差的值是由正确解标签所对应的输出结果决定, 
+            # target 为one-hot编码, 则 交叉熵误差的值是由正确解标签所对应的输出结果决定,
             # ignore_index作为忽略索引参数值， 在计算梯度时被忽略，不会对梯度产生贡献, 默认是-1
             self.last_loss = F.cross_entropy(
-                logits.view(-1, logits.size(-1)), targets.view(-1), ignore_index=-1)
+                logits.view(-1, logits.size(-1)), targets.view(-1), ignore_index=-1
+            )
         else:
             # inference-time mini-optimization: only forward the output on the very last position
             # note: using list [-1] to preserve the time dim
@@ -350,38 +344,38 @@ class Transformer(nn.Module):
         decay_params = [p for n, p in param_dict.items() if p.dim() >= 2]
         nodecay_params = [p for n, p in param_dict.items() if p.dim() < 2]
         optim_groups = [
-            {'params': decay_params, 'weight_decay': weight_decay},
-            {'params': nodecay_params, 'weight_decay': 0.0}
+            {"params": decay_params, "weight_decay": weight_decay},
+            {"params": nodecay_params, "weight_decay": 0.0},
         ]
         num_decay_params = sum(p.numel() for p in decay_params)
         num_nodecay_params = sum(p.numel() for p in nodecay_params)
         print(
-            f"num decayed parameter tensors: {len(decay_params)}, with {num_decay_params:,} parameters")
+            f"num decayed parameter tensors: {len(decay_params)}, with {num_decay_params:,} parameters"
+        )
         print(
-            f"num non-decayed parameter tensors: {len(nodecay_params)}, with {num_nodecay_params:,} parameters")
+            f"num non-decayed parameter tensors: {len(nodecay_params)}, with {num_nodecay_params:,} parameters"
+        )
         # Create AdamW optimizer and use the fused version if it is available
-        fused_available = 'fused' in inspect.signature(
-            torch.optim.AdamW).parameters
-        use_fused = fused_available and device_type == 'cuda'
+        fused_available = "fused" in inspect.signature(torch.optim.AdamW).parameters
+        use_fused = fused_available and device_type == "cuda"
         extra_args = dict(fused=True) if use_fused else dict()
-        optimizer = torch.optim.AdamW(
-            optim_groups, lr=learning_rate, betas=betas, **extra_args)
+        optimizer = torch.optim.AdamW(optim_groups, lr=learning_rate, betas=betas, **extra_args)
         print(f"using fused AdamW: {use_fused}")
 
         return optimizer
 
     def estimate_mfu(self, fwdbwd_per_iter, dt):
-        """ estimate model flops utilization (MFU) in units of A100 bfloat16 peak FLOPS """
+        """estimate model flops utilization (MFU) in units of A100 bfloat16 peak FLOPS"""
         # first estimate the number of flops we do per iteration.
         # see PaLM paper Appendix B as ref: https://arxiv.org/abs/2204.02311
         N = sum(p.numel() for p in self.parameters())
         cfg = self.params
-        L, H, Q, T = cfg.n_layers, cfg.n_heads, cfg.dim//cfg.n_heads, cfg.max_seq_len
-        flops_per_token = 6*N + 12*L*H*Q*T
+        L, H, Q, T = cfg.n_layers, cfg.n_heads, cfg.dim // cfg.n_heads, cfg.max_seq_len
+        flops_per_token = 6 * N + 12 * L * H * Q * T
         flops_per_fwdbwd = flops_per_token * T
         flops_per_iter = flops_per_fwdbwd * fwdbwd_per_iter
         # express our flops throughput as ratio of A100 bfloat16 peak flops
-        flops_achieved = flops_per_iter * (1.0/dt)  # per second
+        flops_achieved = flops_per_iter * (1.0 / dt)  # per second
         flops_promised = 312e12  # A100 GPU bfloat16 peak flops is 312 TFLOPS
         mfu = flops_achieved / flops_promised
         return mfu
@@ -397,8 +391,11 @@ class Transformer(nn.Module):
         """
         for _ in range(max_new_tokens):
             # if the sequence context is growing too long we must crop it at block_size
-            idx_cond = idx if idx.size(
-                1) <= self.params.max_seq_len else idx[:, -self.params.max_seq_len:]
+            idx_cond = (
+                idx
+                if idx.size(1) <= self.params.max_seq_len
+                else idx[:, -self.params.max_seq_len :]
+            )
             # forward the model to get the logits for the index in the sequence
             logits = self(idx_cond)
             logits = logits[:, -1, :]  # crop to just the final time step
@@ -411,7 +408,7 @@ class Transformer(nn.Module):
                 # optionally crop the logits to only the top k options
                 if top_k is not None:
                     v, _ = torch.topk(logits, min(top_k, logits.size(-1)))
-                    logits[logits < v[:, [-1]]] = -float('Inf')
+                    logits[logits < v[:, [-1]]] = -float("Inf")
                 # apply softmax to convert logits to (normalized) probabilities
                 probs = F.softmax(logits, dim=-1)
                 idx_next = torch.multinomial(probs, num_samples=1)

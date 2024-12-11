@@ -15,7 +15,9 @@ class ChatGLMPretokSftDataset(Dataset):
     - u can choose sp bpe tokenizer to encode sft dataset, eg: chatglm(zh), llama2(en)
     """
 
-    def __init__(self, csv_file_path, max_seq_len=512, prompt_max_len=256, text_max_len=256, split="train"):
+    def __init__(
+        self, csv_file_path, max_seq_len=512, prompt_max_len=256, text_max_len=256, split="train"
+    ):
         super().__init__()
         self.split = split
         self.df = pd.read_csv(csv_file_path)
@@ -24,10 +26,9 @@ class ChatGLMPretokSftDataset(Dataset):
         self.max_seq_len = max_seq_len
         self.prompt_max_len = prompt_max_len
         self.text_max_len = text_max_len
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            "THUDM/chatglm3-6b", trust_remote_code=True)
-        self.bos_id = self.tokenizer.special_tokens['<bos>']  # 1
-        self.eos_id = self.tokenizer.special_tokens['<eos>']  # 2
+        self.tokenizer = AutoTokenizer.from_pretrained("THUDM/chatglm3-6b", trust_remote_code=True)
+        self.bos_id = self.tokenizer.special_tokens["<bos>"]  # 1
+        self.eos_id = self.tokenizer.special_tokens["<eos>"]  # 2
         # note: if use chatGLM tokenizer.special_tokens['<pad>'] is unkw_id, just use -1 as pad_id from sp
         self.pad_id = -1
 
@@ -36,25 +37,27 @@ class ChatGLMPretokSftDataset(Dataset):
 
     def __getitem__(self, index):
         sample = self.df.iloc[index]
-        prompt = self.tokenizer.encode(
-            sample['prompt_zh'], add_special_tokens=False)
-        text = self.tokenizer.encode(
-            sample['text_zh'], add_special_tokens=False)
+        prompt = self.tokenizer.encode(sample["prompt_zh"], add_special_tokens=False)
+        text = self.tokenizer.encode(sample["text_zh"], add_special_tokens=False)
         print(len(prompt), len(text))
         if len(prompt) > self.prompt_max_len:
-            prompt = prompt[:self.prompt_max_len-2]
+            prompt = prompt[: self.prompt_max_len - 2]
         if len(text) > self.text_max_len:
-            text = text[:self.text_max_len-2]
+            text = text[: self.text_max_len - 2]
         print(len(prompt), len(text))
 
-        input_id = prompt+[self.bos_id]+text+[self.eos_id]
+        input_id = prompt + [self.bos_id] + text + [self.eos_id]
         context_length = input_id.index(self.bos_id)
         mask_position = context_length - 1
         pad_len = self.max_seq_len - len(input_id)
         input_id = input_id + [self.pad_id] * pad_len
-        loss_mask = [self.pad_id]*context_length+[1] * \
-            (len(input_id[mask_position+1:])) if pad_len == 0 else [self.pad_id]*context_length+[1] * \
-            (len(input_id[mask_position+1:-pad_len])) + [self.pad_id]*pad_len
+        loss_mask = (
+            [self.pad_id] * context_length + [1] * (len(input_id[mask_position + 1 :]))
+            if pad_len == 0
+            else [self.pad_id] * context_length
+            + [1] * (len(input_id[mask_position + 1 : -pad_len]))
+            + [self.pad_id] * pad_len
+        )
 
         input_id = np.array(input_id)
         X = np.array(input_id[:-1]).astype(np.int64)
@@ -70,8 +73,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("stage", type=str, choices=["check"])
-    parser.add_argument("-f", "--csv_file_path", type=str,
-                        help="csv file path ")
+    parser.add_argument("-f", "--csv_file_path", type=str, help="csv file path ")
     args = parser.parse_args()
     print(args)
 

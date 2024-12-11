@@ -27,17 +27,14 @@ class PretokDataset(IterableDataset):
         # combine the worker_id and worker_rank to create a unique seed for rng
         seed = 42 + worker_id + 1337 * rank
         rng = random.Random(seed)
-        print(
-            f"Created a PretokDataset with rng seed {seed} | worker_id {worker_id}")
+        print(f"Created a PretokDataset with rng seed {seed} | worker_id {worker_id}")
         bin_file_prefix = os.path.join(self.data_dir, f"")
         if self.vocab_source == "custom":
             # the .bin files are in tok{N} directory
             bin_file_prefix = os.path.join(self.data_dir, f"tok{self.vocab_size}")
         # see preprocess.py check train/test split percentage
-        test_shard_filenames = sorted(
-            glob.glob(f"{bin_file_prefix}*.test.bin"))
-        train_shard_filenames = sorted(
-            glob.glob(f"{bin_file_prefix}*.train.bin"))
+        test_shard_filenames = sorted(glob.glob(f"{bin_file_prefix}*.test.bin"))
+        train_shard_filenames = sorted(glob.glob(f"{bin_file_prefix}*.train.bin"))
         if self.split == "train":
             shard_filenames = train_shard_filenames[:]
         else:

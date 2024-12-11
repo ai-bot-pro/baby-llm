@@ -9,6 +9,7 @@ from typing import List
 
 from sentencepiece import SentencePieceProcessor
 from transformers import LlamaTokenizer
+
 # 是用 fast tokenizer 会多出一个tokenizer.json 用于加速定位偏移加载
 try:
     from transformers import LlamaTokenizerFast
@@ -18,7 +19,7 @@ except ImportError as e:
         "The converted tokenizer will be the `slow` tokenizer. To use the fast, update your `tokenizers` library and re-run the tokenizer conversion"
     )
     LlamaTokenizerFast = None
-#LlamaTokenizerFast = None
+# LlamaTokenizerFast = None
 
 
 def write_tokenizer_to_hf(tokenizer_path, input_tokenizer_path):
@@ -51,7 +52,7 @@ class Tokenizer:
         return str_format
 
     def encode(self, s: str, bos: bool, eos: bool) -> List[int]:
-        assert type(s) is str
+        assert isinstance(s, str)
         t = self.sp_model.encode(s)
         if bos:
             t = [self.bos_id] + t
@@ -82,17 +83,16 @@ class Tokenizer:
         # get all the tokens (postprocessed) and their scores as floats
         tokens, scores = [], []
         for i in range(self.n_words):
-
             # decode the token and light postprocessing
             t = self.sp_model.id_to_piece(i)
             s = self.sp_model.get_score(i)
             if i == self.bos_id:
-                t = '\n<s>\n'
+                t = "\n<s>\n"
             elif i == self.eos_id:
-                t = '\n</s>\n'
+                t = "\n</s>\n"
             # sentencepiece uses this character as whitespace
-            t = t.replace('▁', ' ')
-            b = t.encode('utf-8')  # bytes of this token, utf-8 encoded
+            t = t.replace("▁", " ")
+            b = t.encode("utf-8")  # bytes of this token, utf-8 encoded
 
             tokens.append(b)
             scores.append(s)
@@ -102,8 +102,8 @@ class Tokenizer:
 
         # write to a binary file
         # the tokenizer.bin file is the same as .model file, but .bin
-        tokenizer_bin = self.model_path.replace('.model', '.bin')
-        with open(tokenizer_bin, 'wb') as f:
+        tokenizer_bin = self.model_path.replace(".model", ".bin")
+        with open(tokenizer_bin, "wb") as f:
             f.write(struct.pack("I", max_token_length))
             for bytes, score in zip(tokens, scores):
                 f.write(struct.pack("fI", score, len(bytes)))
@@ -112,19 +112,18 @@ class Tokenizer:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("stage", type=str, choices=[
-                        "export_to_hf", "export"])
-    parser.add_argument("-t", "--tokenizer-model", type=str,
-                        help="optional path to custom tokenizer ")
-    parser.add_argument("-o", "--output_hf_dir", type=str,
-                        help="output hf tokenizer dir ")
+    parser.add_argument("stage", type=str, choices=["export_to_hf", "export"])
+    parser.add_argument(
+        "-t", "--tokenizer-model", type=str, help="optional path to custom tokenizer "
+    )
+    parser.add_argument("-o", "--output_hf_dir", type=str, help="output hf tokenizer dir ")
     args = parser.parse_args()
 
-    if args.stage=="export":
+    if args.stage == "export":
         t = Tokenizer(args.tokenizer_model)
         t.export()
     elif args.stage == "export_to_hf":
-        output_hf_dir = args.tokenizer_model.replace('.model', '')
+        output_hf_dir = args.tokenizer_model.replace(".model", "")
         write_tokenizer_to_hf(output_hf_dir, args.tokenizer_model)
     else:
         raise ValueError(f"Unknown stage {args.stage}")

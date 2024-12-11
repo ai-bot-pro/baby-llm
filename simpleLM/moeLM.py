@@ -4,27 +4,25 @@ from torch.nn import functional as F
 
 
 class Head(nn.Module):
-    """ one head of self-attention """
+    """one head of self-attention"""
 
     def __init__(self, head_size, n_embed, block_size, dropout):
         super().__init__()
         self.query = nn.Linear(n_embed, head_size, bias=False)
         self.key = nn.Linear(n_embed, head_size, bias=False)
         self.value = nn.Linear(n_embed, head_size, bias=False)
-        self.register_buffer('tril', torch.tril(
-            torch.ones(block_size, block_size)))
+        self.register_buffer("tril", torch.tril(torch.ones(block_size, block_size)))
 
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
         B, T, C = x.shape
-        k = self.key(x)   # (B,T,C)
+        k = self.key(x)  # (B,T,C)
         q = self.query(x)  # (B,T,C)
         # compute attention scores ("affinities")
         # (B, T, C) @ (B, C, T) -> (B, T, T)
         wei = q @ k.transpose(-2, -1) * C**-0.5
-        wei = wei.masked_fill(
-            self.tril[:T, :T] == 0, float('-inf'))  # (B, T, T)
+        wei = wei.masked_fill(self.tril[:T, :T] == 0, float("-inf"))  # (B, T, T)
         wei = F.softmax(wei, dim=-1)  # (B, T, T)
         wei = self.dropout(wei)
         # perform the weighted aggregation of the values
@@ -34,12 +32,13 @@ class Head(nn.Module):
 
 
 class MultiHeadAttention(nn.Module):
-    """ multiple heads of self-attention in parallel """
+    """multiple heads of self-attention in parallel"""
 
     def __init__(self, num_heads, head_size, n_embed, block_size, dropout):
         super().__init__()
         self.heads = nn.ModuleList(
-            [Head(head_size, n_embed, block_size, dropout) for _ in range(num_heads)])
+            [Head(head_size, n_embed, block_size, dropout) for _ in range(num_heads)]
+        )
         self.proj = nn.Linear(n_embed, n_embed)
         self.dropout = nn.Dropout(dropout)
 
@@ -51,7 +50,7 @@ class MultiHeadAttention(nn.Module):
 
 class Expert(nn.Module):
     # Expert module
-    """ An MLP is a simple linear layer followed by a non-linearity i.e. each Expert """
+    """An MLP is a simple linear layer followed by a non-linearity i.e. each Expert"""
 
     def __init__(self, n_embed, dropout):
         super().__init__()
@@ -103,7 +102,7 @@ class NoisyTopkRouter(nn.Module):
         # torch.randn_like: 从标准正态/高斯分布（均值为0，标准差为1）中随机采样
         # 添加一个缩放后的单位高斯噪声到路由器logits中。
         # 缩放系数使用 F.softplus 函数应用到噪声logits上，然后与单位高斯噪声相乘。
-        noise = torch.randn_like(logits)*F.softplus(noise_logits)
+        noise = torch.randn_like(logits) * F.softplus(noise_logits)
         # 加入噪声的logits
         noisy_logits = logits + noise
 
@@ -111,7 +110,7 @@ class NoisyTopkRouter(nn.Module):
         # 得到每个样本前 k 个最大值的logits和对应的索引。
         top_k_logits, indices = noisy_logits.topk(self.top_k, dim=-1)
         # 创建一个与 noisy_logits 张量相同形状的全 -inf 的张量 zeros。
-        zeros = torch.full_like(noisy_logits, float('-inf'))
+        zeros = torch.full_like(noisy_logits, float("-inf"))
         # 使用 scatter 函数将每个样本前 k 个最大值的logits分散到 zeros 张量中，
         # 得到稀疏的logits。
         sparse_logits = zeros.scatter(-1, indices, top_k_logits)
@@ -123,13 +122,12 @@ class NoisyTopkRouter(nn.Module):
 
 
 class SparseMoE(nn.Module):
-    """ the sparse mixture of experts module """
+    """the sparse mixture of experts module"""
 
     def __init__(self, n_embed, num_experts, top_k, dropout):
         super(SparseMoE, self).__init__()
         self.router = NoisyTopkRouter(n_embed, num_experts, top_k)
-        self.experts = nn.ModuleList(
-            [Expert(n_embed, dropout=dropout) for _ in range(num_experts)])
+        self.experts = nn.ModuleList([Expert(n_embed, dropout=dropout) for _ in range(num_experts)])
         self.top_k = top_k
 
     def forward(self, x):
@@ -165,8 +163,7 @@ class SparseMoE(nn.Module):
                 # Update final output
                 # We need to scatter_add the weighted outputs to their original positions in the batch
                 # 使用 masked_scatter_ 函数将加权的输出散布到 final_output 张量的对应位置。
-                final_output.masked_scatter_(
-                    expert_mask.unsqueeze(-1), weighted_output)
+                final_output.masked_scatter_(expert_mask.unsqueeze(-1), weighted_output)
 
         return final_output.view_as(x)
 
@@ -178,7 +175,7 @@ class SparseMoEWithCapacity(nn.Module):
     - 适当增加专家容量可以减少这种溢出情况,但也会增加计算和通信开销。因此需要在专家容量和效率之间权衡。
     - 在Switch Transformer中,作者通过上采样和下采样技术,允许不同层使用不同数量的专家,从而优化计算和内存利用率
     合理设置专家容量因子可以平衡模型性能和效率
-    code detail from: 
+    code detail from:
     - https://github.com/tensorflow/mesh/blob/master/mesh_tensorflow/transformer/moe.py#L384
     - https://github.com/AviSoori1x/makeMoE/blob/main/makeMoE_from_Scratch_with_Expert_Capacity.ipynb
     """
@@ -186,8 +183,7 @@ class SparseMoEWithCapacity(nn.Module):
     def __init__(self, n_embed, num_experts, top_k, capacity_factor=1.0):
         super(SparseMoEWithCapacity, self).__init__()
         self.router = NoisyTopkRouter(n_embed, num_experts, top_k)
-        self.experts = nn.ModuleList([Expert(n_embed)
-                                     for _ in range(num_experts)])
+        self.experts = nn.ModuleList([Expert(n_embed) for _ in range(num_experts)])
         self.top_k = top_k
         # add capacity_factor
         self.capacity_factor = capacity_factor
@@ -207,8 +203,7 @@ class SparseMoEWithCapacity(nn.Module):
         # 将 tokens_per_batch 除以 self.num_experts，得到每个专家应该处理的平均token数量，
         # 然后乘以 self.capacity_factor 来调整基本容量。最后，将结果转换为整数，得到每个专家的最终容量
         tokens_per_batch = batch_size * seq_len * self.top_k
-        expert_capacity = int(
-            (tokens_per_batch / self.num_experts) * self.capacity_factor)
+        expert_capacity = int((tokens_per_batch / self.num_experts) * self.capacity_factor)
 
         # 创建与 flat_x 相同形状的全零张量 updates，用于存储每个tokens的更新值。
         updates = torch.zeros_like(flat_x)
@@ -224,14 +219,16 @@ class SparseMoEWithCapacity(nn.Module):
             flat_mask = expert_mask.view(-1)
             selected_indices = torch.nonzero(flat_mask).squeeze(-1)
 
-            limited_indices = selected_indices[:expert_capacity] if selected_indices.numel(
-            ) > expert_capacity else selected_indices
+            limited_indices = (
+                selected_indices[:expert_capacity]
+                if selected_indices.numel() > expert_capacity
+                else selected_indices
+            )
             if limited_indices.numel() > 0:
                 expert_input = flat_x[limited_indices]
                 expert_output = expert(expert_input)
 
-                gating_scores = flat_gating_output[limited_indices, i].unsqueeze(
-                    1)
+                gating_scores = flat_gating_output[limited_indices, i].unsqueeze(1)
                 weighted_output = expert_output * gating_scores
                 updates.index_add_(0, limited_indices, weighted_output)
 
@@ -242,20 +239,22 @@ class SparseMoEWithCapacity(nn.Module):
 
 
 class Block(nn.Module):
-    """ 
-    Mixture of Experts Transformer block: communication followed by computation (multi-head self attention + SparseMoE) 
+    """
+    Mixture of Experts Transformer block: communication followed by computation (multi-head self attention + SparseMoE)
     that may be repeated several number of times; Copy pasting key architecture variables for clarity
     """
 
-    def __init__(self, n_embed, n_head, num_experts, top_k, block_size, dropout, capacity_factor=0.0):
+    def __init__(
+        self, n_embed, n_head, num_experts, top_k, block_size, dropout, capacity_factor=0.0
+    ):
         # n_embed: embedding dimension, n_head: the number of heads we'd like
         super().__init__()
         head_size = n_embed // n_head
-        self.sa = MultiHeadAttention(
-            n_head, head_size, n_embed, block_size, dropout)
+        self.sa = MultiHeadAttention(n_head, head_size, n_embed, block_size, dropout)
         if capacity_factor >= 1.0:
             self.smoe = SparseMoEWithCapacity(
-                n_embed, num_experts, top_k, dropout, capacity_factor=capacity_factor)
+                n_embed, num_experts, top_k, dropout, capacity_factor=capacity_factor
+            )
         else:
             self.smoe = SparseMoE(n_embed, num_experts, top_k, dropout)
         self.ln1 = nn.LayerNorm(n_embed)
@@ -272,17 +271,41 @@ class SparseMoELanguageModel(nn.Module):
     putting  all together to crease a sparse mixture of experts language model
     """
 
-    def __init__(self, vocab_size, n_head, num_experts, top_k, n_layer, n_embed, block_size, dropout, nn_init="kaiming_normal", capacity_factor=0.0):
+    def __init__(
+        self,
+        vocab_size,
+        n_head,
+        num_experts,
+        top_k,
+        n_layer,
+        n_embed,
+        block_size,
+        dropout,
+        nn_init="kaiming_normal",
+        capacity_factor=0.0,
+    ):
         super().__init__()
         self.block_size = block_size
         # each token directly reads off the logits for the next token from a lookup table
         self.token_embedding_table = nn.Embedding(vocab_size, n_embed)
         self.position_embedding_table = nn.Embedding(block_size, n_embed)
-        self.blocks = nn.Sequential(*[Block(n_embed, n_head=n_head, num_experts=num_experts,
-                                    top_k=top_k,  block_size=block_size, dropout=dropout, capacity_factor=capacity_factor) for _ in range(n_layer)])
+        self.blocks = nn.Sequential(
+            *[
+                Block(
+                    n_embed,
+                    n_head=n_head,
+                    num_experts=num_experts,
+                    top_k=top_k,
+                    block_size=block_size,
+                    dropout=dropout,
+                    capacity_factor=capacity_factor,
+                )
+                for _ in range(n_layer)
+            ]
+        )
         self.ln_f = nn.LayerNorm(n_embed)  # final layer norm
         self.lm_head = nn.Linear(n_embed, vocab_size)
-        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
         # Jeremy Howard的Fastai第2部分有一个非常出色的讲座，
         # 从零开始实现了这些初始化方法：https://course.fast.ai/Lessons/lesson17.html
@@ -303,8 +326,7 @@ class SparseMoELanguageModel(nn.Module):
 
         # idx and targets are both (B,T) tensor of integers
         tok_emb = self.token_embedding_table(idx)  # (B,T,C)
-        pos_emb = self.position_embedding_table(
-            torch.arange(T, device=self.device))  # (T,C)
+        pos_emb = self.position_embedding_table(torch.arange(T, device=self.device))  # (T,C)
         x = tok_emb + pos_emb  # (B,T,C)
         x = self.blocks(x)  # (B,T,C)
         x = self.ln_f(x)  # (B,T,C)
@@ -314,8 +336,8 @@ class SparseMoELanguageModel(nn.Module):
             loss = None
         else:
             B, T, C = logits.shape
-            logits = logits.view(B*T, C)
-            targets = targets.view(B*T)
+            logits = logits.view(B * T, C)
+            targets = targets.view(B * T)
             loss = F.cross_entropy(logits, targets)
 
         return logits, loss
@@ -326,7 +348,7 @@ class SparseMoELanguageModel(nn.Module):
         # idx is (B, T) array of indices in the current context
         for _ in range(max_new_tokens):
             # crop idx to the last block_size tokens
-            idx_cond = idx[:, -self.block_size:]
+            idx_cond = idx[:, -self.block_size :]
             # get the predictions
             logits, loss = self(idx_cond)
             # focus only on the last time step

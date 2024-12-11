@@ -74,8 +74,7 @@ compile = True  # use PyTorch 2.0 to compile the model to be faster
 wandb_log = False  # disabled by default
 wandb_project = "baby_llm_llama2"
 wandb_run_name_suffix = ""
-wandb_run_name = "run" + datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + \
-    wandb_run_name_suffix
+wandb_run_name = "run" + datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + wandb_run_name_suffix
 
 # huggingface upload training results
 hf_upload = False  # disabled by default
@@ -96,12 +95,14 @@ config_keys = [
 _cur_work_dir = os.path.dirname(os.path.realpath(__file__))
 exec(open(f"{_cur_work_dir}/args.py").read())
 # change global args by custom --key=value
-change_global_args()  # overrides from command line
+# overrides from command line
+change_global_args()  # type: ignore # noqa: F821
 config = {k: globals()[k] for k in config_keys}  # will be useful for logging
 # -----------------------------------------------------------------------------
 
-estimate_loss_datasets = [] if len(
-    estimate_loss_split_datasets) == 0 else estimate_loss_split_datasets.split(",")
+estimate_loss_datasets = (
+    [] if len(estimate_loss_split_datasets) == 0 else estimate_loss_split_datasets.split(",")
+)
 
 # fixing some hyperparams to sensible defaults
 lr_decay_iters = max_iters  # should be ~= max_iters per Chinchilla
@@ -138,11 +139,12 @@ else:
     master_process = True
     seed_offset = 0
     ddp_world_size = 1
-tokens_per_iter = gradient_accumulation_steps * \
-    ddp_world_size * batch_size * max_seq_len
+tokens_per_iter = gradient_accumulation_steps * ddp_world_size * batch_size * max_seq_len
 if master_process:
     print(f"tokens per iteration will be: {tokens_per_iter:,}")
-    print(f"breaks down as: {gradient_accumulation_steps} grad accum steps * {ddp_world_size} processes * {batch_size} batch size * {max_seq_len} max seq len")
+    print(
+        f"breaks down as: {gradient_accumulation_steps} grad accum steps * {ddp_world_size} processes * {batch_size} batch size * {max_seq_len} max seq len"
+    )
 
 if master_process:
     os.makedirs(out_dir, exist_ok=True)
@@ -152,13 +154,8 @@ torch.backends.cudnn.allow_tf32 = True  # allow tf32 on cudnn
 # for later use in torch.autocast
 device_type = "cuda" if "cuda" in device else "cpu"
 # note: float16 data type will automatically use a GradScaler
-ptdtype = {"float32": torch.float32,
-           "bfloat16": torch.bfloat16, "float16": torch.float16}[dtype]
-ctx = (
-    nullcontext()
-    if device_type == "cpu"
-    else autocast(device_type=device_type, dtype=ptdtype)
-)
+ptdtype = {"float32": torch.float32, "bfloat16": torch.bfloat16, "float16": torch.float16}[dtype]
+ctx = nullcontext() if device_type == "cpu" else autocast(device_type=device_type, dtype=ptdtype)
 
 # task-specific setup
 iter_batches = partial(
@@ -201,7 +198,15 @@ elif init_from == "resume":
     checkpoint_model_args = checkpoint["model_args"]
     # force these config attributes to be equal otherwise we can't even resume training
     # the rest of the attributes (e.g. dropout) can stay as desired from command line
-    for k in ["dim", "n_layers", "n_heads", "n_kv_heads", "vocab_size", "multiple_of", "max_seq_len"]:
+    for k in [
+        "dim",
+        "n_layers",
+        "n_heads",
+        "n_kv_heads",
+        "vocab_size",
+        "multiple_of",
+        "max_seq_len",
+    ]:
         model_args[k] = checkpoint_model_args[k]
     # create the model
     gptconf = ModelArgs(**model_args)
@@ -212,13 +217,13 @@ elif init_from == "resume":
     unwanted_prefix = "_orig_mod."
     for k, v in list(state_dict.items()):
         if k.startswith(unwanted_prefix):
-            state_dict[k[len(unwanted_prefix):]] = state_dict.pop(k)
+            state_dict[k[len(unwanted_prefix) :]] = state_dict.pop(k)
     model.load_state_dict(state_dict)
     iter_num = checkpoint["iter_num"]
     best_val_loss = checkpoint["best_val_loss"]
 m = model.to(device)
 # print the number of parameters in the model
-model_million_params = sum(p.numel() for p in m.parameters())/1e6
+model_million_params = sum(p.numel() for p in m.parameters()) / 1e6
 print(m)
 print(f"{model_million_params}M parameters")
 
@@ -229,8 +234,7 @@ scaler = torch.cuda.amp.GradScaler(enabled=(dtype == "float16"))
 # optimizer AdamW
 # 见论文：Decoupled Weight Decay Regularization
 # https://arxiv.org/abs/1711.05101
-optimizer = model.configure_optimizers(
-    weight_decay, learning_rate, (beta1, beta2), device_type)
+optimizer = model.configure_optimizers(weight_decay, learning_rate, (beta1, beta2), device_type)
 if init_from == "resume" and "optimizer" in checkpoint:
     optimizer.load_state_dict(checkpoint["optimizer"])
 checkpoint = None  # free up memory
@@ -255,7 +259,7 @@ if ddp:
 
 @torch.no_grad()
 def estimate_loss(estimate_loss_datasets):
-    out = {'train': 0.0, 'val': 0.0}
+    out = {"train": 0.0, "val": 0.0}
     model.eval()
     # 分别对训练集和验证集进行估计
     for split in estimate_loss_datasets:
@@ -295,8 +299,7 @@ def push_to_hf_hub(repo_id, model_path_or_fileobj, hf_models_dir, model_million_
     print(f"upload checkpoint to {repo_id}")
     upload_file(
         path_or_fileobj=model_path_or_fileobj,
-        path_in_repo=os.path.join(
-            hf_models_dir, f"{model_million_params}M.pt"),
+        path_in_repo=os.path.join(hf_models_dir, f"{model_million_params}M.pt"),
         repo_id=repo_id,
     )
 
@@ -305,6 +308,7 @@ def push_to_hf_hub(repo_id, model_path_or_fileobj, hf_models_dir, model_million_
 # https://docs.wandb.ai/quickstart
 if wandb_log and master_process:
     import wandb
+
     wandb.init(project=wandb_project, name=wandb_run_name, config=config)
 
 # training loop
@@ -325,8 +329,7 @@ while True:
         # train训练数据用于参数（权重和偏置）的学习，
         # val验证数据用于参数的性能评估
         losses = estimate_loss(estimate_loss_datasets)
-        print(
-            f"step {iter_num}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
+        print(f"step {iter_num}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
         if wandb_log:
             try:
                 wandb.log(
@@ -337,7 +340,8 @@ while True:
                         "loss/val": losses["val"],
                         "lr": lr,
                         "mfu": running_mfu * 100,  # convert to percentage
-                    }, step=iter_num
+                    },
+                    step=iter_num,
                 )
             except Exception as e:
                 print(f"logging to wandb failed: {e}")
@@ -358,15 +362,26 @@ while True:
                 model_export(raw_model, os.path.join(out_dir, "model.bin"))
                 if hf_upload:
                     from huggingface_hub import upload_file
+
                     # popen
                     with Pool() as p:
                         p.apply_async(
-                            push_to_hf_hub, (repo_id, os.path.join(out_dir, "ckpt.pt"),
-                                             hf_models_dir, model_million_params)
+                            push_to_hf_hub,
+                            (
+                                repo_id,
+                                os.path.join(out_dir, "ckpt.pt"),
+                                hf_models_dir,
+                                model_million_params,
+                            ),
                         )
                         p.apply_async(
-                            push_to_hf_hub, (repo_id, os.path.join(out_dir, "model.bin"),
-                                             hf_models_dir, model_million_params)
+                            push_to_hf_hub,
+                            (
+                                repo_id,
+                                os.path.join(out_dir, "model.bin"),
+                                hf_models_dir,
+                                model_million_params,
+                            ),
                         )
                         p.close()
                         p.join()
@@ -415,8 +430,7 @@ while True:
         # get loss as float, scale up due to the divide above. note: this is a CPU-GPU sync point
         lossf = loss.item() * gradient_accumulation_steps
         if local_iter_num >= 5:  # let the training loop settle a bit
-            mfu = raw_model.estimate_mfu(
-                batch_size * gradient_accumulation_steps, dt)
+            mfu = raw_model.estimate_mfu(batch_size * gradient_accumulation_steps, dt)
             running_mfu = mfu if running_mfu == -1.0 else 0.9 * running_mfu + 0.1 * mfu
         print(
             f"{iter_num} | loss {lossf:.4f} | lr {lr:e} | {dt*1000:.2f}ms | mfu {running_mfu*100:.2f}%"

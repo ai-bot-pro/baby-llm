@@ -3,7 +3,6 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 import random
-import math
 
 # We don't want to use one-hot encoding since it's too sparse, nor binary
 # coding that may introduce biases. So we encode each input character
@@ -15,6 +14,7 @@ import math
 #   14! / (6!*6!) = 3432 total symbols
 #
 # We call this permutation coding.
+
 
 # 不使用独热编码(one-hot)，因为它太稀疏，也不想使用可能引入偏差的二进制编码。
 # 因此，将每个输入字符编码为具有不同1和0模式的 char_encoding_len 个输入，
@@ -29,11 +29,13 @@ def gen_coding_patterns(char_encoding_len, vocab_size, device):
     # 计算一下，用 char_encoding_len 长度的比特位 10101010 模式
     # 是否有足够的排列来实际表示 vocab_size 个符号。
     # 否则这个函数会运行很长时间……
-    permutations = math.factorial(char_encoding_len) / \
-        (math.factorial(char_encoding_len//2) *
-         math.factorial(char_encoding_len//2))
+    permutations = math.factorial(char_encoding_len) / (
+        math.factorial(char_encoding_len // 2) * math.factorial(char_encoding_len // 2)
+    )
     if permutations < vocab_size:
-        print(f"Insufficient 'char_encoding_len' permutations value {permutations} for vocabulary size {vocab_size}.")
+        print(
+            f"Insufficient 'char_encoding_len' permutations value {permutations} for vocabulary size {vocab_size}."
+        )
         exit(1)
     print(f"'char_encoding_len' permutations value {permutations} | vocabulary size {vocab_size}.")
 
@@ -42,7 +44,7 @@ def gen_coding_patterns(char_encoding_len, vocab_size, device):
     r = random.Random()
     r.seed(1234)
 
-    pattern = "01"*(char_encoding_len//2)
+    pattern = "01" * (char_encoding_len // 2)
     patterns = {}
     while len(patterns) != vocab_size:
         pattern = list(pattern)
@@ -53,6 +55,7 @@ def gen_coding_patterns(char_encoding_len, vocab_size, device):
     int_lists = [[int(char) for char in string] for string in string_lists]
     tensors = torch.tensor(int_lists, device=device, dtype=torch.float)
     return tensors
+
 
 # Function to convert tensor of indexes to permutation patterns that
 # we give as input to our neural network.
@@ -66,19 +69,22 @@ def encode_chars(tensor, char_encoding_len, device, encoded_patterns):
     encoded = encoded.to(device)
     return encoded
 
+
 # Toy language model.
 # use MLP nn
 # forward: N chars in input -> next char prediction.
 class MLPLanguageModel(nn.Module):
-    def __init__(self,
-                 vocab_size,
-                 hidden_nodes,
-                 char_encoding_len,
-                 block_size,
-                 encoded_patterns,
-                 use_batch_norm=True,
-                 use_active_fn="relu",  # sigmoid/relu/silu(swiglu)
-                 dropout_rate=0.0):
+    def __init__(
+        self,
+        vocab_size,
+        hidden_nodes,
+        char_encoding_len,
+        block_size,
+        encoded_patterns,
+        use_batch_norm=True,
+        use_active_fn="relu",  # sigmoid/relu/silu(swiglu)
+        dropout_rate=0.0,
+    ):
         super().__init__()
         self.encoded_patterns = encoded_patterns
 
@@ -165,7 +171,7 @@ class MLPLanguageModel(nn.Module):
         self.eval()  # Otherwise batch normalization will raise an error.
         for _ in range(max_new_tokens):
             # crop context to the last block_size tokens
-            idx_cond = ctx[:, -self.block_size*self.char_encoding_len:]
+            idx_cond = ctx[:, -self.block_size * self.char_encoding_len :]
             # get the predictions
             logits, loss = self(idx_cond)
             # apply softmax to get probabilities

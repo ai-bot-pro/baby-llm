@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import sys
 import os
 
+
 def show(filenames):
     # Number of files
     num_files = len(filenames)
@@ -18,11 +19,11 @@ def show(filenames):
             sys.exit(1)
 
         plt.figure(figsize=(10, 6))
-        plt.plot(data[:,0], data[:,1], label='Training Loss')
-        plt.plot(data[:,0], data[:,2], label='Validation Loss')
-        plt.xlabel('Iteration')
-        plt.ylabel('Loss')
-        plt.title(f'Training and Validation Loss - {os.path.basename(filename)}')
+        plt.plot(data[:, 0], data[:, 1], label="Training Loss")
+        plt.plot(data[:, 0], data[:, 2], label="Validation Loss")
+        plt.xlabel("Iteration")
+        plt.ylabel("Loss")
+        plt.title(f"Training and Validation Loss - {os.path.basename(filename)}")
         plt.legend()
         plt.show()
 
@@ -37,11 +38,13 @@ def show(filenames):
                 print(f"Error: File {filename} not found or cannot be read.")
                 continue
 
-            plt.plot(data[:,0], data[:,2], label=f'Validation Loss - {os.path.basename(filename)}')
+            plt.plot(
+                data[:, 0], data[:, 2], label=f"Validation Loss - {os.path.basename(filename)}"
+            )
 
-        plt.xlabel('Iteration')
-        plt.ylabel('Loss')
-        plt.title('Validation Loss Comparison')
+        plt.xlabel("Iteration")
+        plt.ylabel("Loss")
+        plt.title("Validation Loss Comparison")
         plt.legend()
         plt.show()
 

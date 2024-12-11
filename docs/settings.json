@@ -1,0 +1,20 @@
+{
+  "files.associations": {
+    "*.rs": "rust",
+    "*.h": "c",
+    "*.hpp": "c++"
+  },
+  "C_Cpp.clang_format_fallbackStyle": "{ BasedOnStyle: Google, IndentWidth: 4 ,TabWidth: 4, ColumnLimit: 0}",
+  "C_Cpp.formatting": "default",
+  "rust-analyzer.linkedProjects": [
+    //"netpoll/echo/rust-iouring-server/Cargo.toml",
+  ],
+  "C_Cpp.errorSquiggles": "enabled",
+  "C_Cpp.default.includePath": [
+    //"${cmd}/iouring/liburing/include"
+  ],
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true
+  }
+}

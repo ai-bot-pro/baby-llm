@@ -28,8 +28,7 @@ class PretokDataset(IterableDataset):
         # combine the worker_id and worker_rank to create a unique seed for rng
         seed = 42 + worker_id + 1337 * rank
         rng = random.Random(seed)
-        print(
-            f"Created a PretokDataset with rng seed {seed} | worker_id {worker_id}")
+        print(f"Created a PretokDataset with rng seed {seed} | worker_id {worker_id}")
         if self.vocab_source == "llama2":
             # the .bin files are right along the .json files
             bin_dir = os.path.join(self.data_dir, "TinyStories_all_data")
@@ -39,8 +38,7 @@ class PretokDataset(IterableDataset):
             bin_dir = os.path.join(self.data_dir, f"tok{self.vocab_size}")
             shard_filenames = sorted(glob.glob(os.path.join(bin_dir, "*.bin")))
         # train/test split. let's use only shard 0 for test split, rest train
-        shard_filenames = shard_filenames[1:
-                                          ] if self.split == "train" else shard_filenames[:1]
+        shard_filenames = shard_filenames[1:] if self.split == "train" else shard_filenames[:1]
         assert len(shard_filenames) > 0, f"No bin files found in {bin_dir}"
         while True:
             # 随机打乱样本顺序以缓解过拟合。

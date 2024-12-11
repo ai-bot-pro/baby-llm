@@ -71,17 +71,10 @@ if __name__ == "__main__":
     ]
     print(qkv_multipliers)
 
-    query_sizes = [
-        int(
-            make_divisible(n_embd * m, divisor=head_size)
-        )
-        for m in qkv_multipliers
-    ]
+    query_sizes = [int(make_divisible(n_embd * m, divisor=head_size)) for m in qkv_multipliers]
     print(query_sizes)
 
-    num_qkv_heads = [
-        int(compute_heads(q_size, head_size)) for q_size in query_sizes
-    ]
+    num_qkv_heads = [int(compute_heads(q_size, head_size)) for q_size in query_sizes]
     print(num_qkv_heads)
 
     # ffn scaling
@@ -96,10 +89,7 @@ if __name__ == "__main__":
     ]
     print(ffn_multipliers)
     ffn_intermediate_sizes = [
-        int(
-            make_divisible(n_embd * m, divisor=ffn_intermediate_divisor)
-        )
-        for m in ffn_multipliers
+        int(make_divisible(n_embd * m, divisor=ffn_intermediate_divisor)) for m in ffn_multipliers
     ]
     print(ffn_intermediate_sizes)
 

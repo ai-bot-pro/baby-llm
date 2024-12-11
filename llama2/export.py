@@ -1,7 +1,7 @@
 """
 This script has functions and utilties for model export.
 Basically, we have a bunch of versions of the model, and we
-want to export them to .bin files to be read from and inferenced 
+want to export them to .bin files to be read from and inferenced
 
 Among the "input" versions of PyTorch files/models:
 - Official Llama 2 weights released by Meta
@@ -20,6 +20,7 @@ meta llama2 convert to hf:
 hf convert to meta llama2:
 https://github.com/meta-llama/llama-recipes/blob/main/src/llama_recipes/tools/convert_hf_weights_to_llama.py
 """
+
 import os
 import gzip
 import shutil
@@ -33,22 +34,22 @@ import torch
 from torch import nn
 
 from model import ModelArgs, Transformer
-from huggingface_hub import upload_file, upload_folder
+from huggingface_hub import upload_folder
 
 # ---------------------------common utilities----------------------------------
 
 
 def serialize_fp32(file, tensor):
-    """ writes one fp32 tensor to file that is open in wb mode """
+    """writes one fp32 tensor to file that is open in wb mode"""
     d = tensor.detach().cpu().view(-1).to(torch.float32).numpy()
-    b = struct.pack(f'{len(d)}f', *d)
+    b = struct.pack(f"{len(d)}f", *d)
     file.write(b)
 
 
 def serialize_int8(file, tensor):
-    """ writes one int8 tensor to file that is open in wb mode """
+    """writes one int8 tensor to file that is open in wb mode"""
     d = tensor.detach().cpu().view(-1).numpy().astype(np.int8)
-    b = struct.pack(f'{len(d)}b', *d)
+    b = struct.pack(f"{len(d)}b", *d)
     file.write(b)
 
 
@@ -59,7 +60,6 @@ def quantize_q80(w, group_size):
     i.e. symmetric quantization into int8, range [-127,127]
     """
     assert w.numel() % group_size == 0
-    ori_shape = w.shape
     w = w.float()  # convert to float32
     w = w.reshape(-1, group_size)
     # find the max in each group
@@ -91,28 +91,28 @@ def version1_export(model, filepath):
     """
     version = 1
 
-    out_file = open(filepath, 'wb')
+    out_file = open(filepath, "wb")
     # first write out the header. the header will be 256 bytes
     # https://docs.python.org/3/library/struct.html#format-characters
     # 1) write magic
     # https://en.wikipedia.org/wiki/Magic_number_(programming)#In_files
-    out_file.write(struct.pack('I', MAGIC_ASCII_VAL))
+    out_file.write(struct.pack("I", MAGIC_ASCII_VAL))
     # 2) write version, which will be int
-    out_file.write(struct.pack('i', version))
+    out_file.write(struct.pack("i", version))
     # 3) write the params, which will be 7 ints
     p = model.params
     hidden_dim = model.layers[0].feed_forward.w1.weight.shape[0]
     n_kv_heads = p.n_heads if p.n_kv_heads is None else p.n_kv_heads
-    header = struct.pack('iiiiiii', p.dim, hidden_dim, p.n_layers, p.n_heads,
-                         n_kv_heads, p.vocab_size, p.max_seq_len)
+    header = struct.pack(
+        "iiiiiii", p.dim, hidden_dim, p.n_layers, p.n_heads, n_kv_heads, p.vocab_size, p.max_seq_len
+    )
     out_file.write(header)
     # 4) write some other flags
-    shared_classifier = torch.equal(
-        model.tok_embeddings.weight, model.output.weight)
-    out_file.write(struct.pack('B', int(shared_classifier)))
+    shared_classifier = torch.equal(model.tok_embeddings.weight, model.output.weight)
+    out_file.write(struct.pack("B", int(shared_classifier)))
     pad = 256 - out_file.tell()  # pad rest with zeros; tell returns current pos
     assert pad >= 0
-    out_file.write(b'\0' * pad)
+    out_file.write(b"\0" * pad)
 
     # now let's write out all the params
     weights = [
@@ -130,8 +130,8 @@ def version1_export(model, filepath):
         # final rmsnorm
         model.norm.weight,
         # freqs_cis
-        model.freqs_cos[:p.max_seq_len],
-        model.freqs_sin[:p.max_seq_len]
+        model.freqs_cos[: p.max_seq_len],
+        model.freqs_sin[: p.max_seq_len],
     ]
 
     # final classifier weights
@@ -158,8 +158,7 @@ def version2_export(model, filepath, group_size=64):
     # let's first do some validation for this export type
     while model.params.dim % group_size != 0:
         group_size //= 2
-        print(
-            f"BACKOFF: reducing group size to {group_size} to fit hidden_dim")
+        print(f"BACKOFF: reducing group size to {group_size} to fit hidden_dim")
     weights = [
         model.tok_embeddings.weight,
         *[layer.attention.wq.weight for layer in model.layers],
@@ -170,35 +169,36 @@ def version2_export(model, filepath, group_size=64):
         *[layer.feed_forward.w2.weight for layer in model.layers],
         *[layer.feed_forward.w3.weight for layer in model.layers],
     ]
-    shared_classifier = torch.equal(
-        model.tok_embeddings.weight, model.output.weight)
+    shared_classifier = torch.equal(model.tok_embeddings.weight, model.output.weight)
     if not shared_classifier:
         weights.append(model.output.weight)
     for w in weights:
-        assert w.numel(
-        ) % group_size == 0, f"weight {i} has numel {w.numel()}, not a multiple of group_size {group_size}"
+        assert (
+            w.numel() % group_size == 0
+        ), f"weight has numel {w.numel()}, not a multiple of group_size {group_size}"
 
     # write
-    out_file = open(filepath, 'wb')
+    out_file = open(filepath, "wb")
     # first write out the header. the header will be 256 bytes
     # 1) write magic
-    out_file.write(struct.pack('I', MAGIC_ASCII_VAL))
+    out_file.write(struct.pack("I", MAGIC_ASCII_VAL))
     # 2) write version, which will be int
-    out_file.write(struct.pack('i', version))
+    out_file.write(struct.pack("i", version))
     # 3) write the params, which will be 7 ints
     p = model.params
     hidden_dim = model.layers[0].feed_forward.w1.weight.shape[0]
     n_kv_heads = p.n_heads if p.n_kv_heads is None else p.n_kv_heads
-    header = struct.pack('iiiiiii', p.dim, hidden_dim, p.n_layers, p.n_heads,
-                         n_kv_heads, p.vocab_size, p.max_seq_len)
+    header = struct.pack(
+        "iiiiiii", p.dim, hidden_dim, p.n_layers, p.n_heads, n_kv_heads, p.vocab_size, p.max_seq_len
+    )
     out_file.write(header)
     # 4) write some other flags
-    out_file.write(struct.pack('B', int(shared_classifier)))
+    out_file.write(struct.pack("B", int(shared_classifier)))
     # group size used for quantization
-    out_file.write(struct.pack('i', group_size))
+    out_file.write(struct.pack("i", group_size))
     pad = 256 - out_file.tell()  # pad rest with zeros; tell returns current pos
     assert pad >= 0
-    out_file.write(b'\0' * pad)
+    out_file.write(b"\0" * pad)
     # now that the header is done, let's write out the model
 
     # first let's write out all the params that we are keeping in fp32: the norms
@@ -219,8 +219,7 @@ def version2_export(model, filepath, group_size=64):
         serialize_fp32(out_file, s)  # save scale factors
         # logging
         ew.append((err, w.shape))
-        print(
-            f"{i+1}/{len(weights)} quantized {tuple(w.shape)} to Q8_0 with max error {err}")
+        print(f"{i+1}/{len(weights)} quantized {tuple(w.shape)} to Q8_0 with max error {err}")
 
     # print the highest error across all weights, should be very small, e.g. O(~0.001)
     ew.sort(reverse=True)
@@ -231,8 +230,16 @@ def version2_export(model, filepath, group_size=64):
     print(f"wrote {filepath}")
 
 
-def hf_export(llama_model, filepath, group_size=64, dtype=torch.float32, push_to_hub=False, hf_path="", repo_id=""):
-    """ Generate the pytorch_model.bin state_dict and config.json for HuggingFace """
+def hf_export(
+    llama_model,
+    filepath,
+    group_size=64,
+    dtype=torch.float32,
+    push_to_hub=False,
+    hf_path="",
+    repo_id="",
+):
+    """Generate the pytorch_model.bin state_dict and config.json for HuggingFace"""
 
     try:
         from transformers.models.llama.configuration_llama import LlamaConfig
@@ -251,47 +258,63 @@ def hf_export(llama_model, filepath, group_size=64, dtype=torch.float32, push_to
     key_value_dim = dim // n_rep
 
     # HuggingFace needs the weights permuted.
-    # See: https://github.com/huggingface/transformers/blob/b132c1703eb1c8bd9dfa4ad6a9be2bfd6ef819e9/src/transformers/models/llama/convert_llama_weights_to_hf.py#L122
+    # See:
+    # https://github.com/huggingface/transformers/blob/b132c1703eb1c8bd9dfa4ad6a9be2bfd6ef819e9/src/transformers/models/llama/convert_llama_weights_to_hf.py#L122
     def permute_original(w, n_heads=llama_model.params.n_heads, dim1=dim, dim2=dim):
-        return w.view(dim1, dim2).reshape(n_heads, dim1 // n_heads // 2, 2, dim2).transpose(1, 2).reshape(dim1, dim2)
+        return (
+            w.view(dim1, dim2)
+            .reshape(n_heads, dim1 // n_heads // 2, 2, dim2)
+            .transpose(1, 2)
+            .reshape(dim1, dim2)
+        )
 
     # Transfer weights from llama model to the HF state dictionary format
-    hf_state_dict['model.embed_tokens.weight'] = llama_model.tok_embeddings.weight.clone(
-    ).to(dtype)
-    hf_state_dict['model.norm.weight'] = llama_model.norm.weight.clone().to(
-        dtype)
+    hf_state_dict["model.embed_tokens.weight"] = llama_model.tok_embeddings.weight.clone().to(dtype)
+    hf_state_dict["model.norm.weight"] = llama_model.norm.weight.clone().to(dtype)
 
     # Add each layer's weights to the HF state dictionary
     for i, layer in enumerate(llama_model.layers):
         layer_id = layer.layer_id
-        hf_state_dict[f'model.layers.{i}.input_layernorm.weight'] = llama_model.layers[layer_id].attention_norm.weight.clone(
+        hf_state_dict[f"model.layers.{i}.input_layernorm.weight"] = (
+            llama_model.layers[layer_id].attention_norm.weight.clone().to(dtype)
+        )
+        hf_state_dict[f"model.layers.{i}.self_attn.q_proj.weight"] = permute_original(
+            llama_model.layers[layer_id].attention.wq.weight.clone()
         ).to(dtype)
-        hf_state_dict[f'model.layers.{i}.self_attn.q_proj.weight'] = permute_original(
-            llama_model.layers[layer_id].attention.wq.weight.clone()).to(dtype)
-        hf_state_dict[f'model.layers.{i}.self_attn.k_proj.weight'] = permute_original(
-            llama_model.layers[layer_id].attention.wk.weight.clone(), num_key_value_heads, key_value_dim, dim).to(dtype)
-        hf_state_dict[f'model.layers.{i}.self_attn.v_proj.weight'] = llama_model.layers[layer_id].attention.wv.weight.clone(
+        hf_state_dict[f"model.layers.{i}.self_attn.k_proj.weight"] = permute_original(
+            llama_model.layers[layer_id].attention.wk.weight.clone(),
+            num_key_value_heads,
+            key_value_dim,
+            dim,
         ).to(dtype)
-        hf_state_dict[f'model.layers.{i}.self_attn.o_proj.weight'] = llama_model.layers[layer_id].attention.wo.weight.clone(
-        ).to(dtype)
-        hf_state_dict[f'model.layers.{i}.post_attention_layernorm.weight'] = llama_model.layers[layer_id].ffn_norm.weight.clone(
-        ).to(dtype)
-        hf_state_dict[f'model.layers.{i}.mlp.gate_proj.weight'] = llama_model.layers[layer_id].feed_forward.w1.weight.clone(
-        ).to(dtype)
-        hf_state_dict[f'model.layers.{i}.mlp.down_proj.weight'] = llama_model.layers[layer_id].feed_forward.w2.weight.clone(
-        ).to(dtype)
-        hf_state_dict[f'model.layers.{i}.mlp.up_proj.weight'] = llama_model.layers[layer_id].feed_forward.w3.weight.clone(
-        ).to(dtype)
+        hf_state_dict[f"model.layers.{i}.self_attn.v_proj.weight"] = (
+            llama_model.layers[layer_id].attention.wv.weight.clone().to(dtype)
+        )
+        hf_state_dict[f"model.layers.{i}.self_attn.o_proj.weight"] = (
+            llama_model.layers[layer_id].attention.wo.weight.clone().to(dtype)
+        )
+        hf_state_dict[f"model.layers.{i}.post_attention_layernorm.weight"] = (
+            llama_model.layers[layer_id].ffn_norm.weight.clone().to(dtype)
+        )
+        hf_state_dict[f"model.layers.{i}.mlp.gate_proj.weight"] = (
+            llama_model.layers[layer_id].feed_forward.w1.weight.clone().to(dtype)
+        )
+        hf_state_dict[f"model.layers.{i}.mlp.down_proj.weight"] = (
+            llama_model.layers[layer_id].feed_forward.w2.weight.clone().to(dtype)
+        )
+        hf_state_dict[f"model.layers.{i}.mlp.up_proj.weight"] = (
+            llama_model.layers[layer_id].feed_forward.w3.weight.clone().to(dtype)
+        )
 
     # llama2.c usually uses tied weights -> reference the embed_tokens.weights instead
-    hf_state_dict['lm_head.weight'] = hf_state_dict['model.embed_tokens.weight']
+    hf_state_dict["lm_head.weight"] = hf_state_dict["model.embed_tokens.weight"]
 
     # We check that the embeddings are tied, else use manual output weights
     _embeddings_are_tied: bool = torch.equal(
-        llama_model.tok_embeddings.weight, llama_model.output.weight)
+        llama_model.tok_embeddings.weight, llama_model.output.weight
+    )
     if not _embeddings_are_tied:
-        hf_state_dict['lm_head.weight'] = llama_model.output.weight.clone().to(
-            dtype)
+        hf_state_dict["lm_head.weight"] = llama_model.output.weight.clone().to(dtype)
 
     # Generate LlamaConfig (seen in transformers.models.llama.configuration_llama)
 
@@ -370,30 +393,34 @@ def torchscript_export(model, filepath, zero_params=False, gzip_output=False):
 
 # -----------------------Load / import functions-------------------------------
 
+
 # 加载训练过程中的ckpt模型文件
 def load_checkpoint(checkpoint):
     # load the provided model checkpoint
-    checkpoint_dict = torch.load(checkpoint, map_location='cpu')
-    gptconf = ModelArgs(**checkpoint_dict['model_args'])
+    checkpoint_dict = torch.load(checkpoint, map_location="cpu")
+    gptconf = ModelArgs(**checkpoint_dict["model_args"])
     model = Transformer(gptconf)
-    state_dict = checkpoint_dict['model']
-    unwanted_prefix = '_orig_mod.'
+    state_dict = checkpoint_dict["model"]
+    unwanted_prefix = "_orig_mod."
     for k, v in list(state_dict.items()):
         if k.startswith(unwanted_prefix):
-            state_dict[k[len(unwanted_prefix):]] = state_dict.pop(k)
+            state_dict[k[len(unwanted_prefix) :]] = state_dict.pop(k)
     model.load_state_dict(state_dict, strict=False)
     model.eval()
     return model
 
+
 # 加载已经预训练好的原始meta-llama2模型文件: https://github.com/meta-llama/llama
+
+
 def load_meta_model(model_path):
-    params_path = os.path.join(model_path, 'params.json')
+    params_path = os.path.join(model_path, "params.json")
     with open(params_path) as f:
         params = json.load(f)
         print(params)
 
-    model_paths = sorted(list(Path(model_path).glob('consolidated.*.pth')))
-    models = [torch.load(p, map_location='cpu') for p in model_paths]
+    model_paths = sorted(list(Path(model_path).glob("consolidated.*.pth")))
+    models = [torch.load(p, map_location="cpu") for p in model_paths]
 
     def concat_weights(models):
         state_dict = {}
@@ -403,9 +430,9 @@ def load_meta_model(model_path):
                 state_dict[name] = tensors[0]
                 continue
             is_axis_1 = (
-                name.startswith('tok_embeddings.')
-                or name.endswith('.attention.wo.weight')
-                or name.endswith('.feed_forward.w2.weight')
+                name.startswith("tok_embeddings.")
+                or name.endswith(".attention.wo.weight")
+                or name.endswith(".feed_forward.w2.weight")
             )
             axis = 1 if is_axis_1 else 0
             state_dict[name] = torch.cat(tensors, dim=axis)
@@ -421,50 +448,48 @@ def load_meta_model(model_path):
     config.dim = params["dim"]
     config.n_layers = params["n_layers"]
     config.n_heads = params["n_heads"]
-    config.n_kv_heads = params.get('n_kv_heads') or params['n_heads']
+    config.n_kv_heads = params.get("n_kv_heads") or params["n_heads"]
     config.multiple_of = params["multiple_of"]
     config.norm_eps = params["norm_eps"]
 
-    config.vocab_size = state_dict['tok_embeddings.weight'].shape[0]
+    config.vocab_size = state_dict["tok_embeddings.weight"].shape[0]
     config.max_seq_len = 2048
 
     # create a new Transformer object and set weights
     model = Transformer(config)
 
-    model.tok_embeddings.weight = nn.Parameter(
-        state_dict['tok_embeddings.weight'])
-    model.norm.weight = nn.Parameter(state_dict['norm.weight'])
+    model.tok_embeddings.weight = nn.Parameter(state_dict["tok_embeddings.weight"])
+    model.norm.weight = nn.Parameter(state_dict["norm.weight"])
 
     for layer in model.layers:
         i = layer.layer_id
-        layer.attention_norm.weight = nn.Parameter(
-            state_dict[f'layers.{i}.attention_norm.weight'])
-        layer.attention.wq.weight = nn.Parameter(
-            state_dict[f'layers.{i}.attention.wq.weight'])
-        layer.attention.wk.weight = nn.Parameter(
-            state_dict[f'layers.{i}.attention.wk.weight'])
-        layer.attention.wv.weight = nn.Parameter(
-            state_dict[f'layers.{i}.attention.wv.weight'])
-        layer.attention.wo.weight = nn.Parameter(
-            state_dict[f'layers.{i}.attention.wo.weight'])
-        layer.ffn_norm.weight = nn.Parameter(
-            state_dict[f'layers.{i}.ffn_norm.weight'])
+        layer.attention_norm.weight = nn.Parameter(state_dict[f"layers.{i}.attention_norm.weight"])
+        layer.attention.wq.weight = nn.Parameter(state_dict[f"layers.{i}.attention.wq.weight"])
+        layer.attention.wk.weight = nn.Parameter(state_dict[f"layers.{i}.attention.wk.weight"])
+        layer.attention.wv.weight = nn.Parameter(state_dict[f"layers.{i}.attention.wv.weight"])
+        layer.attention.wo.weight = nn.Parameter(state_dict[f"layers.{i}.attention.wo.weight"])
+        layer.ffn_norm.weight = nn.Parameter(state_dict[f"layers.{i}.ffn_norm.weight"])
         layer.feed_forward.w1.weight = nn.Parameter(
-            state_dict[f'layers.{i}.feed_forward.w1.weight'])
+            state_dict[f"layers.{i}.feed_forward.w1.weight"]
+        )
         layer.feed_forward.w2.weight = nn.Parameter(
-            state_dict[f'layers.{i}.feed_forward.w2.weight'])
+            state_dict[f"layers.{i}.feed_forward.w2.weight"]
+        )
         layer.feed_forward.w3.weight = nn.Parameter(
-            state_dict[f'layers.{i}.feed_forward.w3.weight'])
+            state_dict[f"layers.{i}.feed_forward.w3.weight"]
+        )
 
     # final classifier
-    model.output.weight = nn.Parameter(state_dict['output.weight'])
+    model.output.weight = nn.Parameter(state_dict["output.weight"])
     model.eval()
     return model
 
+
 # 加载huggingface预训练llama2模型
 # 比如： https://huggingface.co/meta-llama/Llama-2-7b-hf
-def load_hf_model(model_path):
 
+
+def load_hf_model(model_path):
     try:
         from transformers import AutoModelForCausalLM
     except ImportError:
@@ -490,9 +515,8 @@ def load_hf_model(model_path):
     # create a new Transformer object and set weights
     model = Transformer(config)
 
-    model.tok_embeddings.weight = nn.Parameter(
-        hf_dict['model.embed_tokens.weight'])
-    model.norm.weight = nn.Parameter(hf_dict['model.norm.weight'])
+    model.tok_embeddings.weight = nn.Parameter(hf_dict["model.embed_tokens.weight"])
+    model.norm.weight = nn.Parameter(hf_dict["model.norm.weight"])
 
     # huggingface permutes WQ and WK, this function reverses it
     def permute_reverse(w, n_heads=config.n_heads, dim1=config.dim, dim2=config.dim):
@@ -501,33 +525,43 @@ def load_hf_model(model_path):
     for layer in model.layers:
         i = layer.layer_id
         layer.attention_norm.weight = nn.Parameter(
-            hf_dict[f'model.layers.{i}.input_layernorm.weight'])
-        layer.attention.wq.weight = nn.Parameter(permute_reverse(
-            hf_dict[f'model.layers.{i}.self_attn.q_proj.weight']))
-        layer.attention.wk.weight = nn.Parameter(permute_reverse(
-            hf_dict[f'model.layers.{i}.self_attn.k_proj.weight']))
+            hf_dict[f"model.layers.{i}.input_layernorm.weight"]
+        )
+        layer.attention.wq.weight = nn.Parameter(
+            permute_reverse(hf_dict[f"model.layers.{i}.self_attn.q_proj.weight"])
+        )
+        layer.attention.wk.weight = nn.Parameter(
+            permute_reverse(hf_dict[f"model.layers.{i}.self_attn.k_proj.weight"])
+        )
         layer.attention.wv.weight = nn.Parameter(
-            hf_dict[f'model.layers.{i}.self_attn.v_proj.weight'])
+            hf_dict[f"model.layers.{i}.self_attn.v_proj.weight"]
+        )
         layer.attention.wo.weight = nn.Parameter(
-            hf_dict[f'model.layers.{i}.self_attn.o_proj.weight'])
+            hf_dict[f"model.layers.{i}.self_attn.o_proj.weight"]
+        )
         layer.ffn_norm.weight = nn.Parameter(
-            hf_dict[f'model.layers.{i}.post_attention_layernorm.weight'])
+            hf_dict[f"model.layers.{i}.post_attention_layernorm.weight"]
+        )
         layer.feed_forward.w1.weight = nn.Parameter(
-            hf_dict[f'model.layers.{i}.mlp.gate_proj.weight'])
+            hf_dict[f"model.layers.{i}.mlp.gate_proj.weight"]
+        )
         layer.feed_forward.w2.weight = nn.Parameter(
-            hf_dict[f'model.layers.{i}.mlp.down_proj.weight'])
-        layer.feed_forward.w3.weight = nn.Parameter(
-            hf_dict[f'model.layers.{i}.mlp.up_proj.weight'])
+            hf_dict[f"model.layers.{i}.mlp.down_proj.weight"]
+        )
+        layer.feed_forward.w3.weight = nn.Parameter(hf_dict[f"model.layers.{i}.mlp.up_proj.weight"])
 
     # final classifier
-    model.output.weight = nn.Parameter(hf_dict['lm_head.weight'])
+    model.output.weight = nn.Parameter(hf_dict["lm_head.weight"])
     model.eval()
     return model
 
 
 # --------------------------API---------------------------------------------
 
-def model_export(model, filepath, version=1, dtype=torch.float32, push_to_hub=False, hf_path="", repo_id=""):
+
+def model_export(
+    model, filepath, version=1, dtype=torch.float32, push_to_hub=False, hf_path="", repo_id=""
+):
     """
     Versions docs:
     v-1:huggingface export, i.e. intended for use outside of this repo, in HF
@@ -547,21 +581,20 @@ def model_export(model, filepath, version=1, dtype=torch.float32, push_to_hub=Fa
 
 # ------------------------CLI entrypoint----------------------------------------
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser()
     parser.add_argument("filepath", type=str, help="the output filepath")
-    parser.add_argument("--version", default=0, type=int,
-                        help="the version to export with")
-    parser.add_argument("--dtype", type=str,
-                        help="dtype of the model (fp16, fp32)", default="fp32")
+    parser.add_argument("--version", default=0, type=int, help="the version to export with")
+    parser.add_argument("--dtype", type=str, help="dtype of the model (fp16, fp32)", default="fp32")
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument("--checkpoint", type=str,
-                       help="model checkpoint, .pt file")
+    group.add_argument("--checkpoint", type=str, help="model checkpoint, .pt file")
     group.add_argument("--meta-llama", type=str, help="meta llama model path")
     group.add_argument("--hf", type=str, help="huggingface model path")
-    group.add_argument("--push_to_hub", type=bool,
-                       help="Whether or not to push the model to the hub",
-                       default=False)
+    group.add_argument(
+        "--push_to_hub",
+        type=bool,
+        help="Whether or not to push the model to the hub",
+        default=False,
+    )
     group.add_argument("--hf_path", type=str, help="huggingface model hub path")
     group.add_argument("--repo_id", type=str, help="huggingface repo id")
     args = parser.parse_args()
@@ -579,5 +612,12 @@ if __name__ == "__main__":
         parser.error("Can't load input model!")
 
     # export model
-    model_export(model, args.filepath, args.version, args.dtype,
-                 push_to_hub=args.push_to_hub, hf_path=args.hf_path, repo_id=args.repo_id)
+    model_export(
+        model,
+        args.filepath,
+        args.version,
+        args.dtype,
+        push_to_hub=args.push_to_hub,
+        hf_path=args.hf_path,
+        repo_id=args.repo_id,
+    )

@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
+
 torch.manual_seed(1234)
 
 
@@ -20,7 +21,7 @@ class BigramLanguageModel(nn.Module):
         # each token directly reads off the logits for the next token from a lookup table
         # an Embedding module containing vocab_size tensors of vocab_size,
         # like BigramLanguageModel train each token weight P(token_i|token_i-1)
-        if nn_type=="embedding":
+        if nn_type == "embedding":
             self.logits = nn.Embedding(vocab_size, vocab_size)
         else:
             self.logits = nn.Parameter(torch.zeros((vocab_size, vocab_size)))
@@ -33,8 +34,8 @@ class BigramLanguageModel(nn.Module):
             loss = None
         else:
             B, T, C = logits.shape
-            logits = logits.view(B*T, C)
-            targets = targets.view(B*T)
+            logits = logits.view(B * T, C)
+            targets = targets.view(B * T)
             loss = F.cross_entropy(logits, targets)
 
         return logits, loss
@@ -42,7 +43,7 @@ class BigramLanguageModel(nn.Module):
     # no sampling generation
     def generate(self, idx, max_new_tokens):
         output = []
-        self.eval() # Otherwise batch normalization will raise an error.
+        self.eval()  # Otherwise batch normalization will raise an error.
         # idx is (B, T) array of indices in the current context
         for _ in range(max_new_tokens):
             # get the predictions

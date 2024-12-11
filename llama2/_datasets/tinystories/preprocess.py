@@ -50,19 +50,21 @@ def train_vocab(data_dir, vocab_size):
     # 2) train the sentencepiece model
     print("Will now train the vocab...")
     # https://github.com/google/sentencepiece/blob/master/doc/options.md
-    spm.SentencePieceTrainer.train(input=tiny_file,
-                                   model_prefix=prefix,
-                                   model_type="bpe",
-                                   vocab_size=vocab_size,
-                                   self_test_sample_size=0,
-                                   input_format="text",
-                                   character_coverage=1.0,
-                                   num_threads=os.cpu_count(),
-                                   split_digits=True,
-                                   allow_whitespace_only_pieces=True,
-                                   byte_fallback=True,
-                                   unk_surface=r" \342\201\207 ",
-                                   normalization_rule_name="identity")
+    spm.SentencePieceTrainer.train(
+        input=tiny_file,
+        model_prefix=prefix,
+        model_type="bpe",
+        vocab_size=vocab_size,
+        self_test_sample_size=0,
+        input_format="text",
+        character_coverage=1.0,
+        num_threads=os.cpu_count(),
+        split_digits=True,
+        allow_whitespace_only_pieces=True,
+        byte_fallback=True,
+        unk_surface=r" \342\201\207 ",
+        normalization_rule_name="identity",
+    )
 
     print(f"Trained tokenizer is in {prefix}.model")
     print("Done.")
@@ -70,8 +72,11 @@ def train_vocab(data_dir, vocab_size):
 
 def process_shard(args, data_dir, vocab_size, tokenizer_model=None):
     shard_id, shard = args
-    tokenizer_model = os.path.join(
-        data_dir, f"tok{vocab_size}.model") if tokenizer_model is None else tokenizer_model
+    tokenizer_model = (
+        os.path.join(data_dir, f"tok{vocab_size}.model")
+        if tokenizer_model is None
+        else tokenizer_model
+    )
     enc = Tokenizer(tokenizer_model)
     with open(shard, "r") as f:
         data = json.load(f)
@@ -112,8 +117,9 @@ def pretokenize(data_dir, vocab_size, tokenizer_model=None):
         os.makedirs(bin_dir, exist_ok=True)
 
     # process all the shards in a process pool
-    fun = partial(process_shard, data_dir=data_dir,
-                  vocab_size=vocab_size, tokenizer_model=tokenizer_model)
+    fun = partial(
+        process_shard, data_dir=data_dir, vocab_size=vocab_size, tokenizer_model=tokenizer_model
+    )
     with ProcessPoolExecutor() as executor:
         executor.map(fun, enumerate(shard_filenames))
     print("Done.")
@@ -129,30 +135,35 @@ if __name__ == "__main__":
     python preprocess.py pretokenize --vocab_size=2048 --data_dir=./datas
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("stage", type=str, choices=[
-                        "train_vocab", "merge_tokenizer", "pretokenize", "print_tokenizer"])
-    parser.add_argument("--vocab_size", type=int, default=0,
-                        help="pretokenization vocab size")
-    parser.add_argument("--data_dir", type=str,
-                        default="./datas", help="process data dir")
-    parser.add_argument("--src_tokenizer_model", type=str,
-                        default=None, help="src tokenizer model file")
-    parser.add_argument("--merge_tokenizer_model", type=str,
-                        default="", help="merge tokenizer model file")
-    parser.add_argument("--tokenizer_model", type=str,
-                        default="", help=" tokenizer model file")
+    parser.add_argument(
+        "stage",
+        type=str,
+        choices=["train_vocab", "merge_tokenizer", "pretokenize", "print_tokenizer"],
+    )
+    parser.add_argument("--vocab_size", type=int, default=0, help="pretokenization vocab size")
+    parser.add_argument("--data_dir", type=str, default="./datas", help="process data dir")
+    parser.add_argument(
+        "--src_tokenizer_model", type=str, default=None, help="src tokenizer model file"
+    )
+    parser.add_argument(
+        "--merge_tokenizer_model", type=str, default="", help="merge tokenizer model file"
+    )
+    parser.add_argument("--tokenizer_model", type=str, default="", help=" tokenizer model file")
     args = parser.parse_args()
 
     # depending on the stage call the appropriate function
     if args.stage == "train_vocab":
         train_vocab(data_dir=args.data_dir, vocab_size=args.vocab_size)
     elif args.stage == "merge_tokenizer":
-        merge_tokenizer(data_dir=args.data_dir,
-                        merge_tokenizer_model=args.merge_tokenizer_model,
-                        src_tokenizer_model=args.src_tokenizer_model)
+        merge_tokenizer(
+            data_dir=args.data_dir,
+            merge_tokenizer_model=args.merge_tokenizer_model,
+            src_tokenizer_model=args.src_tokenizer_model,
+        )
     elif args.stage == "pretokenize":
-        pretokenize(data_dir=args.data_dir, vocab_size=args.vocab_size,
-                    tokenizer_model=args.tokenizer_model)
+        pretokenize(
+            data_dir=args.data_dir, vocab_size=args.vocab_size, tokenizer_model=args.tokenizer_model
+        )
     elif args.stage == "print_tokenizer":
         print_tokenizer(tokenizer_model=args.tokenizer_model)
     else:

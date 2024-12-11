@@ -3,7 +3,7 @@ This scaling is known as layer-wise or block-wise scaling from:
 [DELIGHT: DEEP AND LIGHT-WEIGHT TRANSFORMER](https://arxiv.org/abs/2008.00623)
 - attention layers
 - FFN layers
-reference: 
+reference:
 - https://github.com/sacmehta/delight/blob/master/fairseq/models/delight_transformer.py
 - https://github.com/apple/corenet/blob/main/corenet/modeling/models/language_modeling/general_gpt.py
 """
@@ -17,15 +17,14 @@ from utils import make_divisible, compute_heads
 
 
 class Head(nn.Module):
-    """ one head of self-attention """
+    """one head of self-attention"""
 
     def __init__(self, head_size, n_embd, block_size, dropout):
         super().__init__()
         self.key = nn.Linear(n_embd, head_size, bias=False)
         self.query = nn.Linear(n_embd, head_size, bias=False)
         self.value = nn.Linear(n_embd, head_size, bias=False)
-        self.register_buffer('tril', torch.tril(
-            torch.ones(block_size, block_size)))
+        self.register_buffer("tril", torch.tril(torch.ones(block_size, block_size)))
 
         self.dropout = nn.Dropout(dropout)
 
@@ -33,13 +32,12 @@ class Head(nn.Module):
         # input of size (batch, time-step, channels)
         # output of size (batch, time-step, head size)
         B, T, C = x.shape
-        k = self.key(x)   # (B,T,hs)
+        k = self.key(x)  # (B,T,hs)
         q = self.query(x)  # (B,T,hs)
         # compute attention scores ("affinities")
         # (B, T, hs) @ (B, hs, T) -> (B, T, T)
-        wei = q @ k.transpose(-2, -1) * k.shape[-1]**-0.5
-        wei = wei.masked_fill(
-            self.tril[:T, :T] == 0, float('-inf'))  # (B, T, T)
+        wei = q @ k.transpose(-2, -1) * k.shape[-1] ** -0.5
+        wei = wei.masked_fill(self.tril[:T, :T] == 0, float("-inf"))  # (B, T, T)
         wei = F.softmax(wei, dim=-1)  # (B, T, T)
         wei = self.dropout(wei)
         # perform the weighted aggregation of the values
@@ -49,15 +47,18 @@ class Head(nn.Module):
 
 
 class MultiHeadAttention(nn.Module):
-    """ multiple heads of self-attention in parallel """
+    """multiple heads of self-attention in parallel"""
 
-    def __init__(self, num_heads, head_size, n_embd, block_size, dropout, layer_index, num_qkv_heads=None):
+    def __init__(
+        self, num_heads, head_size, n_embd, block_size, dropout, layer_index, num_qkv_heads=None
+    ):
         super().__init__()
         if num_qkv_heads is not None:
             num_heads = num_qkv_heads[layer_index]
 
         self.heads = nn.ModuleList(
-            [Head(head_size, n_embd, block_size, dropout) for _ in range(num_heads)])
+            [Head(head_size, n_embd, block_size, dropout) for _ in range(num_heads)]
+        )
         self.proj = nn.Linear(head_size * num_heads, n_embd)
         self.dropout = nn.Dropout(dropout)
 
@@ -68,7 +69,7 @@ class MultiHeadAttention(nn.Module):
 
 
 class FeedFoward(nn.Module):
-    """ a simple linear layer followed by a non-linearity """
+    """a simple linear layer followed by a non-linearity"""
 
     def __init__(self, n_embd, dropout, layer_index, ffn_intermediate_sizes=None):
         super().__init__()
@@ -89,17 +90,25 @@ class FeedFoward(nn.Module):
 
 
 class Block(nn.Module):
-    """ Transformer block: communication followed by computation """
+    """Transformer block: communication followed by computation"""
 
-    def __init__(self, n_embd, n_head, block_size, dropout,
-                 layer_index, num_qkv_heads, ffn_intermediate_sizes):
+    def __init__(
+        self,
+        n_embd,
+        n_head,
+        block_size,
+        dropout,
+        layer_index,
+        num_qkv_heads,
+        ffn_intermediate_sizes,
+    ):
         # n_embd: embedding dimension, n_head: the number of heads we'd like
         super().__init__()
         head_size = n_embd // n_head
         self.sa = MultiHeadAttention(
-            n_head, head_size, n_embd, block_size, dropout, layer_index, num_qkv_heads)
-        self.ffwd = FeedFoward(
-            n_embd, dropout, layer_index, ffn_intermediate_sizes)
+            n_head, head_size, n_embd, block_size, dropout, layer_index, num_qkv_heads
+        )
+        self.ffwd = FeedFoward(n_embd, dropout, layer_index, ffn_intermediate_sizes)
         self.ln1 = nn.LayerNorm(n_embd)
         self.ln2 = nn.LayerNorm(n_embd)
 
@@ -110,9 +119,18 @@ class Block(nn.Module):
 
 
 class DelightGPTLanguageModel(nn.Module):
-
-    def __init__(self, vocab_size, n_embd, block_size, n_layer, n_head, dropout=0.2,
-                 qkv_multipliers=(0.5, 1.0), ffn_multipliers=[0.5, 4.0], ffn_intermediate_divisor=256):
+    def __init__(
+        self,
+        vocab_size,
+        n_embd,
+        block_size,
+        n_layer,
+        n_head,
+        dropout=0.2,
+        qkv_multipliers=(0.5, 1.0),
+        ffn_multipliers=[0.5, 4.0],
+        ffn_intermediate_divisor=256,
+    ):
         super().__init__()
         assert n_embd % n_head == 0, f"n_embd {n_embd} % n_head {n_head} != 0"
 
@@ -124,21 +142,30 @@ class DelightGPTLanguageModel(nn.Module):
         self.position_embedding_table = nn.Embedding(block_size, n_embd)
 
         # init layer/block wise scaling
-        self._init_block_wise_scaling_attention(
-            n_layer, n_embd, n_head, qkv_multipliers)
+        self._init_block_wise_scaling_attention(n_layer, n_embd, n_head, qkv_multipliers)
         self._init_block_wise_scaling_ffn(
-            n_layer, n_embd, ffn_multipliers, ffn_intermediate_divisor)
+            n_layer, n_embd, ffn_multipliers, ffn_intermediate_divisor
+        )
         assert len(self.num_qkv_heads) > 0, f"num_qkv_heads is empty"
-        assert len(
-            self.ffn_intermediate_sizes) > 0, f"ffn_intermediate_sizes is empty"
-        self.blocks = nn.ModuleList([
-            Block(n_embd, n_head, block_size, dropout, layer_index,
-                  self.num_qkv_heads, self.ffn_intermediate_sizes)
-            for layer_index in range(n_layer)])
+        assert len(self.ffn_intermediate_sizes) > 0, f"ffn_intermediate_sizes is empty"
+        self.blocks = nn.ModuleList(
+            [
+                Block(
+                    n_embd,
+                    n_head,
+                    block_size,
+                    dropout,
+                    layer_index,
+                    self.num_qkv_heads,
+                    self.ffn_intermediate_sizes,
+                )
+                for layer_index in range(n_layer)
+            ]
+        )
 
         self.ln_f = nn.LayerNorm(n_embd)  # final layer norm
         self.lm_head = nn.Linear(n_embd, vocab_size)
-        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
         # init nn weights
         self.apply(self._init_weights)
@@ -159,18 +186,17 @@ class DelightGPTLanguageModel(nn.Module):
         ]
         # Make sure that scaled model dimension is divisible by scaled head dimension size.
         query_sizes = [
-            int(make_divisible(n_embd * m, divisor=head_size))
-            for m in att_qkv_multipliers
+            int(make_divisible(n_embd * m, divisor=head_size)) for m in att_qkv_multipliers
         ]
 
         # compute the number of query, key, and value heads
         # For multi-head attention, the number of heads for query, key, and value are the same.
-        self.num_qkv_heads = [
-            int(compute_heads(q_size, head_size)) for q_size in query_sizes
-        ]
+        self.num_qkv_heads = [int(compute_heads(q_size, head_size)) for q_size in query_sizes]
         # self.num_kv_heads = [q_heads for q_heads in self.num_query_heads]
 
-    def _init_block_wise_scaling_ffn(self, n_layer, n_embd, ffn_multipliers,  ffn_intermediate_divisor):
+    def _init_block_wise_scaling_ffn(
+        self, n_layer, n_embd, ffn_multipliers, ffn_intermediate_divisor
+    ):
         # Each FFN layer have different latent dimensions assuming ffn_multipliers[0] != ffn_multipliers[1].
         # This results in variable allocation of parameters in FFN layer.
         # This scaling is known as layer-wise or block-wise scaling: https://arxiv.org/abs/2008.00623
@@ -184,9 +210,7 @@ class DelightGPTLanguageModel(nn.Module):
             )
         ]
         self.ffn_intermediate_sizes = [
-            int(
-                make_divisible(n_embd * m, divisor=ffn_intermediate_divisor)
-            )
+            int(make_divisible(n_embd * m, divisor=ffn_intermediate_divisor))
             for m in ffn_inter_multipliers
         ]
 
@@ -203,8 +227,7 @@ class DelightGPTLanguageModel(nn.Module):
 
         # idx and targets are both (B,T) tensor of integers
         tok_emb = self.token_embedding_table(idx)  # (B,T,C)
-        pos_emb = self.position_embedding_table(
-            torch.arange(T, device=self.device))  # (T,C)
+        pos_emb = self.position_embedding_table(torch.arange(T, device=self.device))  # (T,C)
         x = tok_emb + pos_emb  # (B,T,C)
         # (B,T,C)
         for layer_index in range(self.n_layer):
@@ -216,8 +239,8 @@ class DelightGPTLanguageModel(nn.Module):
             loss = None
         else:
             B, T, C = logits.shape
-            logits = logits.view(B*T, C)
-            targets = targets.view(B*T)
+            logits = logits.view(B * T, C)
+            targets = targets.view(B * T)
             loss = F.cross_entropy(logits, targets)
 
         return logits, loss
@@ -228,7 +251,7 @@ class DelightGPTLanguageModel(nn.Module):
         # idx is (B, T) array of indices in the current context
         for _ in range(max_new_tokens):
             # crop idx to the last block_size tokens
-            idx_cond = idx[:, -self.block_size:]
+            idx_cond = idx[:, -self.block_size :]
             # get the predictions
             logits, loss = self(idx_cond)
             # focus only on the last time step
