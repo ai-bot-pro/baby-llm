@@ -1,7 +1,6 @@
-import os
 
 from torch import from_numpy
-from torch.utils.data import Dataset, default_collate
+from torch.utils.data import Dataset
 from transformers import AutoTokenizer
 import numpy as np
 import pandas as pd

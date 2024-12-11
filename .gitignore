@@ -99,3 +99,6 @@ outmini/
 bin/
 results/
 gundam/
+
+# ruff
+.ruff_cache/

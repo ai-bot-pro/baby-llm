@@ -4,13 +4,9 @@ from _common.preprocess import print_tokenizer
 from _common.tokenizer import Tokenizer
 import os
 import argparse
-import glob
-import json
 
 from transformers import AutoTokenizer
 import numpy as np
-from tqdm import tqdm
-from datasets import load_dataset
 import sentencepiece as spm
 
 import sys

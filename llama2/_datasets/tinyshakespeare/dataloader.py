@@ -28,7 +28,7 @@ class PretokDataset(IterableDataset):
         seed = 42 + worker_id + 1337 * rank
         rng = random.Random(seed)
         print(f"Created a PretokDataset with rng seed {seed} | worker_id {worker_id}")
-        bin_file_prefix = os.path.join(self.data_dir, f"")
+        bin_file_prefix = os.path.join(self.data_dir, "")
         if self.vocab_source == "custom":
             # the .bin files are in tok{N} directory
             bin_file_prefix = os.path.join(self.data_dir, f"tok{self.vocab_size}")

@@ -44,7 +44,7 @@ def print_head(model):
     print(
         f"dim: {p.dim}\t n_layers: {p.n_layers} \t n_heads: {p.n_heads} \t vocab_size: {p.vocab_size} \t hidden_dim: {hidden_dim} \t n_kv_heads: {n_kv_heads}  \t max_seq_len: {p.max_seq_len}"
     )
-    print(f"shared_classifier", torch.equal(model.tok_embeddings.weight, model.output.weight))
+    print("shared_classifier", torch.equal(model.tok_embeddings.weight, model.output.weight))
     # print(f"embedding weight",model.tok_embeddings.weight)
 
 

@@ -23,7 +23,6 @@ and hoping that the GPT model completes the sequence with the next (n+1) digits 
 
 import os
 import pickle
-import requests
 import numpy as np
 import torch
 

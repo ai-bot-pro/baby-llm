@@ -1,6 +1,3 @@
-import sys
-import os
-
 from torch.utils.data import DataLoader
 
 from tinyshakespeare.dataloader import PretokDataset as TinyShakespeareDataset

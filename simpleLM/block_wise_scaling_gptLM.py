@@ -146,8 +146,8 @@ class DelightGPTLanguageModel(nn.Module):
         self._init_block_wise_scaling_ffn(
             n_layer, n_embd, ffn_multipliers, ffn_intermediate_divisor
         )
-        assert len(self.num_qkv_heads) > 0, f"num_qkv_heads is empty"
-        assert len(self.ffn_intermediate_sizes) > 0, f"ffn_intermediate_sizes is empty"
+        assert len(self.num_qkv_heads) > 0, "num_qkv_heads is empty"
+        assert len(self.ffn_intermediate_sizes) > 0, "ffn_intermediate_sizes is empty"
         self.blocks = nn.ModuleList(
             [
                 Block(

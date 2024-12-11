@@ -1,9 +1,6 @@
 import argparse
-import os
-import sys
 
 from datasets import load_dataset
-import sentencepiece as spm
 
 
 def transform_conversation(example):

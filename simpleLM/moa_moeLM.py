@@ -7,7 +7,6 @@ from:
 - use THE SPARSELY-GATED MIXTURE-OF-EXPERTS(mlp) LAYER
 """
 
-import math
 
 import torch
 import torch.nn as nn
@@ -48,8 +47,8 @@ class SparseMoEMultiHeadAttention(nn.Module):
         self.num_experts = num_experts
         self.top_k = min(top_k, self.num_experts)
 
-        assert self.top_k > 0, f"topk must > 0"
-        assert self.num_heads > 0, f"num_heads must > 0"
+        assert self.top_k > 0, "topk must > 0"
+        assert self.num_heads > 0, "num_heads must > 0"
         assert num_heads % self.top_k == 0, f"need num_heads:{num_heads}%top_k:{self.top_k} == 0"
 
         # num_heads = topk * num_key_val_heads
