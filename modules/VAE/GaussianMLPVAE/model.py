@@ -109,7 +109,8 @@ class GaussianMLPVAEModel(nn.Module):
 
     @torch.no_grad()
     def sample(self, batch_size):
-        # 随机采样 bathc_size 个噪声数据
+        # 随机采样 bathc_size 个噪声vector数据
+        # tensor shape (batch_size, latent_dim)
         noise = torch.randn(batch_size, self.latent_dim).to(self.device)
         generated_images = self.Decoder(noise)
         return generated_images

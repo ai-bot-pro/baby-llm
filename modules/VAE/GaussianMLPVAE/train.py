@@ -1,12 +1,13 @@
 import multiprocessing
 import os
+import time
 
 import torch
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 from torchvision import transforms
-import tqdm
+from tqdm import tqdm
 import matplotlib.pyplot as plt
 
 from modules.VAE.GaussianMLPVAE.model import GaussianMLPVAEModel, DEVICE
@@ -34,13 +35,14 @@ def show_image(x, idx, batch_size):
 
     fig = plt.figure()
     plt.imshow(x[idx].cpu().numpy())
+    plt.close()
 
 
 if __name__ == "__main__":
     dataset_path = "./datas/datasets"
     os.makedirs(dataset_path, exist_ok=True)
-    model_ckpt_path = "./datas/models/VAE/"
-    os.makedirs(model_ckpt_path, exist_ok=True)
+    model_ckpt_dir = "./datas/models/VAE/"
+    os.makedirs(model_ckpt_dir, exist_ok=True)
 
     # Model Hyperparameters
     batch_size = 100
@@ -56,20 +58,28 @@ if __name__ == "__main__":
     model = GaussianMLPVAEModel(x_dim, hidden_dim, latent_dim).to(DEVICE)
     # print the number of parameters in the model
     model_million_params = sum(p.numel() for p in model.parameters()) / 1e6
-    print(model)
+    print(model, DEVICE)
     print(model_million_params, "M parameters")
     model_name = "GaussianMLPVAEModel"
     model_id = (
         f"loss_{model_name}_BA:{batch_size}_PAR:{model_million_params:.2f}_LR:{learning_rate}_MNIST"
     )
     model_filename = model_id + ".pth"
+    model_ckpt_path = os.path.join(model_ckpt_dir, model_filename)
+
+    if os.path.exists(model_ckpt_path):
+        torch.manual_seed(int(time.time() * 1000))
+        model.load_state_dict(torch.load(model_ckpt_path, weights_only=True))
+        # sample from decoder with noise vector
+        generated_images = model.sample(batch_size)
+        show_image(generated_images, idx=12, batch_size=batch_size)
 
     # training
-    print("Start training VAE...")
     optimizer = Adam(model.parameters(), lr=learning_rate)
     model.train()
     epochs = 100
     minloss = 100  # Track minimum validation loss found so far.
+    print(f"Start training VAE with {epochs} epochs...")
     for epoch in range(epochs):
         batch_loss = 0
         # len(train_loader) = (Number of datapoints)/batch_size
@@ -93,9 +103,8 @@ if __name__ == "__main__":
         best_so_far = avg_loss < minloss
         if best_so_far:  # save model ckpt
             # generate from the model
-            path = os.path.join(model_ckpt_path, model_filename)
-            torch.save(model.state_dict(), path)
-            print("Saving model to path", path)
+            torch.save(model.state_dict(), model_ckpt_path)
+            print("Saving model to path", model_ckpt_path)
 
     print("Train Finish!!")
 
