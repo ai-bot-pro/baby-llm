@@ -197,9 +197,10 @@ class VQVAEModel(nn.Module):
 
         return x_hat, commitment_loss, codebook_loss, perplexity
 
-    def loss_function(self, x, x_hat, commitment_loss, codebook_loss):
+    def loss_function(self, x, x_hat, commitment_loss, codebook_loss) -> torch.Tensor:
         recon_loss = self.mse_loss(x, x_hat)
         loss = recon_loss + commitment_loss * self.commitment_beta + codebook_loss
+        return loss
 
     def sample(self, batch_size):
         random_indices = (

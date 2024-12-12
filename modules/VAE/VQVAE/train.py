@@ -62,7 +62,6 @@ if __name__ == "__main__":
     commitment_beta = 0.25
 
     epochs = 50
-    print_step = 50
 
     # load dataset
     train_loader, test_loader = load_data(dataset_path=dataset_path, batch_size=batch_size)
@@ -74,6 +73,7 @@ if __name__ == "__main__":
         latent_dim=latent_dim,
         n_embeddings=n_embeddings,
         output_dim=output_dim,
+        commitment_beta=commitment_beta,
     ).to(DEVICE)
     # print the number of parameters in the model
     model_million_params = sum(p.numel() for p in model.parameters()) / 1e6
@@ -97,7 +97,7 @@ if __name__ == "__main__":
     minloss = 0.2  # Track minimum validation loss found so far.
     print(f"Start training VAE with {epochs} epochs...")
     for epoch in range(epochs):
-        batch_loss = 0
+        total_loss = 0
         # len(train_loader) = (Number of datapoints)/batch_size
         for batch_idx, (x, _) in enumerate(train_loader):
             x = x.to(DEVICE)
@@ -106,14 +106,14 @@ if __name__ == "__main__":
 
             x_hat, commitment_loss, codebook_loss, perplexity = model(x)
             loss = model.loss_function(x, x_hat, commitment_loss, codebook_loss)
-            # print(batch_idx, loss)
+            # print(batch_idx, commitment_loss, codebook_loss, perplexity, loss)
 
-            batch_loss += loss.item()
+            total_loss += loss.item()
 
             loss.backward()
             optimizer.step()
 
-        avg_loss = batch_loss / (len(train_loader) * batch_size)
+        avg_loss = total_loss / batch_size
         print("Epoch", epoch + 1, "complete!", "\tAverage Loss: ", avg_loss)
 
         best_so_far = avg_loss < minloss
