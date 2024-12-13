@@ -1,7 +1,7 @@
 # diffusers
 - https://github.com/huggingface/diffusers
 
-# conference
+# reference
 - https://en.wikipedia.org/wiki/Diffusion
 - https://en.wikipedia.org/wiki/Non-equilibrium_thermodynamics
 - https://en.wikipedia.org/wiki/Diffusion_model
