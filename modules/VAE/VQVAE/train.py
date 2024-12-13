@@ -13,7 +13,12 @@ from torchvision.utils import make_grid
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
-from modules.VAE.VQVAE.model import DEVICE, VQVAEModel
+from modules.VAE.VQVAE import (
+    vq_vae_models,
+    vq_vae_default_model_args,
+    vq_vae_default_model_train_args,
+)
+from modules.VAE.VQVAE.base import DEVICE
 
 
 def load_data(dataset_path: str, batch_size: int):
@@ -51,37 +56,23 @@ if __name__ == "__main__":
     gen_data_dir = "./datas/gen/VQVAE/"
     os.makedirs(gen_data_dir, exist_ok=True)
 
+    model_name = os.getenv("MODEL_NAME", "VQVAEModel")
     # Model Hyperparameters
     batch_size = 128
-    input_dim = 3
-    n_embeddings = 512
-    hidden_dim = 512
-    latent_dim = 16
-    output_dim = 3
-    learning_rate = 2e-4
-
-    img_size = (32, 32)  # (width, height)
-    commitment_beta = 0.25
-
-    epochs = 50
+    # train
+    train_args = vq_vae_default_model_train_args[model_name]
+    learning_rate = train_args.learning_rate
+    epochs = train_args.epochs
 
     # load dataset
     train_loader, test_loader = load_data(dataset_path=dataset_path, batch_size=batch_size)
 
     # model
-    model = VQVAEModel(
-        input_dim=input_dim,
-        hidden_dim=hidden_dim,
-        latent_dim=latent_dim,
-        n_embeddings=n_embeddings,
-        output_dim=output_dim,
-        commitment_beta=commitment_beta,
-    ).to(DEVICE)
+    model = vq_vae_models[model_name](vq_vae_default_model_args[model_name]).to(DEVICE)
     # print the number of parameters in the model
     model_million_params = sum(p.numel() for p in model.parameters()) / 1e6
     print(model, DEVICE)
     print(model_million_params, "M parameters")
-    model_name = "VQVAEModel"
     model_id = f"loss_{model_name}_BA:{batch_size}_PAR:{model_million_params:.2f}_LR:{learning_rate}_CIFAR10"
     model_filename = model_id + ".pth"
     model_ckpt_path = os.path.join(model_ckpt_dir, model_filename)

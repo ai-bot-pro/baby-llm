@@ -1,8 +1,10 @@
+from dataclasses import dataclass
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+from modules.VAE.VQVAE.base import DEVICE, VQVAEBaseModel
+
 
 """
 向量量化部分代码控制流程：
@@ -47,7 +49,9 @@ class Encoder(nn.Module):
         self.residual_conv_1 = nn.Conv2d(hidden_dim, hidden_dim, kernel_3, padding=1)
         self.residual_conv_2 = nn.Conv2d(hidden_dim, hidden_dim, kernel_4, padding=0)
 
-        self.proj = nn.Conv2d(hidden_dim, output_dim, kernel_size=1)
+        self.proj = nn.Conv2d(
+            hidden_dim, output_dim, kernel_size=1
+        )  # nn.Linear(hidden_dim, output_dim)
 
     def forward(self, x):
         x = self.strided_conv_1(x)
@@ -137,6 +141,7 @@ class VQEmbeddingEMA(nn.Module):
 
         quantized = x + (quantized - x).detach()
 
+        # perplexity 困惑度
         avg_probs = torch.mean(encodings, dim=0)
         perplexity = torch.exp(-torch.sum(avg_probs * torch.log(avg_probs + 1e-10)))
 
@@ -178,17 +183,41 @@ class Decoder(nn.Module):
         return y
 
 
-class VQVAEModel(nn.Module):
+@dataclass
+class VQVAEModelArgs:
+    input_dim: int
+    hidden_dim: int
+    latent_dim: int
+    n_embeddings: int
+    output_dim: int
+    commitment_beta: float = 0.25
+
+
+
+class VQVAEModel(VQVAEBaseModel):
     def __init__(
-        self, input_dim, hidden_dim, latent_dim, n_embeddings, output_dim, commitment_beta=0.25
+        self,
+        **kwargs,
     ):
+        self.args = VQVAEModelArgs(**kwargs)
         super(VQVAEModel, self).__init__()
-        self.encoder = Encoder(input_dim=input_dim, hidden_dim=hidden_dim, output_dim=latent_dim)
-        self.codebook = VQEmbeddingEMA(n_embeddings=n_embeddings, embedding_dim=latent_dim)
-        self.decoder = Decoder(input_dim=latent_dim, hidden_dim=hidden_dim, output_dim=output_dim)
+        self.encoder = Encoder(
+            input_dim=self.args.input_dim,
+            hidden_dim=self.args.hidden_dim,
+            output_dim=self.args.latent_dim,
+        )
+        self.codebook = VQEmbeddingEMA(
+            n_embeddings=self.args.n_embeddings,
+            embedding_dim=self.args.latent_dim,
+        )
+        self.decoder = Decoder(
+            input_dim=self.args.latent_dim,
+            hidden_dim=self.args.hidden_dim,
+            output_dim=self.args.output_dim,
+        )
         self.mse_loss = nn.MSELoss()
-        self.commitment_beta = commitment_beta
-        self.n_embeddings = n_embeddings
+        self.commitment_beta = self.args.commitment_beta
+        self.n_embeddings = self.args.n_embeddings
 
     def forward(self, x):
         z = self.encoder(x)
@@ -226,11 +255,13 @@ if __name__ == "__main__":
     output_dim = 3
 
     model = VQVAEModel(
-        input_dim=input_dim,
-        hidden_dim=hidden_dim,
-        latent_dim=latent_dim,
-        n_embeddings=n_embeddings,
-        output_dim=output_dim,
+        **VQVAEModelArgs(
+            input_dim=input_dim,
+            hidden_dim=hidden_dim,
+            latent_dim=latent_dim,
+            n_embeddings=n_embeddings,
+            output_dim=output_dim,
+        ).__dict__
     ).to(DEVICE)
     # print the number of parameters in the model
     model_million_params = sum(p.numel() for p in model.parameters()) / 1e6
