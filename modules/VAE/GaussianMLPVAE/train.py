@@ -7,7 +7,6 @@ from torch.optim import Adam
 from torch.utils.data import DataLoader
 from torchvision.datasets import MNIST
 from torchvision import transforms
-from torchvision.utils import save_image
 
 from tqdm import tqdm
 import matplotlib.pyplot as plt
@@ -32,20 +31,22 @@ def load_data(dataset_path: str, batch_size: int):
     return train_loader, test_loader
 
 
-def show_image(x, idx, batch_size):
+def show_image(x, idx, batch_size, file=None):
     x = x.view(batch_size, 28, 28)
 
     fig = plt.figure()
     plt.imshow(x[idx].cpu().numpy())
+    if file:
+        plt.savefig(file)
     plt.close()
 
 
 if __name__ == "__main__":
     dataset_path = "./datas/datasets"
     os.makedirs(dataset_path, exist_ok=True)
-    model_ckpt_dir = "./datas/models/VAE/"
+    model_ckpt_dir = "./datas/models/GaussianMLPVAE/"
     os.makedirs(model_ckpt_dir, exist_ok=True)
-    gen_data_dir = "./datas/gen/VAE/"
+    gen_data_dir = "./datas/gen/GaussianMLPVAE/"
     os.makedirs(gen_data_dir, exist_ok=True)
 
     # Model Hyperparameters
@@ -76,7 +77,8 @@ if __name__ == "__main__":
         model.load_state_dict(torch.load(model_ckpt_path, weights_only=True))
         # sample from decoder with noise vector
         generated_images = model.sample(batch_size)
-        show_image(generated_images, idx=12, batch_size=batch_size)
+        file = os.path.join(gen_data_dir, "resume_sample.png")
+        show_image(generated_images, idx=12, batch_size=batch_size, file=file)
 
     # training
     optimizer = Adam(model.parameters(), lr=learning_rate)
@@ -110,6 +112,9 @@ if __name__ == "__main__":
             torch.save(model.state_dict(), model_ckpt_path)
             print("Saving model to path", model_ckpt_path)
 
+    if not os.path.exists(model_ckpt_path):
+        torch.save(model.state_dict(), model_ckpt_path)
+        print("Saving model to path", model_ckpt_path)
     print("Train Finish!!")
 
     # generate/sample
@@ -117,17 +122,12 @@ if __name__ == "__main__":
     # generate from pre-trained model with test datasets
     for batch_idx, (x, _) in enumerate(tqdm(test_loader)):
         x_hat = model.generate(x, batch_size)
-        save_image(
-            generated_images.view(batch_size, 1, 28, 28),
-            os.path.join(gen_data_dir, f"test_generated_{batch_idx}.png"),
-        )
-        show_image(x, idx=batch_idx, batch_size=batch_size)
-        show_image(x_hat, idx=batch_idx, batch_size=batch_size)
+        file = os.path.join(gen_data_dir, f"test_src_{batch_idx}.png")
+        show_image(x, idx=batch_idx, batch_size=batch_size, file=file)
+        file = os.path.join(gen_data_dir, f"test_generated_{batch_idx}.png")
+        show_image(x_hat, idx=batch_idx, batch_size=batch_size, file=file)
 
     # sample from decoder with noise vector
     generated_images = model.sample(batch_size)
-    save_image(
-        generated_images.view(batch_size, 1, 28, 28),
-        os.path.join(gen_data_dir, "generated_sample.png"),
-    )
-    show_image(generated_images, idx=12, batch_size=batch_size)
+    file = os.path.join(gen_data_dir, "generated_sample.png")
+    show_image(generated_images, idx=12, batch_size=batch_size, file=file)

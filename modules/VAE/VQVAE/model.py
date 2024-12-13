@@ -202,6 +202,7 @@ class VQVAEModel(nn.Module):
         loss = recon_loss + commitment_loss * self.commitment_beta + codebook_loss
         return loss
 
+    @torch.no_grad()
     def sample(self, batch_size):
         random_indices = (
             torch.floor(torch.rand(batch_size // 2, 8, 8) * self.n_embeddings).long().to(DEVICE)
@@ -212,7 +213,7 @@ class VQVAEModel(nn.Module):
         return x_hat
 
     @torch.no_grad()
-    def generate(self, x, batch_size):
+    def generate(self, x):
         x_hat, _, _, _ = self.forward(x)
         return x_hat
 

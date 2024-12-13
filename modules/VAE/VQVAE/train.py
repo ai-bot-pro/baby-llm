@@ -8,7 +8,7 @@ from torch.optim import Adam
 from torch.utils.data import DataLoader
 from torchvision.datasets import CIFAR10
 from torchvision import transforms
-from torchvision.utils import save_image, make_grid
+from torchvision.utils import make_grid
 
 from tqdm import tqdm
 import matplotlib.pyplot as plt
@@ -33,20 +33,22 @@ def load_data(dataset_path: str, batch_size: int):
     return train_loader, test_loader
 
 
-def draw_sample_image(x, postfix):
+def draw_sample_image(x, postfix, file=None):
     plt.figure(figsize=(8, 8))
     plt.axis("off")
     plt.title("Visualization of {}".format(postfix))
     plt.imshow(np.transpose(make_grid(x.detach().cpu(), padding=2, normalize=True), (1, 2, 0)))
+    if file:
+        plt.savefig(file)
     plt.close()
 
 
 if __name__ == "__main__":
     dataset_path = "./datas/datasets"
     os.makedirs(dataset_path, exist_ok=True)
-    model_ckpt_dir = "./datas/models/VAE/"
+    model_ckpt_dir = "./datas/models/VQVAE/"
     os.makedirs(model_ckpt_dir, exist_ok=True)
-    gen_data_dir = "./datas/gen/VAE/"
+    gen_data_dir = "./datas/gen/VQVAE/"
     os.makedirs(gen_data_dir, exist_ok=True)
 
     # Model Hyperparameters
@@ -79,7 +81,7 @@ if __name__ == "__main__":
     model_million_params = sum(p.numel() for p in model.parameters()) / 1e6
     print(model, DEVICE)
     print(model_million_params, "M parameters")
-    model_name = "VQVAE"
+    model_name = "VQVAEModel"
     model_id = f"loss_{model_name}_BA:{batch_size}_PAR:{model_million_params:.2f}_LR:{learning_rate}_CIFAR10"
     model_filename = model_id + ".pth"
     model_ckpt_path = os.path.join(model_ckpt_dir, model_filename)
@@ -88,13 +90,14 @@ if __name__ == "__main__":
         torch.manual_seed(int(time.time() * 1000))
         model.load_state_dict(torch.load(model_ckpt_path, weights_only=True))
         x_hat = model.sample(batch_size)
-        draw_sample_image(x_hat, "Random Codes")
+        file = os.path.join(gen_data_dir, "resume_sample_gen.png")
+        draw_sample_image(x_hat, "Random Codes", file)
 
     # training
     optimizer = Adam(model.parameters(), lr=learning_rate)
     model.train()
     epochs = 50
-    minloss = 0.2  # Track minimum validation loss found so far.
+    minloss = 0.3  # Track minimum validation loss found so far.
     print(f"Start training VAE with {epochs} epochs...")
     for epoch in range(epochs):
         total_loss = 0
@@ -113,15 +116,17 @@ if __name__ == "__main__":
             loss.backward()
             optimizer.step()
 
-        avg_loss = total_loss / batch_size
+        avg_loss = total_loss / len(train_loader)
         print("Epoch", epoch + 1, "complete!", "\tAverage Loss: ", avg_loss)
 
         best_so_far = avg_loss < minloss
         if best_so_far:  # save model ckpt
-            # generate from the model
             torch.save(model.state_dict(), model_ckpt_path)
             print("Saving model to path", model_ckpt_path)
 
+    if not os.path.exists(model_ckpt_path):
+        torch.save(model.state_dict(), model_ckpt_path)
+        print("Saving model to path", model_ckpt_path)
     print("Train Finish!!")
 
     # generate/sample
@@ -131,17 +136,12 @@ if __name__ == "__main__":
         x = x.to(DEVICE)
         x_hat = model.generate(x)
 
-        save_image(
-            x_hat,
-            os.path.join(gen_data_dir, f"test_generated_{batch_idx}.png"),
-        )
-        draw_sample_image(x[: batch_size // 2], "Ground-truth images")
-        draw_sample_image(x_hat[: batch_size // 2], "Reconstructed images")
+        file = os.path.join(gen_data_dir, f"test_src_{batch_idx}.png")
+        draw_sample_image(x[: batch_size // 2], "Ground-truth images", file)
+        file = os.path.join(gen_data_dir, f"test_generated_{batch_idx}.png")
+        draw_sample_image(x_hat[: batch_size // 2], "Reconstructed images", file)
 
     # sample from decoder with noise vector
     generated_images = model.sample(batch_size)
-    save_image(
-        generated_images,
-        os.path.join(gen_data_dir, "generated_sample.png"),
-    )
-    draw_sample_image(generated_images, "Random Generated Images")
+    file = os.path.join(gen_data_dir, "generated_sample.png")
+    draw_sample_image(generated_images, "Random Generated Images", file)
