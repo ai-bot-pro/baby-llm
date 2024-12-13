@@ -68,7 +68,7 @@ if __name__ == "__main__":
     train_loader, test_loader = load_data(dataset_path=dataset_path, batch_size=batch_size)
 
     # model
-    model = vq_vae_models[model_name](vq_vae_default_model_args[model_name]).to(DEVICE)
+    model = vq_vae_models[model_name](**vq_vae_default_model_args[model_name].__dict__).to(DEVICE)
     # print the number of parameters in the model
     model_million_params = sum(p.numel() for p in model.parameters()) / 1e6
     print(model, DEVICE)
