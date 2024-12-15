@@ -8,5 +8,9 @@
 - https://www.youtube.com/watch?v=YV9D3TWY5Zo
 
 ## VQ-VAE
-- [Neural Discrete Representation Learning](https://arxiv.org/abs/1711.00937)
+- [Neural Discrete Representation Learning](https://arxiv.org/abs/1711.00937) (vector quantizer VQ)
 - https://avdnoord.github.io/homepage/vqvae/
+
+## RVQ-VAE
+- [SoundStream: An End-to-End Neural Audio Codec](https://arxiv.org/abs/2107.03312) (residual vector quantizer RVQ)
+- **https://drscotthawley.github.io/blog/posts/2023-06-12-RVQ.html**
