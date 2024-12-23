@@ -1,4 +1,6 @@
 # intro
+PR: [Feat: RNN (recurrent neural network) sequence model with hidden states, have time steps.](https://github.com/ai-bot-pro/baby-llm/pull/2)
+
 seq model with hidden states
 > [!TIP]
 > It is noteworthy that hidden layers and hidden states refer to two very different concepts. 
