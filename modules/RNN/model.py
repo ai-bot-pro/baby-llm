@@ -84,9 +84,11 @@ class NN_LSTM(nn.LSTM):
     # https://docs.nvidia.com/deeplearning/cudnn/latest/api/cudnn-adv-library.html#cudnnrnnalgo-t
     # https://github.com/pytorch/pytorch/blob/main/torch/csrc/api/src/nn/modules/rnn.cpp#L547
 
-    # cellMode:
+    # _VF.lstm
+    ## cellMode:
     # _VF.lstm_cell
     pass
+
 
 class NN_GRU(nn.GRU):
     # https://github.com/pytorch/pytorch/blob/main/torch/backends/cudnn/rnn.py
@@ -95,10 +97,11 @@ class NN_GRU(nn.GRU):
     # https://docs.nvidia.com/deeplearning/cudnn/latest/api/cudnn-adv-library.html#cudnnrnnalgo-t
     # https://github.com/pytorch/pytorch/blob/main/torch/csrc/api/src/nn/modules/rnn.cpp#L698
 
-    # cellMode:
-    # _VF.rnn_tanh_cell
-    # _VF.rnn_relu_cell
+    # _VF.gru
+    ## cellMode:
+    # _VF.gru_cell
     pass
+
 
 class NN_RNN(nn.RNN):
     # https://github.com/pytorch/pytorch/blob/main/torch/backends/cudnn/rnn.py

@@ -1,4 +1,10 @@
-# reference
+# intro
+seq model with hidden states
+> [!TIP]
+> It is noteworthy that hidden layers and hidden states refer to two very different concepts. 
+> - **Hidden layers** are, as explained, layers that are hidden from view on the path from input to output. 
+> - **Hidden states** are technically speaking inputs to whatever we do at a given step, and they can only be computed by looking at data at previous time steps. 
+
 
 ## RNN (Recurrent Neural Networks)
 - [Recurrent neural network based language model](https://www.fit.vut.cz/research/group/speech/public/publi/2010/mikolov_interspeech2010_IS100722.pdf)
@@ -23,4 +29,4 @@
 - https://docs.nvidia.com/deeplearning/cudnn/latest/api/cudnn-adv-library.html#cudnnrnnalgo-t
 - https://github.com/pytorch/pytorch/blob/main/torch/csrc/api/src/nn/modules/rnn.cpp#L400
 
-> TODO: maybe impl a simple rnn.c (just learn cuda->cudnn) like [llm.c](https://github.com/karpathy/llm.c) attention,mlp
+> [!TODO] maybe impl a simple rnn.c (just learn cuda->cudnn) like [llm.c](https://github.com/karpathy/llm.c) attention,mlp

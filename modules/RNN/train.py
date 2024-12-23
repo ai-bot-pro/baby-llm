@@ -8,6 +8,7 @@ from torch.nn import functional as F
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
+from modules.MLP.model import MLP
 from modules.RNN.model import DEVICE, RNN, ModelConfig
 
 
@@ -204,7 +205,6 @@ if __name__ == "__main__":
     torch.cuda.manual_seed_all(3407)
     work_dir = "./datas/tensorboard/RNN"
     os.makedirs(work_dir, exist_ok=True)
-    writer = SummaryWriter(log_dir=work_dir)
 
     # load dataset
     train_ds, test_ds = load_data("./datas/names.txt")
@@ -233,8 +233,14 @@ if __name__ == "__main__":
     )
 
     # model
-    cell_type = os.getenv("CELL_TYPE", "rnn")  # rnn/gru
-    model = RNN(config=config, cell_type=cell_type).to(DEVICE)
+    model_type = os.getenv("MODEL_TYPE", "rnn")  # mlp/rnn/gru
+    if model_type == "rnn":
+        model = RNN(config=config, cell_type="rnn")
+    elif model_type == "gru":
+        model = RNN(config=config, cell_type="gru")
+    else:
+        model = MLP(config)
+    model.to(DEVICE)
     # print the number of parameters in the model
     model_million_params = sum(p.numel() for p in model.parameters()) / 1e6
     print(model, DEVICE)
@@ -257,6 +263,7 @@ if __name__ == "__main__":
         sys.exit()
 
     # ------------train---------------------------
+    writer = SummaryWriter(log_dir=work_dir)
     # init optimizer
     optimizer = torch.optim.AdamW(
         model.parameters(),
