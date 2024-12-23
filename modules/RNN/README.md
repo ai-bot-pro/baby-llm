@@ -10,6 +10,8 @@ seq model with hidden states
 - [Recurrent neural network based language model](https://www.fit.vut.cz/research/group/speech/public/publi/2010/mikolov_interspeech2010_IS100722.pdf)
 - https://gist.github.com/karpathy/d4dee566867f8291f086 
 - https://zh.d2l.ai/chapter_recurrent-neural-networks/rnn.html
+- **https://karpathy.github.io/2015/05/21/rnn-effectiveness/**(view rnn history -> attention(transformer))
+- [**Recurrent Models of Visual Attention**](https://arxiv.org/abs/1406.6247) (RNN+attention)
 
 ## GRU (Gated Recurrent Unit)
 - [On the Properties of Neural Machine Translation: Encoder-Decoder Approaches](https://arxiv.org/abs/1409.1259) (GRU)
@@ -19,7 +21,6 @@ seq model with hidden states
 - https://en.wikipedia.org/wiki/Long_short-term_memory
 - [Generating Sequences With Recurrent Neural Networks](https://arxiv.org/abs/1308.0850) (LSTM)
 - https://zh.d2l.ai/chapter_recurrent-modern/lstm.html
-
 
 # src view
 ## RNN
