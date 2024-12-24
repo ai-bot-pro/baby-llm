@@ -1,4 +1,5 @@
 # intro
+考古，探新，maybe innovate(micro-innovation is ok~)
 
 > [!NOTE] 
 > 大部分的实现可以参考 huggingface NN相关模型的实现，比如模型库(Transformers, Diffusers, timm), 
@@ -9,3 +10,6 @@
 # DL
 - [Yann LeCun, Yoshua Bengio, Geoffrey Hinton 2015: Deep learning](https://www.cs.toronto.edu/~hinton/absps/NatureDeepReview.pdf)
 - [Geoffrey Hinton: Neural Networks for Machine Learning](https://www.youtube.com/playlist?list=PLLssT5z_DsK_gyrQ_biidwvPYCRNGI3iv)
+
+# NN for NLP
+- [A Primer on Neural Network Models for Natural Language Processing](https://arxiv.org/abs/1510.00726)
