@@ -1,10 +1,10 @@
 # reference
-- [2017. Convolutional Sequence to Sequence Learning](https://arxiv.org/abs/1705.03122) (Absolute position encoding. ssee 5.4. Position Embeddings(train to learn), less effect)
+- [2017. Convolutional Sequence to Sequence Learning](https://arxiv.org/abs/1705.03122) (Absolute position. see 5.4. Position Embeddings(train to learn), less effect)
 - [2020. How Much Position Information Do Convolutional Neural Networks Encode](https://arxiv.org/abs/2001.08248)(Zero-Padding Driven Position Information: 提取的是当前位置与padding的边界的相对距离,so less effect with position embedding)
-- [2017. **Attention Is All You Need**](https://arxiv.org/abs/1706.03762) (Transformer,based solely on attention mechanisms, dispensing with recurrence and convolutions entirely. self attention(Scaled Dot-Product Attention(SDPA), Multi-Head Attention)) (**fixed positional encoding based on sine and cosine functions (Sinusoidal Positional embeddings, Absolute position encoding)**)
-- [2018. Self-attention with relative position representations](https://arxiv.org/abs/1803.02155) (Relative position encoding)
-- [2019. Encoding word order in complex embeddings](https://arxiv.org/abs/1912.12333)(Complex embedding) [complex-order](https://github.com/FreedomIntelligence/complex-order)
-- [2021. **RoFormer: Enhanced Transformer with Rotary Position Embedding**](https://arxiv.org/abs/2104.09864) (**RoPE** fusing Absolute and Relative position encoding)
+- [2017. **Attention Is All You Need**](https://arxiv.org/abs/1706.03762) (Transformer,based solely on attention mechanisms, dispensing with recurrence and convolutions entirely. self attention(Scaled Dot-Product Attention(SDPA), Multi-Head Attention)) (**fixed positional encoding based on sine and cosine functions (Sinusoidal Positional encoding, Absolute position. positional embedding instead of sinusoids have same result)**)
+- [2018. Self-attention with relative position representations](https://arxiv.org/abs/1803.02155) (Relative position)
+- [2019. Encoding word order in complex embeddings](https://arxiv.org/abs/1912.12333)(Complex embeddings) [complex-order](https://github.com/FreedomIntelligence/complex-order)
+- [2021. **RoFormer: Enhanced Transformer with Rotary Position Embedding**](https://arxiv.org/abs/2104.09864) (**RoPE** fusing Absolute and Relative position with embeddings)
 
 ------
 - ⭐️ https://kazemnejad.com/blog/transformer_architecture_positional_encoding/

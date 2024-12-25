@@ -125,3 +125,21 @@ class RelPositionalEncoding(nn.Module):
         ]
         pos_emb = pos_emb.transpose(0, 1)  # change to TBC
         return pos_emb
+
+
+if __name__ == "__main__":
+    torch.manual_seed(0)
+    T = 3
+    B = 1
+    C = 2
+    sample = torch.randn(T, B, C)  # TBC
+    print(sample)
+    rel_pos_enc = RelPositionalEncoding(max_len=4, d_model=C)
+    inp = sample.transpose(0, 1)
+    print(inp)
+    rel_pos_enc.extend_pe(inp)
+    print(rel_pos_enc.pe)
+
+    # forward
+    pos_enc = rel_pos_enc(sample)
+    print(pos_enc)

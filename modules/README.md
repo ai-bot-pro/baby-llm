@@ -9,7 +9,9 @@
 
 # DL
 - [Yann LeCun, Yoshua Bengio, Geoffrey Hinton 2015: Deep learning](https://www.cs.toronto.edu/~hinton/absps/NatureDeepReview.pdf)
-- [Geoffrey Hinton: Neural Networks for Machine Learning](https://www.youtube.com/playlist?list=PLLssT5z_DsK_gyrQ_biidwvPYCRNGI3iv)
+- ⭐[Geoffrey Hinton: Neural Networks for Machine Learning](https://www.youtube.com/playlist?list=PLLssT5z_DsK_gyrQ_biidwvPYCRNGI3iv)
+- ⭐️[ Andrej Karpathy: Neural Networks: Zero to Hero](https://github.com/karpathy/nn-zero-to-hero)
 
-# NN for NLP
+# NN(DL) for NLP
 - [A Primer on Neural Network Models for Natural Language Processing](https://arxiv.org/abs/1510.00726)
+- [Deep Learning for NLP Best Practices](https://www.ruder.io/deep-learning-nlp-best-practices/)
