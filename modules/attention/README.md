@@ -5,11 +5,12 @@ encoder-decoder for seq2seq with attention (e.g.: NMT(Neural Machine Translation
 - https://en.wikipedia.org/wiki/Attention_(machine_learning)
 
 ## RNN + attention
-- [Recurrent models of visual attention](https://arxiv.org/abs/1406.6247)(RNN + attetion(non-differentiable(hard), use RL to learn task-specific policies))
-- [Neural Machine Translation by Jointly Learning to Align and Translate](https://arxiv.org/abs/1409.0473v7)(RNN(LSTM)+Additive Attention(Bahdanau Attention) in NMT)
-- [Show, Attend and Tell: Neural Image Caption Generation with Visual Attention](https://arxiv.org/abs/1502.03044) (RNN(LSTM)+(hard/soft)attetion)
-- [Effective Approaches to Attention-based Neural Machine Translation](https://arxiv.org/abs/1508.04025)(RNN(LSTM)+(global/local)multiplicative attention(Luong Attention))
-- [A Structured Self-attentive Sentence Embedding](https://arxiv.org/abs/1703.03130)(LSTM + self-attention)
+- [2014. Recurrent models of visual attention](https://arxiv.org/abs/1406.6247)(RNN + attetion(non-differentiable(hard), use RL to learn task-specific policies))
+- [2014. Neural Machine Translation by Jointly Learning to Align and Translate](https://arxiv.org/abs/1409.0473v7)(RNN(LSTM)+Additive Attention(Bahdanau Attention) in NMT)
+- [2015. Show, Attend and Tell: Neural Image Caption Generation with Visual Attention](https://arxiv.org/abs/1502.03044) (RNN(LSTM)+(hard/soft)attetion)
+- [2015. Attention-Based Models for Speech Recognition](https://arxiv.org/abs/1506.07503) (RNN(LSTM/GRU) + Location Sensitive Attention, extends the additive attention)
+- [2015. Effective Approaches to Attention-based Neural Machine Translation](https://arxiv.org/abs/1508.04025)(RNN(LSTM)+(global/local)multiplicative attention(Luong Attention))
+- [2017. A Structured Self-attentive Sentence Embedding](https://arxiv.org/abs/1703.03130)(LSTM + self-attention)
 
 >LSTM内部有Gate机制，其中input gate选择哪些当前信息进行输入，forget gate选择遗忘哪些过去信息，算是一定程度的Attention，而且号称可以解决长期依赖问题，实际上LSTM需要一步一步去捕捉序列信息，在长文本上的表现是会随着step增加而慢慢衰减，难以保留全部的有用信息。
 >
@@ -21,11 +22,11 @@ encoder-decoder for seq2seq with attention (e.g.: NMT(Neural Machine Translation
 
 
 ## CNN + attention
-- [ABCNN: Attention-Based Convolutional Neural Network for Modeling Sentence Pairs](https://arxiv.org/abs/1512.05193) (Attention-Based CNN: ABCNN-1(attention before Convolution), ABCNN-2(attention after Convolution), ABCNN-3(combines ABCNN-1 and ABCNN-2))
-- [WaveNet: A Generative Model for Raw Audio](https://arxiv.org/abs/1609.03499) (WaveNet TTS, CNN with attention)
-- [Deep Voice: Real-time Neural Text-to-Speech](https://arxiv.org/abs/1702.07825) (see Appendix WaveNet detail arch)
-- [Neural Machine Translation in Linear Time](https://arxiv.org/abs/1610.10099) (ByteNet in char-level NMT encoder-decoder arch, CNN with attention)
-- [Convolutional Sequence to Sequence Learning](https://arxiv.org/abs/1705.03122) (ConvS2S in NMT with Multi-step Attention in decoder, CNN with attention)
+- [2015. ABCNN: Attention-Based Convolutional Neural Network for Modeling Sentence Pairs](https://arxiv.org/abs/1512.05193) (Attention-Based CNN: ABCNN-1(attention before Convolution), ABCNN-2(attention after Convolution), ABCNN-3(combines ABCNN-1 and ABCNN-2))
+- [2016. WaveNet: A Generative Model for Raw Audio](https://arxiv.org/abs/1609.03499) (WaveNet TTS, CNN with attention)
+- [2016. Neural Machine Translation in Linear Time](https://arxiv.org/abs/1610.10099) (ByteNet in char-level NMT encoder-decoder arch, CNN with attention)
+- [2017. Deep Voice: Real-time Neural Text-to-Speech](https://arxiv.org/abs/1702.07825) (see Appendix WaveNet detail arch)
+- [2017. Convolutional Sequence to Sequence Learning](https://arxiv.org/abs/1705.03122) (ConvS2S in NMT with Multi-step Attention in decoder, CNN with attention)
 
 >CNN的卷积操作可以提取重要特征，也算是Attention的思想，但是CNN的卷积感受视野是局部的，需要通过叠加多层卷积区去扩大视野。另外，Max Pooling直接提取数值最大的特征，也像是hard attention的思想，直接选中某个特征。
 >
@@ -37,7 +38,7 @@ encoder-decoder for seq2seq with attention (e.g.: NMT(Neural Machine Translation
 
 
 ## all attention
-- ❤[**Attention Is All You Need**](https://arxiv.org/abs/1706.03762)❤ (Transformer,based solely on attention mechanisms, dispensing with recurrence and convolutions entirely. **self attention(Scaled Dot-Product Attention(SDPA), Multi-Head Attention)**)
+- ❤[2017. **Attention Is All You Need**](https://arxiv.org/abs/1706.03762)❤ (Transformer,based solely on attention mechanisms, dispensing with recurrence and convolutions entirely. **self attention(Scaled Dot-Product Attention(SDPA), Multi-Head Attention)**)
 - [Tensor2Tensor Transformers New Deep Models for NLP](https://nlp.stanford.edu/seminar/details/lkaiser.pdf) (from RNN CNN with attention (e.g.: WaveNet,ByteNet) -> transformers all attention)
 
 

@@ -16,5 +16,8 @@
   "[python]": {
     "editor.defaultFormatter": "charliermarsh.ruff",
     "editor.formatOnSave": true
-  }
+  },
+  "python.testing.unittestArgs": ["-v", "-s", "./modules", "-p", "*_test.py"],
+  "python.testing.pytestEnabled": false,
+  "python.testing.unittestEnabled": true
 }
