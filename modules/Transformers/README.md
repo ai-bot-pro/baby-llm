@@ -60,6 +60,7 @@ NMT([Neural machine translation](https://en.wikipedia.org/wiki/Neural_machine_tr
 - T5
 
 ### [encoder-only](./Encoder/)
+- BERT
 
 ### [decoder-only](./Decoder/)
 - GPT

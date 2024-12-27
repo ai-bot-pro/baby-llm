@@ -502,6 +502,8 @@ def train():
         "warmup": 3000,
         "file_prefix": "multi30k_model_",
         "is_resume": True,
+        # https://github.com/tensorflow/tensor2tensor/blob/master/tensor2tensor/layers/common_attention.py#L2066
+        "heads_share_relative_embedding": True,
     }
     spacy_de, spacy_en = load_tokenizers()
     vocab_src, vocab_tgt = load_vocab(spacy_de, spacy_en)
@@ -583,5 +585,5 @@ if __name__ == "__main__":
     # example_label_smoothing()
     # penalization_visualization()
     # example_train_model()
-    show_load_model()
-    # train()
+    # show_load_model()
+    train()
