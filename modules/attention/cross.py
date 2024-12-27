@@ -1,6 +1,7 @@
 import torch.nn as nn
 
 # from: https://github.com/IBM/CrossViT/blob/main/models/crossvit.py#L76
+# CrossViT: Cross-Attention Multi-Scale Vision Transformer for Image Classification
 
 
 class CrossAttention(nn.Module):

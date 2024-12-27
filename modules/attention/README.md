@@ -40,6 +40,7 @@ encoder-decoder for seq2seq with attention (e.g.: NMT(Neural Machine Translation
 ## all attention
 - ❤[2017. **Attention Is All You Need**](https://arxiv.org/abs/1706.03762)❤ (Transformer,based solely on attention mechanisms, dispensing with recurrence and convolutions entirely. **self attention(Scaled Dot-Product Attention(SDPA), Multi-Head Attention)**)
 - [Tensor2Tensor Transformers New Deep Models for NLP](https://nlp.stanford.edu/seminar/details/lkaiser.pdf) (from RNN CNN with attention (e.g.: WaveNet,ByteNet) -> transformers all attention)
+- ⭐⭐[Understanding and Coding Self-Attention, Multi-Head Attention, Cross-Attention, and Causal-Attention in LLMs](https://magazine.sebastianraschka.com/p/understanding-and-coding-self-attention)
 
 
 ------
