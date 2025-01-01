@@ -261,6 +261,7 @@ match model_name:
                 print(json.dumps(model_config, indent=4, sort_keys=True))
         args = ModelArgs(**model_config)
         args.vocab_size = vocab_size
+        args.max_seq_len = block_size
         print(f"model:{model_name} args:{args}")
         model = MlaSparseMoELanguageModel(args, nn_init=nn_init)
 
