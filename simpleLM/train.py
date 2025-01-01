@@ -255,9 +255,10 @@ match model_name:
         import json
 
         model_config = {}
-        with open(model_config_file, "r") as f:
-            model_config = json.load(f)
-            print(json.dumps(model_config, indent=4, sort_keys=True))
+        if os.path.exists(model_config_file):
+            with open(model_config_file, "r") as f:
+                model_config = json.load(f)
+                print(json.dumps(model_config, indent=4, sort_keys=True))
         args = ModelArgs(**model_config)
         args.vocab_size = vocab_size
         print(f"model:{model_name} args:{args}")
@@ -316,6 +317,7 @@ loss_file = open(log_name, "w")
 print("Logging to", log_name)
 
 
+model.train()
 minloss = 10  # Track minimum validation loss found so far.
 iter_duration = 0  # iter time
 for iter in range(max_iters):
