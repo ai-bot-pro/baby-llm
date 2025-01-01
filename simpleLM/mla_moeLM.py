@@ -7,6 +7,12 @@ import torch.nn as nn
 from torch.nn import functional as F
 import torch.distributed as dist
 
+# from: deepseekv2
+# model:
+# - https://huggingface.co/deepseek-ai/DeepSeek-V2-Lite/blob/main/modeling_deepseek.py
+# model config
+# - https://huggingface.co/deepseek-ai/DeepSeek-V2-Lite/blob/main/config.json
+
 
 @dataclass
 class ModelArgs:
@@ -430,7 +436,7 @@ class DecoderLayer(nn.Module):
 
 class MlaSparseMoELanguageModel(nn.Module):
     """
-    putting all( MLA + spares MoE) together to crease a sparse mixture of experts language model (generative CausalLM)
+    putting all( MLA + spares MoE or dense MLP) together to create generative Causal language model
     """
 
     def __init__(
