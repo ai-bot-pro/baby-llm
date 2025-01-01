@@ -520,6 +520,7 @@ class MlaSparseMoELanguageModel(nn.Module):
         nn_init="kaiming_normal",
     ):
         super().__init__()
+        self.model_args = model_args
         # each token directly reads off the logits for the next token from a lookup table
         self.token_embedding_table = nn.Embedding(model_args.vocab_size, model_args.hidden_size)
         self.position_embedding_table = nn.Embedding(model_args.max_seq_len, model_args.hidden_size)
@@ -573,7 +574,7 @@ class MlaSparseMoELanguageModel(nn.Module):
         # idx is (B, T) array of indices in the current context
         for _ in range(max_new_tokens):
             # crop idx to the last block_size tokens
-            idx_cond = idx[:, -self.block_size :]
+            idx_cond = idx[:, -self.model_args.max_seq_len :]
             # get the predictions
             logits, loss = self(idx_cond)
             # focus only on the last time step

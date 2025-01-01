@@ -90,15 +90,18 @@ ls loss_*.log | python3 simpleLM/plot.py
 
 # 参考
 - **https://lena-voita.github.io/nlp_course/language_modeling.html**
-- [ karpathy/min-char-rnn.py](https://gist.github.com/karpathy/d4dee566867f8291f086)
+- [karpathy/min-char-rnn.py](https://gist.github.com/karpathy/d4dee566867f8291f086)
 - https://en.wikipedia.org/wiki/Activation_function
-- https://karpathy.ai/zero-to-hero.html
+- https://karpathy.ai/zero-to-hero.html | https://github.com/karpathy/nn-zero-to-hero
 - https://github.com/karpathy/ng-video-lecture
 - https://github.com/antirez/simple-language-model
 - https://github.com/karpathy/makemore
 - https://github.com/AviSoori1x/makeMoE/blob/main/makeMoE_from_Scratch.ipynb
 - https://github.com/tensorflow/mesh/blob/master/mesh_tensorflow/transformer/moe.py#L384
 - https://github.com/myshell-ai/JetMoE
+- https://huggingface.co/deepseek-ai/DeepSeek-V2-Lite/blob/main/modeling_deepseek.py
+- https://huggingface.co/deepseek-ai/DeepSeek-V3/blob/main/modeling_deepseek.py
+- https://github.com/deepseek-ai/DeepSeek-V3/blob/main/inference/model.py
 
 # paper
 - [Dropout: A Simple Way to Prevent Neural Networks from Overfitting](https://jmlr.org/papers/volume15/srivastava14a/srivastava14a.pdf)
