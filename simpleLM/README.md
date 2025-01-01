@@ -79,6 +79,7 @@ python3 simpleLM/train.py --model_name=gptLM
 python3 simpleLM/train.py --model_name=block_wise_scaling_gptLM
 python3 simpleLM/train.py --model_name=moeLM
 python3 simpleLM/train.py --model_name=moa_moeLM
+python3 simpleLM/train.py --model_name=mla_moeLM # --model_config_file "mla_moe_config.json" model args from model_config_file 
 
 # plot train/validation loss
 ls loss_*.log | python3 simpleLM/plot.py 
@@ -90,15 +91,18 @@ ls loss_*.log | python3 simpleLM/plot.py
 
 # 参考
 - **https://lena-voita.github.io/nlp_course/language_modeling.html**
-- [ karpathy/min-char-rnn.py](https://gist.github.com/karpathy/d4dee566867f8291f086)
+- [karpathy/min-char-rnn.py](https://gist.github.com/karpathy/d4dee566867f8291f086)
 - https://en.wikipedia.org/wiki/Activation_function
-- https://karpathy.ai/zero-to-hero.html
+- https://karpathy.ai/zero-to-hero.html | https://github.com/karpathy/nn-zero-to-hero
 - https://github.com/karpathy/ng-video-lecture
 - https://github.com/antirez/simple-language-model
 - https://github.com/karpathy/makemore
 - https://github.com/AviSoori1x/makeMoE/blob/main/makeMoE_from_Scratch.ipynb
 - https://github.com/tensorflow/mesh/blob/master/mesh_tensorflow/transformer/moe.py#L384
 - https://github.com/myshell-ai/JetMoE
+- https://huggingface.co/deepseek-ai/DeepSeek-V2-Lite/blob/main/modeling_deepseek.py
+- https://huggingface.co/deepseek-ai/DeepSeek-V3/blob/main/modeling_deepseek.py
+- https://github.com/deepseek-ai/DeepSeek-V3/blob/main/inference/model.py
 
 # paper
 - [Dropout: A Simple Way to Prevent Neural Networks from Overfitting](https://jmlr.org/papers/volume15/srivastava14a/srivastava14a.pdf)
@@ -112,3 +116,7 @@ ls loss_*.log | python3 simpleLM/plot.py
 - [Mixtral of Experts](https://arxiv.org/pdf/2401.04088.pdf)
 - [ModuleFormer: Modularity Emerges from Mixture-of-Experts](https://arxiv.org/pdf/2306.04640.pdf)
 - [JetMoE: Reaching Llama2 Performance with 0.1M Dollars](https://arxiv.org/pdf/2404.07413.pdf)
+- [DeepSeekMoE: Towards Ultimate Expert Specialization in Mixture-of-Experts Language Models](https://arxiv.org/pdf/2401.06066)
+- [Dense Training, Sparse Inference: Rethinking Training of Mixture-of-Experts Language Models](https://arxiv.org/pdf/2404.05567)
+- [**DeepSeek-V2: A Strong, Economical, and Efficient Mixture-of-Experts Language Model**](https://arxiv.org/pdf/2405.04434)(建模训练,模型结构优化)
+- [**DeepSeek-V3 Technical Report**](https://arxiv.org/pdf/2412.19437)(工程优化)

@@ -41,6 +41,9 @@ ffn_multiplier_min = 0.5
 ffn_multiplier_max = 4.0
 ffn_intermediate_divisor = 256
 
+# mla_moeLM
+model_config_file = "mla_moe_config.json"
+
 # ------------
 # bigramLM / mlpLM / gptLM / moeLM / moa_moeLM / block_wise_scaling_gptLM
 model_name = "gptLM"
@@ -247,6 +250,20 @@ match model_name:
             capacity_factor=capacity_factor,
             aux_loss_coef=aux_loss_coef,
         )
+    case "mla_moeLM":
+        from mla_moeLM import MlaSparseMoELanguageModel, ModelArgs
+        import json
+
+        model_config = {}
+        if os.path.exists(model_config_file):
+            with open(model_config_file, "r") as f:
+                model_config = json.load(f)
+                print(json.dumps(model_config, indent=4, sort_keys=True))
+        args = ModelArgs(**model_config)
+        args.vocab_size = vocab_size
+        args.max_seq_len = block_size
+        print(f"model:{model_name} args:{args}")
+        model = MlaSparseMoELanguageModel(args, nn_init=nn_init)
 
 if model is None:
     raise ValueError("Unknown model name")
@@ -301,6 +318,7 @@ loss_file = open(log_name, "w")
 print("Logging to", log_name)
 
 
+model.train()
 minloss = 10  # Track minimum validation loss found so far.
 iter_duration = 0  # iter time
 for iter in range(max_iters):

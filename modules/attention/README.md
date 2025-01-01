@@ -16,9 +16,9 @@ encoder-decoder for seq2seq with attention (e.g.: NMT(Neural Machine Translation
 >
 >LSTM通常需要得到一个向量，再去做任务，常用方式有：
 >
->a. 直接使用最后的hidden state（可能会损失一定的前文信息，难以表达全文）
->b. 对所有step下的hidden state进行等权平均（对所有step一视同仁）。
->c. Attention机制，对所有step的hidden state进行加权，把注意力集中到整段文本中比较重要的hidden state信息。性能比前面两种要好一点，而方便可视化观察哪些step是重要的，但是要小心过拟合，而且也增加了计算量。
+> - 直接使用最后的hidden state（可能会损失一定的前文信息，难以表达全文）
+> - 对所有step下的hidden state进行等权平均（对所有step一视同仁）。
+> - Attention机制，对所有step的hidden state进行加权，把注意力集中到整段文本中比较重要的hidden state信息。性能比前面两种要好一点，而方便可视化观察哪些step是重要的，但是要小心过拟合，而且也增加了计算量。
 
 
 ## CNN + attention
@@ -32,9 +32,9 @@ encoder-decoder for seq2seq with attention (e.g.: NMT(Neural Machine Translation
 >
 >CNN上加Attention可以加在这几方面：
 >
->a. 在卷积操作前做attention，比如Attention-Based CNN-1，这个任务是文本蕴含任务需要处理两段文本，同时对两段输入的序列向量进行attention，计算出特征向量，再拼接到原始向量中，作为卷积层的输入。
->b. 在卷积操作后做attention，比如Attention-Based CNN-2，对两段文本的卷积层的输出做attention，作为pooling层的输入。
->c. 在pooling层做attention，代替max pooling。比如Attention pooling，首先我们用LSTM学到一个比较好的句向量，作为query，然后用CNN先学习到一个特征矩阵作为key，再用query对key产生权重，进行attention，得到最后的句向量。
+> - 在卷积操作前做attention，比如Attention-Based CNN-1，这个任务是文本蕴含任务需要处理两段文本，同时对两段输入的序列向量进行attention，计算出特征向量，再拼接到原始向量中，作为卷积层的输入。
+> - 在卷积操作后做attention，比如Attention-Based CNN-2，对两段文本的卷积层的输出做attention，作为pooling层的输入。
+> - 在pooling层做attention，代替max pooling。比如Attention pooling，首先我们用LSTM学到一个比较好的句向量，作为query，然后用CNN先学习到一个特征矩阵作为key，再用query对key产生权重，进行attention，得到最后的句向量。
 
 
 ## all attention
@@ -49,4 +49,7 @@ encoder-decoder for seq2seq with attention (e.g.: NMT(Neural Machine Translation
 - ⭐⭐️[**Attention? Attention!**](https://lilianweng.github.io/posts/2018-06-24-attention/)
 - ⭐[3blue1brown: Visualizing transformers and attention](https://www.youtube.com/watch?v=KJtZARuO3JY&t=2124s)
 
->Self Attention与传统的Attention机制非常的不同：传统的Attention是基于source端和target端的隐变量（hidden state）计算Attention的，得到的结果是源端的每个词与目标端每个词之间的依赖关系。但Self Attention不同，它分别在source端和target端进行，仅与source input或者target input自身相关的Self Attention，捕捉source端或target端自身的词与词之间的依赖关系；然后再把source端的得到的self Attention加入到target端得到的Attention中，捕捉source端和target端词与词之间的依赖关系。因此，self Attention Attention比传统的Attention mechanism效果要好，主要原因之一是，传统的Attention机制忽略了源端或目标端句子中词与词之间的依赖关系，相对比，self Attention不仅可以得到源端与目标端词与词之间的依赖关系，同时还可以有效获取源端或目标端自身词与词之间的依赖关系
+>Self Attention与传统的Attention机制非常的不同：
+> - 传统的Attention是基于source端和target端的隐变量（hidden state）计算Attention的，得到的结果是源端的每个词与目标端每个词之间的依赖关系。
+> - 但Self Attention不同，它分别在source端和target端进行，仅与source input或者target input自身相关的Self Attention，捕捉source端或target端自身的词与词之间的依赖关系；然后再把source端的得到的self Attention加入到target端得到的Attention中，捕捉source端和target端词与词之间的依赖关系。
+> - 因此，self Attention Attention比传统的Attention mechanism效果要好，主要原因之一是，传统的Attention机制忽略了源端或目标端句子中词与词之间的依赖关系，相对比，self Attention不仅可以得到源端与目标端词与词之间的依赖关系，同时还可以有效获取源端或目标端自身词与词之间的依赖关系
