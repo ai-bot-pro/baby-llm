@@ -79,6 +79,7 @@ python3 simpleLM/train.py --model_name=gptLM
 python3 simpleLM/train.py --model_name=block_wise_scaling_gptLM
 python3 simpleLM/train.py --model_name=moeLM
 python3 simpleLM/train.py --model_name=moa_moeLM
+python3 simpleLM/train.py --model_name=mla_moeLM # --model_config_file "mla_moe_config.json" model args from model_config_file 
 
 # plot train/validation loss
 ls loss_*.log | python3 simpleLM/plot.py 
@@ -115,3 +116,7 @@ ls loss_*.log | python3 simpleLM/plot.py
 - [Mixtral of Experts](https://arxiv.org/pdf/2401.04088.pdf)
 - [ModuleFormer: Modularity Emerges from Mixture-of-Experts](https://arxiv.org/pdf/2306.04640.pdf)
 - [JetMoE: Reaching Llama2 Performance with 0.1M Dollars](https://arxiv.org/pdf/2404.07413.pdf)
+- [DeepSeekMoE: Towards Ultimate Expert Specialization in Mixture-of-Experts Language Models](https://arxiv.org/pdf/2401.06066)
+- [Dense Training, Sparse Inference: Rethinking Training of Mixture-of-Experts Language Models](https://arxiv.org/pdf/2404.05567)
+- [**DeepSeek-V2: A Strong, Economical, and Efficient Mixture-of-Experts Language Model**](https://arxiv.org/pdf/2405.04434)(建模训练,模型结构优化)
+- [**DeepSeek-V3 Technical Report**](https://arxiv.org/pdf/2412.19437)(工程优化)
