@@ -2,7 +2,7 @@
 - [2020. **An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale**](https://arxiv.org/abs/2010.11929)
 - https://github.com/google-research/vision_transformer
 - https://github.com/huggingface/pytorch-image-models/blob/main/timm/models/vision_transformer.py
-- https://github.com/lucidrains/vit-pytorch
+- https://github.com/lucidrains/vit-pytorch (ViTs)
 
 - [2021. **Swin Transformer: Hierarchical Vision Transformer using Shifted Windows**](https://arxiv.org/abs/2103.14030)
 - https://github.com/microsoft/Swin-Transformer
