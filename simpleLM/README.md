@@ -34,7 +34,7 @@ tips: 这里用数据集里的字符集作为一个简单的tokenizer 词表用�
   ![](https://raw.githubusercontent.com/weedge/mypic/master/llm/llm-knowledge-point-all-u-need/3.jpg)
   
 
-> [!TIPS]
+> [!TIP]
 > Transformer Decoder-only 模型 (AR GLM)
 > 为了使模型能够利用序列的顺序，必须注入一些有关序列中标记的相对或绝对位置的信息。在原始Transformer整体模型结构中， 采用“positional encodings”, 使用正弦版本(sinusoidal version), 因为它可以允许模型推断出比训练期间遇到的序列长度更长的序列长度。这里训练简单起见，使用学习的位置嵌入(learned positional embeddings)来代替。(原论文中提到正弦版本positional encodings和learned positional embeddings,产生几乎相同的结果)； 至于后续相关改进， 比如：RoPE 见[../modules/positional](../modules/positional/)
 
