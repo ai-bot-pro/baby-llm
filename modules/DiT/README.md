@@ -5,8 +5,9 @@
 # reference
 - https://en.wikipedia.org/wiki/Diffusion
 - https://en.wikipedia.org/wiki/Non-equilibrium_thermodynamics
-- https://en.wikipedia.org/wiki/Diffusion_model
 - https://en.wikipedia.org/wiki/U-Net
+- https://en.wikipedia.org/wiki/Diffusion_model
+- https://poloclub.github.io/diffusion-explainer/
 - [2013. Auto-Encoding Variational Bayes](https://arxiv.org/abs/1312.6114) (VAE)
 - [2015. U-Net: Convolutional Networks for Biomedical Image Segmentation](https://arxiv.org/abs/1505.04597) (U-Net)
 - [2020. Denoising Diffusion Probabilistic Models](https://arxiv.org/abs/2006.11239), [paper code](https://github.com/hojonathanho/diffusion) | [pytorch DDPM](https://github.com/lucidrains/denoising-diffusion-pytorch) (DDPM use U-Net)
