@@ -10,6 +10,10 @@
 - [2016. Tutorial on Variational Autoencoders](https://arxiv.org/abs/1606.05908)
 - https://ijdykeman.github.io/ml/2016/12/21/cvae.html
 
+## CVAE
+- [2015. Learning Structured Output Representation using Deep Conditional Generative Models](http://papers.nips.cc/paper/5775-learning-structured-output-representation-using-deep-conditional-generati)(CVAE)
+- https://github.com/ucals/cvae
+
 ## VQ-VAE
 - [2017. Neural Discrete Representation Learning](https://arxiv.org/abs/1711.00937) (vector quantizer VQ)
 - https://avdnoord.github.io/homepage/vqvae/
