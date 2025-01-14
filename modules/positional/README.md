@@ -9,6 +9,7 @@
 ------
 - ⭐️ https://kazemnejad.com/blog/transformer_architecture_positional_encoding/
 - https://blog.eleuther.ai/rotary-embeddings/
+- https://nn.labml.ai/transformers/rope/index.html
 - [苏剑林: 让研究人员绞尽脑汁的Transformer位置编码](https://spaces.ac.cn/archives/8130)
 - [**苏剑林: Transformer升级之路：1、Sinusoidal位置编码追根溯源**](https://spaces.ac.cn/archives/8231)
 - [苏剑林: Transformer升级之路：2、博采众长的旋转式位置编码](https://spaces.ac.cn/archives/8265)
