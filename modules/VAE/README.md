@@ -21,3 +21,8 @@
 ## RVQ-VAE
 - [2021. SoundStream: An End-to-End Neural Audio Codec](https://arxiv.org/abs/2107.03312) (residual vector quantizer RVQ)
 - **https://drscotthawley.github.io/blog/posts/2023-06-12-RVQ.html**
+
+## FSQ
+- [2023. Finite Scalar Quantization: VQ-VAE Made Simple](https://arxiv.org/abs/2309.15505) 
+- https://github.com/google-research/google-research/tree/master/fsq
+- https://github.com/lucidrains/vector-quantize-pytorch#finite-scalar-quantization
