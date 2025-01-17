@@ -16,6 +16,8 @@
 - [2021. Diffusion Models Beat GANs on Image Synthesis](https://arxiv.org/abs/2105.05233), [paper code](https://github.com/openai/guided-diffusion) (Diffusion vs GAN)
 - [2021. High-Resolution Image Synthesis with Latent Diffusion Models](https://arxiv.org/abs/2112.10752) ([LDM](https://github.com/CompVis/latent-diffusion), [SD](https://github.com/CompVis/stable-diffusion)) 
 - [2021. UNETR: Transformers for 3D Medical Image Segmentation](https://arxiv.org/abs/2103.10504), [paper code](https://github.com/Project-MONAI/research-contributions/tree/main/UNETR) ( UNETR (U-Net Transformer))
+- [2022. **Classifier-free diffusion guidance**](https://arxiv.org/abs/2207.12598) (CFG)
+- [2022. Video Diffusion Models](https://arxiv.org/abs/2204.03458)
 - **[2023.Scalable Diffusion Models with Transformers](https://www.wpeebles.com/DiT) (DiT from ViT and LDM)**
 - [On the Design Fundamentals of Diffusion Models: A Survey](https://arxiv.org/abs/2306.04542)
 - https://github.com/diff-usion/Awesome-Diffusion-Models
