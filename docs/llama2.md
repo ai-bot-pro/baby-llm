@@ -95,7 +95,7 @@ LlamaConfig {
 }
 ```
 
-![](./llama2.drawio.png)
+![](https://github.com/ai-bot-pro/baby-llm/blob/main/docs/llama2.drawio.png)
 
 
 ## Model-File-Structure
