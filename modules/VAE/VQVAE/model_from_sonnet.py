@@ -3,7 +3,6 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-
 from modules.VAE.VQVAE.base import DEVICE, VQVAEBaseModel
 
 
