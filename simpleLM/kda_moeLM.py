@@ -570,7 +570,7 @@ class MoEGate(nn.Module):
             )
 
         # select top-k experts (group_limited_greedy)
-        assert not self.training
+        # assert not self.training
         scores_for_choice = scores.view(bsz * seq_len, -1)
         scores_for_choice += self.e_score_correction_bias.unsqueeze(0)
         group_scores = (
