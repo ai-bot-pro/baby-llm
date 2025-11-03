@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 import math
 from collections.abc import Callable
-from typing import Literal, Optional, Tuple
+from typing import Literal, Optional
 
 import torch
 import torch.nn.functional as F
@@ -221,10 +221,9 @@ def eager_attention_forward(
         causal_mask = attention_mask[:, :, :, : key_states.shape[-2]]
         attn_weights = attn_weights + causal_mask
 
-    attn_weights = nn.functional.softmax(
-        attn_weights, dim=-1, dtype=torch.float32).to(query.dtype)
-    attn_weights = nn.functional.dropout(
-        attn_weights, p=dropout, training=module.training)
+    # 修复：避免就地操作，使用torch.softmax而不是F.softmax并避免就地操作
+    attn_weights = torch.softmax(attn_weights, dim=-1, dtype=torch.float32).to(query.dtype)
+    attn_weights = torch.nn.functional.dropout(attn_weights, p=dropout, training=module.training)
     attn_output = torch.matmul(attn_weights, value_states)
     attn_output = attn_output.transpose(1, 2).contiguous()
 
@@ -562,7 +561,8 @@ class MoEGate(nn.Module):
         if self.moe_router_activation_func == "sigmoid":
             scores = logits.sigmoid()
         elif self.moe_router_activation_func == "softmax":
-            scores = logits.softmax(dim=1)
+            # 修复：避免就地操作
+            scores = torch.softmax(logits, dim=1)
         else:
             raise NotImplementedError(
                 f"insupportable scoring function for MoE gating: {self.moe_router_activation_func}"
@@ -571,7 +571,7 @@ class MoEGate(nn.Module):
         # select top-k experts (group_limited_greedy)
         # assert not self.training
         scores_for_choice = scores.view(bsz * seq_len, -1)
-        scores_for_choice += self.e_score_correction_bias.unsqueeze(0)
+        scores_for_choice = scores_for_choice + self.e_score_correction_bias.unsqueeze(0)  # 避免使用 +=
         group_scores = (
             scores_for_choice.view(
                 bsz * seq_len, self.num_expert_group, -1).topk(2, dim=-1)[0].sum(dim=-1)
@@ -688,7 +688,7 @@ class SparseMoeBlock(nn.Module):
             y = y.to(hidden_states.dtype).view(*orig_shape)
             y = AddAuxiliaryLoss.apply(y, aux_loss)
         if self.config.n_shared_experts is not None:
-            y = y + self.shared_experts(identity)
+            y = y + self.shared_experts(identity)  # 避免使用 +=
         return y
 
     @torch.no_grad()
@@ -721,10 +721,8 @@ class SparseMoeBlock(nn.Module):
         final_out = (
             new_x.view(*topk_ids.shape, -1)
             .type(topk_weight.dtype)
-            .mul_(topk_weight.unsqueeze(dim=-1))
-            .sum(dim=1)
-            .type(new_x.dtype)
         )
+        final_out = final_out.mul(topk_weight.unsqueeze(dim=-1)).sum(dim=1).type(new_x.dtype)
         return final_out
 
 
@@ -785,7 +783,7 @@ class DecoderLayer(nn.Module):
                 attention_mask=attention_mask,
                 # **kwargs,
             )
-        hidden_states = residual + hidden_states
+        hidden_states = residual + hidden_states  # 避免使用 +=
 
         # Fully Connected
         residual = hidden_states
@@ -794,7 +792,7 @@ class DecoderLayer(nn.Module):
             hidden_states = self.block_sparse_moe(hidden_states)
         else:
             hidden_states = self.mlp(hidden_states)
-        hidden_states = residual + hidden_states
+        hidden_states = residual + hidden_states  # 避免使用 +=
 
         return hidden_states
 
@@ -845,7 +843,9 @@ class KDASparseMoELanguageModel(nn.Module):
         tok_emb = self.token_embedding_table(idx)  # (B,T,C)
         pos_emb = self.position_embedding_table(torch.arange(T, device=self.device))  # (T,C)
         x = tok_emb + pos_emb  # (B,T,C)
-        x = self.blocks(x)  # (B,T,C)
+        # x = self.blocks(x)  # (B,T,C)
+        for block in self.blocks:
+            x = x + block(x)
         x = self.ln_f(x)  # (B,T,C)
         logits = self.lm_head(x)  # (B,T,vocab_size)
 
