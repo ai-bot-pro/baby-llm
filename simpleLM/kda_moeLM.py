@@ -815,7 +815,7 @@ class KDASparseMoELanguageModel(nn.Module):
         # each token directly reads off the logits for the next token from a lookup table
         self.token_embedding_table = nn.Embedding(model_args.vocab_size, model_args.hidden_size)
         self.position_embedding_table = nn.Embedding(model_args.max_seq_len, model_args.hidden_size)
-        self.blocks = nn.Sequential(
+        self.blocks = nn.ModuleList(
             *[DecoderLayer(model_args, i) for i in range(model_args.n_layer)]
         )
         self.ln_f = RMSNorm(
