@@ -122,9 +122,9 @@ def get_batch(split):
     ix = torch.randint(len(data) - block_size, (batch_size,))
     # x = torch.stack([data[i:i+block_size] for i in ix])
     # y = torch.stack([data[i+1:i+block_size+1] for i in ix])
-    x = torch.stack([torch.from_numpy((data[i : i + block_size]).astype(np.int64)) for i in ix])
+    x = torch.stack([torch.from_numpy((data[i: i + block_size]).astype(np.int64)) for i in ix])
     y = torch.stack(
-        [torch.from_numpy((data[i + 1 : i + 1 + block_size]).astype(np.int64)) for i in ix]
+        [torch.from_numpy((data[i + 1: i + 1 + block_size]).astype(np.int64)) for i in ix]
     )
     if device == "cuda":
         # pin arrays x,y, which allows us to move them to GPU asynchronously (non_blocking=True)
@@ -144,14 +144,14 @@ def get_mlp_batch(split):
     x = []
     for i in ix:
         # block = data[i:i+block_size]
-        block = torch.from_numpy((data[i : i + block_size]).astype(np.int64))
+        block = torch.from_numpy((data[i: i + block_size]).astype(np.int64))
         char_tensors = [encoded_patterns[idx] for idx in block]
         char_tensors = torch.stack(char_tensors).view(-1)
         x.append(char_tensors)
     x = torch.stack(x)
     # y = torch.stack([data[i+block_size:i+block_size+1] for i in ix])
     y = torch.stack(
-        [torch.from_numpy((data[i + block_size : i + block_size + 1]).astype(np.int64)) for i in ix]
+        [torch.from_numpy((data[i + block_size: i + block_size + 1]).astype(np.int64)) for i in ix]
     )
     x, y = x.to(device), y.to(device)
 
@@ -264,6 +264,20 @@ match model_name:
         args.max_seq_len = block_size
         print(f"model:{model_name} args:{args}")
         model = MlaSparseMoELanguageModel(args, nn_init=nn_init)
+    case "kda_moeLM":
+        from kda_moeLM import KDASparseMoELanguageModel, ModelArgs
+        import json
+
+        model_config = {}
+        if os.path.exists(model_config_file):
+            with open(model_config_file, "r") as f:
+                model_config = json.load(f)
+                print(json.dumps(model_config, indent=4, sort_keys=True))
+        args = ModelArgs(**model_config)
+        args.vocab_size = vocab_size
+        args.max_seq_len = block_size
+        print(f"model:{model_name} args:{args}")
+        model = KDASparseMoELanguageModel(args, nn_init=nn_init)
 
 if model is None:
     raise ValueError("Unknown model name")

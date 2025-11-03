@@ -90,6 +90,7 @@ python3 simpleLM/train.py --model_name=block_wise_scaling_gptLM
 python3 simpleLM/train.py --model_name=moeLM
 python3 simpleLM/train.py --model_name=moa_moeLM
 python3 simpleLM/train.py --model_name=mla_moeLM # --model_config_file "mla_moe_config.json" model args from model_config_file 
+python3 simpleLM/train.py --model_name=kda_moeLM # --model_config_file "kda_moe_config.json" model args from model_config_file 
 
 # plot train/validation loss
 ls loss_*.log | python3 simpleLM/plot.py 
@@ -121,12 +122,18 @@ ls loss_*.log | python3 simpleLM/plot.py
 - [Character-Level Language Modeling with Deeper Self-Attention](https://arxiv.org/pdf/1808.04444.pdf)
 - [A Neural Probabilistic Language Model](https://www.jmlr.org/papers/volume3/bengio03a/bengio03a.pdf)
 - [**GPT1-Improving Language Understanding by Generative Pre-Training**](https://s3-us-west-2.amazonaws.com/openai-assets/research-covers/language-unsupervised/language_understanding_paper.pdf)
-- [**Outrageosly Large Neural Networks: The Sparsely-Gated Mixture-Of-Experts layer**](https://arxiv.org/pdf/1701.06538.pdf)
-- [**Switch Transformers: Scaling to Trillion Parameter Models with Simple and Efficient Sparsity**](https://arxiv.org/abs/2101.03961)
-- [Mixtral of Experts](https://arxiv.org/pdf/2401.04088.pdf)
-- [ModuleFormer: Modularity Emerges from Mixture-of-Experts](https://arxiv.org/pdf/2306.04640.pdf)
-- [JetMoE: Reaching Llama2 Performance with 0.1M Dollars](https://arxiv.org/pdf/2404.07413.pdf)
-- [DeepSeekMoE: Towards Ultimate Expert Specialization in Mixture-of-Experts Language Models](https://arxiv.org/pdf/2401.06066)
-- [Dense Training, Sparse Inference: Rethinking Training of Mixture-of-Experts Language Models](https://arxiv.org/pdf/2404.05567)
-- [**DeepSeek-V2: A Strong, Economical, and Efficient Mixture-of-Experts Language Model**](https://arxiv.org/pdf/2405.04434)(建模训练,模型结构优化,MAL+MoE)
+- [2017.1 **Outrageosly Large Neural Networks: The Sparsely-Gated Mixture-Of-Experts layer**](https://arxiv.org/pdf/1701.06538.pdf)
+- [2021.1 **Switch Transformers: Scaling to Trillion Parameter Models with Simple and Efficient Sparsity**](https://arxiv.org/abs/2101.03961)
+- [2024.1 Mixtral of Experts](https://arxiv.org/pdf/2401.04088.pdf)
+- [2023.6 ModuleFormer: Modularity Emerges from Mixture-of-Experts](https://arxiv.org/pdf/2306.04640.pdf)
+- [2024.4 JetMoE: Reaching Llama2 Performance with 0.1M Dollars](https://arxiv.org/pdf/2404.07413.pdf)
+- [2024.1 DeepSeekMoE: Towards Ultimate Expert Specialization in Mixture-of-Experts Language Models](https://arxiv.org/pdf/2401.06066)
+- [2024.4 Dense Training, Sparse Inference: Rethinking Training of Mixture-of-Experts Language Models](https://arxiv.org/pdf/2404.05567)
+- [2024.5 **DeepSeek-V2: A Strong, Economical, and Efficient Mixture-of-Experts Language Model**](https://arxiv.org/pdf/2405.04434)(建模训练,模型结构优化,MAL+MoE)
 - [**DeepSeek-V3 Technical Report**](https://arxiv.org/pdf/2412.19437)(模型结构优化：MoE with Auxiliary-Loss-Free Load Balancing 以及 Multi-Token Prediction; 训练推理工程优化：分布式训练，最大利用显存,零气泡(DualPipe),引入FP8进行混合精度训练； 分布式部署推理，将prefilling 和 decoding 拆分（和kimi mooncake类似），prilling 中的并行化：ttention(TP4,SP,DP8), MoE(EP32)/MLP(TP1),高负载的专家并进行冗余部署(10分钟检查监控统计数据检查是否高负载，进行扩容); decoding中的并行化： Attention(TP4,SP,DP80), MoE(EP320),结合硬件进行量化，算子融合操作(fused operation),利用局部性原理，提高吞吐)
+
+---
+Linear Attention:
+- DeltaNets: [2024.6 Parallelizing Linear Transformers with the Delta Rule over Sequence Length](https://arxiv.org/abs/2406.06484)
+- Gated-DeltaNets: [2024.12 Gated Delta Networks: Improving Mamba2 with Delta Rule](https://arxiv.org/abs/2412.06464)
+- MLA+Gated-DeltaNets: [2025.10 Kimi Linear: An Expressive, Efficient Attention Architecture](https://arxiv.org/abs/2510.26692)

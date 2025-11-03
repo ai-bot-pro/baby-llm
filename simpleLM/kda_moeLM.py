@@ -773,14 +773,14 @@ class DecoderLayer(nn.Module):
         hidden_states = self.input_layernorm(hidden_states)
 
         # Self Attention
-        if self.is_linear_attn is False:
+        if self.is_linear_attn is False:  # RoPE for MLA if use RoPE scaling
             hidden_states = self.self_attn(
                 hidden_states=hidden_states,
                 attention_mask=attention_mask,
                 position_ids=position_ids,
                 # **kwargs,
             )
-        else:  # NoPE for DeltaAttention
+        else:  # NoPE for GatedDelta Attention
             hidden_states = self.self_attn(
                 hidden_states=hidden_states,
                 attention_mask=attention_mask,
