@@ -611,20 +611,20 @@ class MoEGate(nn.Module):
             topk_idx_for_aux_loss = topk_idx.view(bsz, -1)
             if self.seq_aux:
                 scores_for_seq_aux = scores_for_aux.view(bsz, seq_len, -1)
-                ce = torch.zeros(bsz, self.n_routed_experts, device=hidden_states.device)
+                ce = torch.zeros(bsz, self.num_experts, device=hidden_states.device)
                 ce.scatter_add_(
                     1,
                     topk_idx_for_aux_loss,
                     torch.ones(bsz, seq_len * aux_topk, device=hidden_states.device),
-                ).div_(seq_len * aux_topk / self.n_routed_experts)
+                ).div_(seq_len * aux_topk / self.num_experts)
                 aux_loss = (ce * scores_for_seq_aux.mean(dim=1)).sum(dim=1).mean() * self.alpha
             else:
                 mask_ce = F.one_hot(
-                    topk_idx_for_aux_loss.view(-1), num_classes=self.n_routed_experts
+                    topk_idx_for_aux_loss.view(-1), num_classes=self.num_experts
                 )
                 ce = mask_ce.float().mean(0)
                 Pi = scores_for_aux.mean(0)
-                fi = ce * self.n_routed_experts
+                fi = ce * self.num_experts
                 aux_loss = (Pi * fi).sum() * self.alpha
 
         return topk_idx, topk_weight, aux_loss
