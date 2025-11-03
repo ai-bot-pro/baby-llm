@@ -2,7 +2,6 @@ from dataclasses import dataclass
 import math
 from collections.abc import Callable
 from typing import Any, Literal, Optional, Tuple
-import logging
 
 import torch
 import torch.nn.functional as F
@@ -26,38 +25,65 @@ kimi-linear model config and modules
 - https://huggingface.co/moonshotai/Kimi-Linear-48B-A3B-Base/blob/main/config.json
 - https://huggingface.co/moonshotai/Kimi-Linear-48B-A3B-Base/blob/main/configuration_kimi.py
 - https://huggingface.co/moonshotai/Kimi-Linear-48B-A3B-Base/blob/main/modeling_kimi.py
+
+# references:
+- MLA: [2024.5 DeepSeek-V2: A Strong, Economical, and Efficient Mixture-of-Experts Language Model](https://arxiv.org/pdf/2405.04434)
+- DeltaNets: [2024.6 Parallelizing Linear Transformers with the Delta Rule over Sequence Length](https://arxiv.org/abs/2406.06484)
+- Gated-DeltaNets: [2024.12 Gated Delta Networks: Improving Mamba2 with Delta Rule](https://arxiv.org/abs/2412.06464)
+- MLA+Gated-DeltaNets: [2025.10 Kimi Linear: An Expressive, Efficient Attention Architecture](https://arxiv.org/abs/2510.26692)
+
+
+baby-llm KISS(👶🏻-🦈) Kimi-Linear model
 """
 
 
 @dataclass
+class LinearAttentionArgs:
+    full_attn_layers: Optional[list[int]] = None
+    kda_layers: Optional[list[int]] = None
+    num_heads: int = 4
+    head_dim: int = 96  # hidden_size//num_heads
+    short_conv_kernel_size: int = 4  # CNN kernel size*size for KDA
+
+
+@dataclass
 class ModelArgs:
+    # Dim(fat) and Layers(deep) scaling
     hidden_size: int = 384  # n_embed or d_model
     vocab_size: int = None
     max_seq_len: int = 256  # block_size for tril mask
-    n_layer: int = 3  # num_layers
+    n_layer: int = 4  # num_layers
 
     # RMS normalization
     rms_norm_eps: float = 1e-5
     # rms_norm_eps: float = 1e-6
 
-    # attention
+    # Self-Attention
+    # mla
     num_heads: int = 4  # n_head
     dropout: float = 0.0
     # attention weight with LoRA rank
-    q_lora_rank: int = 76
-    qk_rope_head_dim: int = 8
+    q_lora_rank: Optional[int] = None
     qk_nope_head_dim: int = 16
+    qk_rope_head_dim: int = 8
     kv_lora_rank: int = 28
     v_head_dim: int = 16
     mla_use_nope: bool = True
-
-    # linear_attn_config
-    linear_attn_config: Optional[dict] = None
+    # linear_attn_config for MLA KDA layers
+    linear_attn_config: Optional[LinearAttentionArgs] = None
 
     # positional embedding use fixed embedding (max_seq_len) context length
     # if want scaling long seq, use RoPE (YaRN)
 
-    # mlp/moe
+    # FFN (MLP/MoE)
+    # - mlp (don't use MoE)
+    intermediate_size: int = 640  # mlp hidden size
+
+    # - mlp/moe
+    # share experts (mlp)
+    # share_experts_intermediate_size: int = moe_intermediate_size * n_shared_experts
+    # moe
+    moe_renormalize: bool = True
     first_k_dense_replace: int = 0  # 0: all MoE
     moe_layer_freq: int = 1
     moe_intermediate_size: int = 128  # MLP/MoE inter hidden size
@@ -96,19 +122,16 @@ class ModelArgs:
             self.linear_attn_config is None
             or (
                 isinstance(self.linear_attn_config, dict)
-                and self.linear_attn_config["kda_layers"] is not None
-                and len(self.linear_attn_config["kda_layers"]) == 0
+                and self.linear_attn_config.kda_layers is not None
+                and len(self.linear_attn_config.kda_layers) == 0
             )
         )
 
     def is_kda_layer(self, layer_idx: int):
         return (
             self.linear_attn_config is not None
-            and (layer_idx + 1) in self.linear_attn_config["kda_layers"]
+            and (layer_idx + 1) in self.linear_attn_config.kda_layers
         )
-
-
-logger = logging.get_logger(__name__)
 
 
 class DynamicCache:
@@ -236,11 +259,11 @@ class RMSNorm(nn.Module):
 
 
 class BlockSparseMLP(nn.Module):
-    def __init__(self, config: ModelArgs, hidden_size=None, intermediate_size=None):
+    def __init__(self, config: ModelArgs):
         super().__init__()
         self.config = config
-        self.ffn_dim = config.intermediate_size if intermediate_size is None else intermediate_size
-        self.hidden_dim = config.hidden_size if hidden_size is None else hidden_size
+        self.ffn_dim = config.moe_intermediate_size
+        self.hidden_dim = config.hidden_size
 
         self.w1 = nn.Linear(self.hidden_dim, self.ffn_dim, bias=False)   # gate
         self.w2 = nn.Linear(self.ffn_dim, self.hidden_dim, bias=False)   # down
@@ -256,10 +279,16 @@ class BlockSparseMLP(nn.Module):
 
 
 class MLP(nn.Module):
-    def __init__(self, config: ModelArgs, hidden_size=None, intermediate_size=None):
+    """
+    for kimi-linear MLP module
+    - non-MoE: MLP as FFN
+    - MoE: MLP as shared expert
+    """
+
+    def __init__(self, config: ModelArgs, intermediate_size=None):
         super().__init__()
         self.config = config
-        self.hidden_size = config.hidden_size if hidden_size is None else hidden_size
+        self.hidden_size = config.hidden_size
         self.intermediate_size = config.intermediate_size if intermediate_size is None else intermediate_size
         self.gate_proj = nn.Linear(
             self.hidden_size, self.intermediate_size, bias=False)
@@ -270,8 +299,7 @@ class MLP(nn.Module):
         self.act_fn = F.silu
 
     def forward(self, x):
-        down_proj = self.down_proj(self.act_fn(
-            self.gate_proj(x)) * self.up_proj(x))
+        down_proj = self.down_proj(self.act_fn(self.gate_proj(x)) * self.up_proj(x))
         return down_proj
 
 
@@ -325,11 +353,13 @@ class MLAAttention(nn.Module):
         self.config = config
         self.layer_idx = layer_idx
         self.hidden_size = config.hidden_size
-        self.num_heads = config.num_attention_heads
-        self.num_key_value_heads = config.num_key_value_heads
+        self.num_heads = config.num_heads
+
+        # for GQA, now set equal to num_heads and just one group
+        # self.num_key_value_heads = config.num_key_value_heads
+        self.num_key_value_heads = config.num_heads
         self.num_key_value_groups = self.num_heads // self.num_key_value_heads
 
-        self.rope_theta = config.rope_theta
         self.attention_dropout = getattr(config, "attention_dropout", 0.0)
 
         try:
@@ -400,8 +430,9 @@ class MLAAttention(nn.Module):
         query_states = torch.cat((q_pass, q_rot), dim=-1)
         key_states = torch.cat((k_pass, k_rot), dim=-1)
 
+        # KISS
+        # now compute attention with eager attention (u can also use flash attention here)
         attention_interface: Callable = eager_attention_forward
-
         attn_output, _ = attention_interface(
             self,
             query_states,
@@ -413,12 +444,14 @@ class MLAAttention(nn.Module):
             **kwargs,
         )
 
-        if self.config._attn_implementation == "flash_attention_2" and self.q_head_dim != self.v_head_dim:
-            attn_output = attn_output[:, :, :, : self.v_head_dim]
-
-        attn_output = attn_output.reshape(
-            batch_size, seq_length, -1).contiguous()
+        attn_output = attn_output.reshape(batch_size, seq_length, -1).contiguous()
         attn_output = self.o_proj(attn_output)
+
+        # add dropout for attention output for small models to train
+        attn_output = nn.functional.dropout(
+            attn_output, p=self.attention_dropout, training=self.training
+        )
+
         return attn_output
 
 
@@ -429,9 +462,9 @@ class DeltaAttention(nn.Module):
         self.mode = "chunk"
 
         self.hidden_size = config.hidden_size
-        self.conv_size = config.linear_attn_config["short_conv_kernel_size"]
-        self.head_dim = config.linear_attn_config["head_dim"]
-        self.num_heads = config.linear_attn_config["num_heads"]
+        self.conv_size = config.linear_attn_config.short_conv_kernel_size
+        self.head_dim = config.linear_attn_config.head_dim
+        self.num_heads = config.linear_attn_config.num_heads
         self.head_k_dim = self.head_dim
         self.num_k_heads = self.num_heads
 
@@ -449,6 +482,7 @@ class DeltaAttention(nn.Module):
             self.hidden_size, projection_k_size, bias=False)
         self.v_proj = nn.Linear(self.hidden_size, projection_size, bias=False)
 
+        # https://github.com/fla-org/flash-linear-attention/blob/main/fla/modules/convolution.py#L793
         self.q_conv1d = ShortConvolution(
             hidden_size=projection_k_size,
             kernel_size=self.conv_size,
@@ -545,7 +579,20 @@ class DeltaAttention(nn.Module):
             x, '... (h d) -> ... h d', d=self.head_k_dim), (q, k))
         v = rearrange(v, '... (h d) -> ... h d', d=self.head_dim)
 
-        if mode == 'chunk':
+        # use triton JIT runtime pre compilation kernel to speed up;
+        # NOTE: don't use torch.compile here
+        if mode == 'chunk':  # for training and short seq inference
+            # https://github.com/fla-org/flash-linear-attention/blob/v0.4.0/fla/ops/kda/chunk.py#L248
+            # https://github.com/fla-org/flash-linear-attention/blob/main/fla/ops/kda/chunk.py#L179
+            # ChunkKDAFunction forward and backward
+            # forward:
+            # https://github.com/fla-org/flash-linear-attention/blob/main/fla/ops/kda/chunk_intra.py#L387
+            # https://github.com/fla-org/flash-linear-attention/blob/main/fla/ops/kda/chunk_intra.py#L27 (inter)
+            # https://github.com/fla-org/flash-linear-attention/blob/main/fla/ops/kda/chunk_intra.py#L117 (intra)
+            # backward:
+            # https://github.com/fla-org/flash-linear-attention/blob/main/fla/ops/kda/chunk_intra.py#L480
+            # https://github.com/fla-org/flash-linear-attention/blob/main/fla/ops/kda/chunk_intra.py#L193 (intra)
+            #
             o, recurrent_state = chunk_kda(
                 q=q,
                 k=k,
@@ -558,6 +605,10 @@ class DeltaAttention(nn.Module):
                 cu_seqlens=cu_seqlens,
             )
         else:
+            # https://github.com/fla-org/flash-linear-attention/blob/v0.4.0/fla/ops/kda/fused_recurrent.py#L11
+            # https://github.com/fla-org/flash-linear-attention/blob/main/fla/ops/gated_delta_rule/fused_recurrent.py#L192
+            # FusedRecurrentFunction forward
+            # https://github.com/fla-org/flash-linear-attention/blob/main/fla/ops/gated_delta_rule/fused_recurrent.py#L21
             o, recurrent_state = fused_recurrent_kda(
                 q=q,
                 k=k,
@@ -588,7 +639,7 @@ class DeltaAttention(nn.Module):
 
 class MoEGate(nn.Module):
     """
-    MoEGate adapted from Deepseek-V3.
+    MoEGate adapted from Deepseek-V2(mla_moeLM).
     Parameter correspondences:
         num_experts -> n_routed_experts
         num_experts_per_token -> num_experts_per_tok
@@ -599,12 +650,12 @@ class MoEGate(nn.Module):
     def __init__(self, config: ModelArgs):
         super().__init__()
         self.config = config
-        self.top_k = config.num_experts_per_token
-        self.num_experts = config.num_experts
+        self.top_k = config.num_experts_per_tok
+        self.num_experts = config.n_routed_experts
         self.routed_scaling_factor = config.routed_scaling_factor
-        self.moe_router_activation_func = config.moe_router_activation_func
-        self.num_expert_group = getattr(config, "num_expert_group", 1)
-        self.topk_group = getattr(config, "topk_group", 1)
+        self.moe_router_activation_func = config.scoring_func
+        self.num_expert_group = config.n_group
+        self.topk_group = config.topk_group
 
         # topk selection algorithm
         self.moe_renormalize = config.moe_renormalize
@@ -627,10 +678,7 @@ class MoEGate(nn.Module):
         bsz, seq_len, h = hidden_states.shape
         # compute gating score
         hidden_states = hidden_states.view(-1, h)
-        logits = F.linear(
-            hidden_states.type(torch.float32), self.weight.type(
-                torch.float32), None
-        )
+        logits = F.linear(hidden_states.type(torch.float32), self.weight.type(torch.float32), None)
         if self.moe_router_activation_func == "sigmoid":
             scores = logits.sigmoid()
         elif self.moe_router_activation_func == "softmax":
@@ -640,7 +688,7 @@ class MoEGate(nn.Module):
                 f"insupportable scoring function for MoE gating: {self.moe_router_activation_func}"
             )
 
-        # select top-k experts
+        # select top-k experts (group_limited_greedy)
         assert not self.training
         scores_for_choice = scores.view(bsz * seq_len, -1)
         scores_for_choice += self.e_score_correction_bias.unsqueeze(0)
@@ -648,9 +696,7 @@ class MoEGate(nn.Module):
             scores_for_choice.view(
                 bsz * seq_len, self.num_expert_group, -1).topk(2, dim=-1)[0].sum(dim=-1)
         )  # [n, num_expert_group]
-        group_idx = torch.topk(
-            group_scores, k=self.topk_group, dim=-1, sorted=False
-        )[
+        group_idx = torch.topk(group_scores, k=self.topk_group, dim=-1, sorted=False)[
             1
         ]  # [n, top_k_group]
         group_mask = torch.zeros_like(group_scores)  # [n, num_expert_group]
@@ -662,11 +708,8 @@ class MoEGate(nn.Module):
             )
             .reshape(bsz * seq_len, -1)
         )  # [n, e]
-        tmp_scores = scores_for_choice.masked_fill(
-            ~score_mask.bool(), 0.0)  # [n, e]
-        _, topk_idx = torch.topk(
-            tmp_scores, k=self.top_k, dim=-1, sorted=False
-        )
+        tmp_scores = scores_for_choice.masked_fill(~score_mask.bool(), 0.0)  # [n, e]
+        _, topk_idx = torch.topk(tmp_scores, k=self.top_k, dim=-1, sorted=False)
         topk_weight = scores.gather(1, topk_idx)
 
         # norm gate to sum 1
@@ -676,54 +719,95 @@ class MoEGate(nn.Module):
         # must multiply the scaling factor
         topk_weight = topk_weight * self.routed_scaling_factor
 
-        return topk_idx, topk_weight
+        # expert-level computation auxiliary loss
+        aux_loss = None
+        if self.training and self.alpha > 0.0:
+            scores_for_aux = scores
+            aux_topk = self.top_k
+            # always compute aux loss based on the naive greedy topk method
+            topk_idx_for_aux_loss = topk_idx.view(bsz, -1)
+            if self.seq_aux:
+                scores_for_seq_aux = scores_for_aux.view(bsz, seq_len, -1)
+                ce = torch.zeros(bsz, self.n_routed_experts, device=hidden_states.device)
+                ce.scatter_add_(
+                    1,
+                    topk_idx_for_aux_loss,
+                    torch.ones(bsz, seq_len * aux_topk, device=hidden_states.device),
+                ).div_(seq_len * aux_topk / self.n_routed_experts)
+                aux_loss = (ce * scores_for_seq_aux.mean(dim=1)).sum(dim=1).mean() * self.alpha
+            else:
+                mask_ce = F.one_hot(
+                    topk_idx_for_aux_loss.view(-1), num_classes=self.n_routed_experts
+                )
+                ce = mask_ce.float().mean(0)
+                Pi = scores_for_aux.mean(0)
+                fi = ce * self.n_routed_experts
+                aux_loss = (Pi * fi).sum() * self.alpha
+
+        return topk_idx, topk_weight, aux_loss
+
+
+class AddAuxiliaryLoss(torch.autograd.Function):
+    """
+    The trick function of adding auxiliary (aux) loss,
+    which includes the gradient of the aux loss during backpropagation.
+    """
+
+    @staticmethod
+    def forward(ctx, x: torch.Tensor, loss):
+        assert loss.numel() == 1
+        ctx.dtype = loss.dtype
+        ctx.required_aux_loss = loss.requires_grad
+        return x
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        grad_loss = None
+        if ctx.required_aux_loss:
+            grad_loss = torch.ones(1, dtype=ctx.dtype, device=grad_output.device)
+        return grad_output, grad_loss
 
 
 class SparseMoeBlock(nn.Module):
     """
-    Adapted from Deepseek-V3's MOE implementation
-    The namings are consistent with Kimi's version.
+    Adapted from Deepseek-V2's MOE implementation
     """
 
     def __init__(self, config: ModelArgs):
         super().__init__()
         self.config = config
-        self.hidden_dim = config.hidden_size
-        self.num_experts = config.num_experts
-        self.top_k = config.num_experts_per_token
-        self.moe_renormalize = config.moe_renormalize
 
-        self.ep_size = 1
-        self.experts_per_rank = config.num_experts
-        self.ep_rank = 0
+        self.experts_per_rank = config.n_routed_experts
+        self.ep_rank = 0  # for single gpu
         self.experts = nn.ModuleList(
             [
-                BlockSparseMLP(
-                    config, intermediate_size=config.moe_intermediate_size
-                )
-                for _ in range(config.num_experts)
+                BlockSparseMLP(config)
+                for _ in range(config.n_routed_experts)
             ]
         )
         self.gate = MoEGate(config)
-        if config.num_shared_experts is not None:
-            intermediate_size = config.moe_intermediate_size * config.num_shared_experts
-            self.shared_experts = MLP(
-                config=config, intermediate_size=intermediate_size
-            )
+        if config.n_shared_experts is not None:
+            intermediate_size = config.moe_intermediate_size * config.n_shared_experts
+            self.shared_experts = MLP(config=config, intermediate_size=intermediate_size)
 
-    def forward(self, hidden_states):
+    def forward(self, hidden_states: torch.Tensor):
         identity = hidden_states
         orig_shape = hidden_states.shape
-        topk_idx, topk_weight = self.gate(hidden_states)
+        topk_idx, topk_weight, aux_loss = self.gate(hidden_states)
         hidden_states = hidden_states.view(-1, hidden_states.shape[-1])
         flat_topk_idx = topk_idx.view(-1)
         if not self.training:
-            y = self.moe_infer(hidden_states, topk_idx,
-                               topk_weight).view(*orig_shape)
+            y = self.moe_infer(hidden_states, topk_idx, topk_weight).view(*orig_shape)
         else:
-            raise NotImplementedError(
-                "Training mode is not supported in SparseMoeBlock")
-        if self.config.num_shared_experts is not None:
+            # raise NotImplementedError("Training mode is not supported in SparseMoeBlock")
+            hidden_states = hidden_states.repeat_interleave(self.num_experts_per_tok, dim=0)
+            y = torch.empty_like(hidden_states)
+            for i, expert in enumerate(self.experts):
+                y[flat_topk_idx == i] = expert(hidden_states[flat_topk_idx == i])
+            y = (y.view(*topk_weight.shape, -1) * topk_weight.unsqueeze(-1)).sum(dim=1)
+            y = y.to(hidden_states.dtype).view(*orig_shape)
+            y = AddAuxiliaryLoss.apply(y, aux_loss)
+        if self.config.n_shared_experts is not None:
             y = y + self.shared_experts(identity)
         return y
 
@@ -771,19 +855,17 @@ class DecoderLayer(nn.Module):
         self.config = config
         if config.is_kda_layer(layer_idx):
             self.is_linear_attn = True
-            self.self_attn = DeltaAttention(
-                config=config, layer_idx=layer_idx)
+            self.self_attn = DeltaAttention(config=config, layer_idx=layer_idx)
         elif config.is_mla:
             self.is_linear_attn = False
-            self.self_attn = MLAAttention(
-                config=config, layer_idx=layer_idx)
+            self.self_attn = MLAAttention(config=config, layer_idx=layer_idx)
         else:
             raise NotImplementedError
 
         if (
-            config.num_experts is not None
+            config.n_routed_experts is not None
             and layer_idx >= config.first_k_dense_replace
-            and layer_idx % getattr(config, "moe_layer_freq", 1) == 0
+            and layer_idx % config.moe_layer_freq == 0
         ):
             self.block_sparse_moe = SparseMoeBlock(config)
         else:
@@ -806,15 +888,6 @@ class DecoderLayer(nn.Module):
         """
         Args:
             hidden_states (`torch.FloatTensor`): input to the layer of shape `(batch, seq_len, embed_dim)`
-            attention_mask (`torch.FloatTensor`, *optional*): attention mask of size
-                `(batch, 1, tgt_len, src_len)` where padding elements are indicated by very large negative values.
-            output_attentions (`bool`, *optional*):
-                Whether or not to return the attentions tensors of all attention layers. See `attentions` under
-                returned tensors for more detail.
-            use_cache (`bool`, *optional*):
-                If set to `True`, `past_key_values` key value states are returned and can be used to speed up decoding
-                (see `past_key_values`).
-            past_key_value (`Tuple(torch.FloatTensor)`, *optional*): cached past key and value projection states
         """
 
         residual = hidden_states
@@ -936,11 +1009,139 @@ class KDASparseMoELanguageModel(nn.Module):
         return output
 
 
-# python3 simpleLM/kda_moeLM.py
+"""
+python3 simpleLM/kda_moeLM.py
+"""
 if __name__ == "__main__":
+    import os
+    os.getenv("TOKENIZERS_PARALLELISM", "false")
+
     args = ModelArgs(vocab_size=26)
     print(args)
     model = KDASparseMoELanguageModel(args)
-    print(model)
     model_million_params = sum(p.numel() for p in model.parameters()) / 1e6
     print(model_million_params, "M parameters")
+    print(model)
+
+
+"""
+# MLA + MoE LM configuration example output:
+
+ModelArgs(hidden_size=384, vocab_size=26, max_seq_len=256, n_layer=4, rms_norm_eps=1e-05, num_heads=4, dropout=0.0, q_lora_rank=None, qk_nope_head_dim=16, qk_rope_head_dim=8, kv_lora_rank=28, v_head_dim=16, mla_use_nope=True, linear_attn_config=None, intermediate_size=640, moe_renormalize=True, first_k_dense_replace=0, moe_layer_freq=1, moe_intermediate_size=128, num_experts_per_tok=4, n_routed_experts=4, n_shared_experts=1, routed_scaling_factor=1.0, scoring_func='softmax', aux_loss_alpha=0.001, seq_aux=True, norm_topk_prob=False, topk_method='greedy', topk_group=1, n_group=1, ep_size=1)
+
+3.392538 M parameters
+
+KDASparseMoELanguageModel(
+  (token_embedding_table): Embedding(26, 384)
+  (position_embedding_table): Embedding(256, 384)
+  (blocks): Sequential(
+    (0): DecoderLayer(
+      (self_attn): MLAAttention(
+        (q_proj): Linear(in_features=384, out_features=96, bias=False)
+        (kv_a_proj_with_mqa): Linear(in_features=384, out_features=36, bias=False)
+        (kv_a_layernorm): RMSNorm()
+        (kv_b_proj): Linear(in_features=28, out_features=128, bias=False)
+        (o_proj): Linear(in_features=64, out_features=384, bias=False)
+      )
+      (block_sparse_moe): SparseMoeBlock(
+        (experts): ModuleList(
+          (0-3): 4 x BlockSparseMLP(
+            (w1): Linear(in_features=384, out_features=128, bias=False)
+            (w2): Linear(in_features=128, out_features=384, bias=False)
+            (w3): Linear(in_features=384, out_features=128, bias=False)
+          )
+        )
+        (gate): MoEGate()
+        (shared_experts): MLP(
+          (gate_proj): Linear(in_features=384, out_features=128, bias=False)
+          (up_proj): Linear(in_features=384, out_features=128, bias=False)
+          (down_proj): Linear(in_features=128, out_features=384, bias=False)
+        )
+      )
+      (input_layernorm): RMSNorm()
+      (post_attention_layernorm): RMSNorm()
+    )
+    (1): DecoderLayer(
+      (self_attn): MLAAttention(
+        (q_proj): Linear(in_features=384, out_features=96, bias=False)
+        (kv_a_proj_with_mqa): Linear(in_features=384, out_features=36, bias=False)
+        (kv_a_layernorm): RMSNorm()
+        (kv_b_proj): Linear(in_features=28, out_features=128, bias=False)
+        (o_proj): Linear(in_features=64, out_features=384, bias=False)
+      )
+      (block_sparse_moe): SparseMoeBlock(
+        (experts): ModuleList(
+          (0-3): 4 x BlockSparseMLP(
+            (w1): Linear(in_features=384, out_features=128, bias=False)
+            (w2): Linear(in_features=128, out_features=384, bias=False)
+            (w3): Linear(in_features=384, out_features=128, bias=False)
+          )
+        )
+        (gate): MoEGate()
+        (shared_experts): MLP(
+          (gate_proj): Linear(in_features=384, out_features=128, bias=False)
+          (up_proj): Linear(in_features=384, out_features=128, bias=False)
+          (down_proj): Linear(in_features=128, out_features=384, bias=False)
+        )
+      )
+      (input_layernorm): RMSNorm()
+      (post_attention_layernorm): RMSNorm()
+    )
+    (2): DecoderLayer(
+      (self_attn): MLAAttention(
+        (q_proj): Linear(in_features=384, out_features=96, bias=False)
+        (kv_a_proj_with_mqa): Linear(in_features=384, out_features=36, bias=False)
+        (kv_a_layernorm): RMSNorm()
+        (kv_b_proj): Linear(in_features=28, out_features=128, bias=False)
+        (o_proj): Linear(in_features=64, out_features=384, bias=False)
+      )
+      (block_sparse_moe): SparseMoeBlock(
+        (experts): ModuleList(
+          (0-3): 4 x BlockSparseMLP(
+            (w1): Linear(in_features=384, out_features=128, bias=False)
+            (w2): Linear(in_features=128, out_features=384, bias=False)
+            (w3): Linear(in_features=384, out_features=128, bias=False)
+          )
+        )
+        (gate): MoEGate()
+        (shared_experts): MLP(
+          (gate_proj): Linear(in_features=384, out_features=128, bias=False)
+          (up_proj): Linear(in_features=384, out_features=128, bias=False)
+          (down_proj): Linear(in_features=128, out_features=384, bias=False)
+        )
+      )
+      (input_layernorm): RMSNorm()
+      (post_attention_layernorm): RMSNorm()
+    )
+    (3): DecoderLayer(
+      (self_attn): MLAAttention(
+        (q_proj): Linear(in_features=384, out_features=96, bias=False)
+        (kv_a_proj_with_mqa): Linear(in_features=384, out_features=36, bias=False)
+        (kv_a_layernorm): RMSNorm()
+        (kv_b_proj): Linear(in_features=28, out_features=128, bias=False)
+        (o_proj): Linear(in_features=64, out_features=384, bias=False)
+      )
+      (block_sparse_moe): SparseMoeBlock(
+        (experts): ModuleList(
+          (0-3): 4 x BlockSparseMLP(
+            (w1): Linear(in_features=384, out_features=128, bias=False)
+            (w2): Linear(in_features=128, out_features=384, bias=False)
+            (w3): Linear(in_features=384, out_features=128, bias=False)
+          )
+        )
+        (gate): MoEGate()
+        (shared_experts): MLP(
+          (gate_proj): Linear(in_features=384, out_features=128, bias=False)
+          (up_proj): Linear(in_features=384, out_features=128, bias=False)
+          (down_proj): Linear(in_features=128, out_features=384, bias=False)
+        )
+      )
+      (input_layernorm): RMSNorm()
+      (post_attention_layernorm): RMSNorm()
+    )
+  )
+  (ln_f): RMSNorm()
+  (lm_head): Linear(in_features=384, out_features=26, bias=True)
+)
+
+"""

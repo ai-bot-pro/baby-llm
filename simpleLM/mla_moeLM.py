@@ -192,8 +192,8 @@ class MLA(nn.Module):
                 f"`attn_output` should be of size {(B, self.num_heads, T, self.v_head_dim)}, but is"
                 f" {attn_output.size()}"
             )
-
         attn_output = attn_output.transpose(1, 2).contiguous()
+
         attn_output = attn_output.reshape(B, T, self.num_heads * self.v_head_dim)
         attn_output = self.o_proj(attn_output)
 
