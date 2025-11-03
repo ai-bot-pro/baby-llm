@@ -537,6 +537,8 @@ class MoEGate(nn.Module):
         self.moe_router_activation_func = config.scoring_func
         self.num_expert_group = config.n_group
         self.topk_group = config.topk_group
+        self.alpha = config.aux_loss_alpha
+        self.seq_aux = config.seq_aux
 
         # topk selection algorithm
         self.moe_renormalize = config.moe_renormalize
