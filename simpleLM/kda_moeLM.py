@@ -115,13 +115,10 @@ class ModelArgs:
 
     @property
     def is_linear_attn(self) -> bool:
-        return not (
-            self.linear_attn_config is None
-            or (
-                isinstance(self.linear_attn_config, dict)
-                and self.linear_attn_config.kda_layers is not None
-                and len(self.linear_attn_config.kda_layers) == 0
-            )
+        return (
+            self.linear_attn_config is not None
+            and self.linear_attn_config.kda_layers is not None
+            and len(self.linear_attn_config.kda_layers) > 0
         )
 
     def is_kda_layer(self, layer_idx: int):
@@ -683,7 +680,7 @@ class SparseMoeBlock(nn.Module):
             y = self.moe_infer(hidden_states, topk_idx, topk_weight).view(*orig_shape)
         else:
             # raise NotImplementedError("Training mode is not supported in SparseMoeBlock")
-            hidden_states = hidden_states.repeat_interleave(self.num_experts_per_tok, dim=0)
+            hidden_states = hidden_states.repeat_interleave(self.config.num_experts_per_tok, dim=0)
             y = torch.empty_like(hidden_states)
             for i, expert in enumerate(self.experts):
                 y[flat_topk_idx == i] = expert(hidden_states[flat_topk_idx == i])
