@@ -7,6 +7,7 @@
 > 原始代码实现, 比如: [facebookresearch/fairseq](https://github.com/facebookresearch/fairseq), [tensorflow/tensor2tensor](https://github.com/tensorflow/tensor2tensor), [google-research/big_vision](https://github.com/google-research/big_vision)
 > 不过归根结底还是需要落到原始论文出处，了解所要解决的问题，分析思路，和实验步骤，提升点。
 > 如果提供实现源码，可以加深理解，尽可能用小数据集来测试复现。
+> 了解了模型结构，可针对性的考虑serving阶段的inference推理优化（工程优化）~
 
 # DL
 - [Yann LeCun, Yoshua Bengio, Geoffrey Hinton 2015: Deep learning](https://www.cs.toronto.edu/~hinton/absps/NatureDeepReview.pdf)
